@@ -3,7 +3,6 @@
   align-items: center;
   justify-content: center;
   margin: auto;
-  width: 100vw;
   position: relative;
   --nav-fade-size: 15em;
   -mask-image: linear-gradient(to right, transparent, #000 var(--nav-fade-size), #000 calc(100% - var(--nav-fade-size)), transparent);

@@ -224,7 +224,7 @@ const translations: Record<Locale, Translation> = {
       from: "Սկսած",
       perNight: "/ գիշեր",
       reviews: "ստուգված կարծիք",
-      cta: "Պահել սենյակը",
+      cta: "Ամրագրել",
     },
     auth: {
       checking: "Ստուգում...",

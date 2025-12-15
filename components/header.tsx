@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import AuthActions from "@/components/auth-actions";
 import GradualBlur from "@/components/GradualBlur";
@@ -11,6 +11,9 @@ export default function Header() {
   const t = useTranslations();
   const menuId = useId();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileHeaderHidden, setMobileHeaderHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+  const scrollRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     const mql = window.matchMedia("(min-width: 768px)");
@@ -38,8 +41,45 @@ export default function Header() {
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.innerWidth > 450) return;
+      if (mobileMenuOpen) return;
+      if (scrollRafRef.current !== null) return;
+
+      scrollRafRef.current = window.requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+
+        const currentY = Math.max(0, window.scrollY || 0);
+        const lastY = lastScrollYRef.current;
+        lastScrollYRef.current = currentY;
+
+        const isAtTop = currentY <= 0;
+        const isScrollingDown = currentY > lastY;
+        const isScrollingUp = currentY < lastY;
+
+        setMobileHeaderHidden((prev) => {
+          if (!prev && isScrollingDown && currentY > 80) return true;
+          if (prev && (isScrollingUp || isAtTop)) return false;
+          if (!prev && isAtTop) return false;
+          return prev;
+        });
+      });
+    };
+
+    lastScrollYRef.current = Math.max(0, window.scrollY || 0);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [mobileMenuOpen]);
+
   return (
-    <header>
+    <header data-hidden={mobileHeaderHidden ? "true" : "false"}>
       <GradualBlur
         target="page"
         position="top"

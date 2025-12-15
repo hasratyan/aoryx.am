@@ -13,12 +13,12 @@ type Props = {
   copy: HotelCardCopy;
 };
 
-const formatPrice = (amount: number, currency: string) =>
-  new Intl.NumberFormat("en", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+// const formatPrice = (amount: number, currency: string) =>
+//   new Intl.NumberFormat("en", {
+//     style: "currency",
+//     currency,
+//     maximumFractionDigits: 0,
+//   }).format(amount);
 
 export default function HotelCard({ hotel, copy }: Props) {
   return (
@@ -34,7 +34,7 @@ export default function HotelCard({ hotel, copy }: Props) {
         <div className="header">
           <div>
             <h3>{hotel.name}</h3>
-            <p className="location">{hotel.location}</p>
+            <p className="location"><span className="material-symbols-rounded">location_on</span>{hotel.location}</p>
           </div>
           <span className="rating">{hotel.rating.toFixed(1)} ★</span>
         </div>
@@ -46,13 +46,14 @@ export default function HotelCard({ hotel, copy }: Props) {
         <div className="footer">
           <div>
             <p className="price">
-              {copy.from} {formatPrice(hotel.priceFrom, hotel.currency)} <small>{copy.perNight}</small>
+              {copy.from} {hotel.currency}{hotel.priceFrom} <small>{copy.perNight}</small>
             </p>
             <p className="reviews">
               {hotel.reviews.toLocaleString()} {copy.reviews}
             </p>
           </div>
           <button type="button">
+            <span className="material-symbols-rounded">notifications_active</span>
             {copy.cta}
           </button>
         </div>
