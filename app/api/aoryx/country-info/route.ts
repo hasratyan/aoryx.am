@@ -22,21 +22,41 @@ interface CountryInfoResponse {
   data?: CountryInfoItem[] | null;
 }
 
-// Helper to normalize destination IDs
-function normalizeParentDestinationId(rawId?: string): string | null {
-  if (!rawId) return null;
-  const trimmed = rawId.trim();
-  if (!trimmed) return null;
+// Helper to convert value to string
+function toStringValue(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return value.toString();
+  return null;
+}
 
-  // Extract numeric part before any dash
-  const match = trimmed.match(/^(\d+)/);
-  return match ? match[1] : null;
+// Helper to normalize destination IDs - matches megatours implementation
+function normalizeParentDestinationId(rawId: string | null | undefined): string | null {
+  const value = toStringValue(rawId);
+  if (!value) return null;
+
+  const parts = value.split("-").map((part) => part.trim()).filter((part) => part.length > 0);
+  if (parts.length === 0) {
+    return value;
+  }
+
+  // Find the last non-zero part
+  const nonZero = [...parts].reverse().find((part) => part !== "0");
+  return nonZero ?? parts[parts.length - 1];
 }
 
 // Check if destination ID has trailing zero format (e.g., "160-0")
-function hasTrailingZeroDestinationId(rawId: string): boolean {
-  return /^\d+-0$/.test(rawId.trim());
+function hasTrailingZeroDestinationId(rawId: string | null | undefined): boolean {
+  const value = toStringValue(rawId);
+  if (!value) return false;
+
+  const parts = value.split("-").map((part) => part.trim()).filter((part) => part.length > 0);
+  if (parts.length === 0) return false;
+
+  return parts[parts.length - 1] === "0";
 }
+
+// Destination IDs to exclude from the list
+const EXCLUDED_DESTINATION_IDS = new Set(["650", "650-0"]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -115,8 +135,9 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Convert to array format for frontend
+    // Convert to array format for frontend, filtering out excluded destinations
     const destinations = Array.from(destinationsByParent.values())
+      .filter((dest) => !EXCLUDED_DESTINATION_IDS.has(dest.id) && !EXCLUDED_DESTINATION_IDS.has(dest.rawId))
       .map((dest) => ({
         id: dest.id,
         name: dest.name,

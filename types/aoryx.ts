@@ -93,63 +93,159 @@ export interface AoryxHotelsInfoByDestinationIdResponse {
   [key: string]: unknown;
 }
 
-// Search response types (API response uses camelCase)
+export interface AoryxHotelInfoRequest {
+  hotelCode: string;
+}
+
+export interface AoryxHotelInfoAddress {
+  Line1?: string | null;
+  Line2?: string | null;
+  CountryCode?: string | null;
+  CountryName?: string | null;
+  CityName?: string | null;
+  StateCode?: string | null;
+  ZipCode?: string | null;
+  [key: string]: unknown;
+}
+
+export interface AoryxHotelInfoGeocode {
+  Lat?: number | null;
+  Lon?: number | null;
+}
+
+export interface AoryxHotelInfoContact {
+  PhoneNo?: string | null;
+  FaxNo?: string | null;
+  Website?: string | null;
+}
+
+export interface AoryxHotelInformation {
+  SystemId?: string | null;
+  Name?: string | null;
+  Address?: AoryxHotelInfoAddress | null;
+  GeoCode?: AoryxHotelInfoGeocode | null;
+  Rating?: number | null;
+  TripAdvisorRating?: number | null;
+  TripAdvisorUrl?: string | null;
+  Contact?: AoryxHotelInfoContact | null;
+  CurrencyCode?: string | null;
+  ImageUrl?: string | null;
+  ImageUrls?: string[] | null;
+  [key: string]: unknown;
+}
+
+export interface AoryxHotelInfoResponse {
+  IsSuccess?: boolean;
+  StatusCode?: number;
+  ExceptionMessage?: string | null;
+  Errors?: unknown;
+  HotelInformation?: AoryxHotelInformation | null;
+  [key: string]: unknown;
+}
+
+export interface AoryxRoomDetailsRequest {
+  hotelCode: string;
+  searchParameter: AoryxSearchParameter;
+  sessionId?: string | null;
+}
+
+export interface AoryxRoomDetailItem {
+  RoomCode?: string | null;
+  RoomName?: string | null;
+  RoomType?: string | null;
+  RoomIndex?: string | number | null;
+  RateKey?: string | null;
+  BoardType?: string | null;
+  MealType?: string | null;
+  MealPlan?: string | null;
+  Refundable?: boolean | string | number | null;
+  IsRefundable?: boolean | string | number | null;
+  NonRefundable?: boolean | string | number | null;
+  Currency?: string | null;
+  CurrencyCode?: string | null;
+  TotalPrice?: unknown;
+  Price?: unknown;
+  NetRate?: unknown;
+  RoomRate?: unknown;
+  AvailableRooms?: number | string | null;
+  CancellationPolicy?: unknown;
+  [key: string]: unknown;
+}
+
+export interface AoryxRoomDetailsResponse {
+  IsSuccess?: boolean;
+  StatusCode?: number;
+  ExceptionMessage?: string | null;
+  Errors?: unknown;
+  RoomDetails?: {
+    RoomDetail?: AoryxRoomDetailItem | AoryxRoomDetailItem[];
+  } | null;
+  HotelRooms?: {
+    HotelRoom?: AoryxRoomDetailItem | AoryxRoomDetailItem[];
+  } | null;
+  Rooms?: {
+    Room?: AoryxRoomDetailItem | AoryxRoomDetailItem[];
+  } | AoryxRoomDetailItem[] | null;
+  [key: string]: unknown;
+}
+
+// Search response types (API response uses PascalCase)
 export interface AoryxSearchHotelInfo {
-  code?: string | null;
-  spHotelCode?: string | null;
-  name?: string | null;
-  image?: string | null;
-  description?: string | null;
-  starRating?: string | null;
-  lat?: string | null;
-  lon?: string | null;
-  add1?: string | null;
-  add2?: string | null;
-  city?: string | null;
-  location?: string | null;
-  hotelRemarks?: string | null;
-  checkinInstruction?: string | null;
-  checkOutInstruction?: string | null;
+  Code?: string | null;
+  SpHotelCode?: string | null;
+  Name?: string | null;
+  Image?: string | null;
+  Description?: string | null;
+  StarRating?: string | null;
+  Lat?: string | null;
+  Lon?: string | null;
+  Add1?: string | null;
+  Add2?: string | null;
+  City?: string | null;
+  Location?: string | null;
+  HotelRemarks?: string | null;
+  CheckinInstruction?: string | null;
+  CheckOutInstruction?: string | null;
 }
 
 export interface AoryxSearchHotel {
-  code?: string | null;
-  name?: string | null;
-  groupCode?: number | null;
-  supplierGroupCode?: number | null;
-  supplierShortCode?: string | null;
-  minPrice?: number | null;
-  supplierMinPrice?: number | null;
-  supplierCurrency?: string | null;
-  hotelInfo?: AoryxSearchHotelInfo | null;
-  rooms?: unknown;
+  Code?: string | null;
+  Name?: string | null;
+  GroupCode?: number | null;
+  SupplierGroupCode?: number | null;
+  SupplierShortCode?: string | null;
+  MinPrice?: number | null;
+  SupplierMinPrice?: number | null;
+  SupplierCurrency?: string | null;
+  HotelInfo?: AoryxSearchHotelInfo | null;
+  Rooms?: unknown;
 }
 
 export interface AoryxSearchResponse {
-  generalInfo?: {
-    sessionId?: string | null;
+  GeneralInfo?: {
+    SessionId?: string | null;
     [key: string]: unknown;
   };
-  monetary?: {
-    currency?: {
-      code?: string | null;
+  Monetary?: {
+    Currency?: {
+      Code?: string | null;
     };
   };
-  audit?: {
-    propertyCount?: number | null;
-    responseTime?: string | null;
-    destination?: {
-      code?: string | null;
-      name?: string | null;
+  Audit?: {
+    PropertyCount?: number | null;
+    ResponseTime?: string | null;
+    Destination?: {
+      Code?: string | null;
+      Text?: string | null;
     } | null;
   };
-  hotels?: {
-    hotel?: AoryxSearchHotel | AoryxSearchHotel[];
+  Hotels?: {
+    Hotel?: AoryxSearchHotel | AoryxSearchHotel[];
   };
-  isSuccess?: boolean;
-  statusCode?: number;
-  exceptionMessage?: string | null;
-  errors?: unknown;
+  IsSuccess?: boolean;
+  StatusCode?: number;
+  ExceptionMessage?: string | null;
+  Errors?: unknown;
   [key: string]: unknown;
 }
 
@@ -190,4 +286,44 @@ export interface HotelInfo {
   imageUrl: string | null;
   latitude: number | null;
   longitude: number | null;
+}
+
+export interface AoryxHotelInfoResult {
+  systemId: string | null;
+  name: string | null;
+  rating: number | null;
+  tripAdvisorRating: number | null;
+  tripAdvisorUrl: string | null;
+  currencyCode: string | null;
+  imageUrl: string | null;
+  imageUrls: string[];
+  address: {
+    line1: string | null;
+    line2: string | null;
+    countryCode: string | null;
+    countryName: string | null;
+    cityName: string | null;
+    stateCode: string | null;
+    zipCode: string | null;
+  } | null;
+  geoCode: {
+    lat: number | null;
+    lon: number | null;
+  } | null;
+  contact: {
+    phone: string | null;
+    fax: string | null;
+    website: string | null;
+  } | null;
+}
+
+export interface AoryxRoomOption {
+  id: string;
+  name: string | null;
+  boardType: string | null;
+  refundable: boolean | null;
+  currency: string | null;
+  totalPrice: number | null;
+  availableRooms: number | null;
+  cancellationPolicy: string | null;
 }

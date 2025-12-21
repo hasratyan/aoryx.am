@@ -5,6 +5,7 @@ import 'material-symbols';
 import Header from "@/components/header";
 import Providers from "@/components/providers";
 import "./globals.css";
+import Footer from "@/components/footer";
 
 // const body = Google_Sans({
 //   subsets: ["latin"],
@@ -14,7 +15,7 @@ import "./globals.css";
 // });
 
 export const metadata: Metadata = {
-  title: "AORYX UAE հյուրանոցներ | Ուղիղ ամրագրում բոլոր էմիրաթներում",
+  title: "MEGATOURS | Ուղիղ ամրագրում բոլոր էմիրաթներում",
   description:
     "Ամրագրիր UAE հյուրանոցներ AORYX-ով՝ Դուբայ, Աբու Դաբի և ավելին. Բոնուսներ, թափանցիկ գներ և Google մուտք արագ ամրագրման համար։",
 };
@@ -44,7 +45,7 @@ export default function RootLayout({children,}: Readonly<{
         <div className="page">
           <Header />
           {children}
-          <footer>&copy; 2026 | MEGATOURS</footer>
+          <Footer />
         </div>
       </Providers>
     </body>

@@ -12,7 +12,7 @@ import { enGB, hy, ru } from "date-fns/locale";
 import { useLanguage } from "@/components/language-provider";
 import StarBorder from '@/components/StarBorder'
 import { postJson } from "@/lib/api-helpers";
-import type { HotelInfo } from "@/types/aoryx";
+import type { AoryxSearchParams, HotelInfo } from "@/types/aoryx";
 import type { Locale as AppLocale } from "@/lib/i18n";
 
 // Types
@@ -166,6 +166,10 @@ type Props = {
   presetHotel?: { id: string; label?: string };
   initialDateRange?: { startDate: Date; endDate: Date };
   initialRooms?: RoomConfig[];
+  onSubmitSearch?: (
+    payload: AoryxSearchParams,
+    params: URLSearchParams
+  ) => void | Promise<void>;
 };
 
 export default function SearchForm({
@@ -175,6 +179,7 @@ export default function SearchForm({
   presetHotel,
   initialDateRange,
   initialRooms,
+  onSubmitSearch,
 }: Props) {
   const defaults = useMemo(() => buildDefaultDates(), []);
   const reactSelectId = useId();
@@ -201,6 +206,7 @@ export default function SearchForm({
         value: presetHotel.id,
         label: presetHotel.label ?? presetHotel.id,
         type: "hotel",
+        parentDestinationId: presetDestination?.rawId ?? presetDestination?.id,
       }
     : null;
 
@@ -294,6 +300,54 @@ export default function SearchForm({
     }
   }, [destinationsInitialized, destinations, hideLocationFields]);
 
+  // Load hotels for preset destination on mount (even if a hotel is pre-selected)
+  useEffect(() => {
+    if (hideLocationFields) return;
+    if (!presetDestinationOption) return;
+
+    // Load hotels for the preset destination
+    setHotelsLoading(true);
+    const destinationId = presetDestinationOption.rawId ?? presetDestinationOption.value;
+
+    postJson<{ hotels: HotelInfo[] }>("/api/aoryx/hotels-by-destination", {
+      destinationId,
+      parentDestinationId: presetDestinationOption.value,
+    })
+      .then((response) => {
+        const options = (response.hotels ?? [])
+          .map<LocationOption>((hotel) => ({
+            value: hotel.systemId ?? "",
+            label: hotel.name ?? hotel.systemId ?? "Unknown hotel",
+            lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
+            lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
+            type: "hotel",
+            parentDestinationId: presetDestinationOption.rawId ?? presetDestinationOption.value,
+          }))
+          .filter((option) => option.value.length > 0)
+          .sort((a, b) => a.label.localeCompare(b.label));
+
+        console.log("Hotels loaded for preset destination", { count: options.length, first: options[0] });
+        setHotels(options);
+
+        // If a hotel is pre-selected, update selectedLocation with the proper name from loaded hotels
+        if (presetHotelOption) {
+          const matchedHotel = options.find((opt) => opt.value === presetHotelOption.value);
+          if (matchedHotel) {
+            console.log("Updating preset hotel with proper name:", matchedHotel.label);
+            setSelectedLocation(matchedHotel);
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load hotels for preset destination:", error);
+        setHotels([]);
+      })
+      .finally(() => {
+        setHotelsLoading(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hideLocationFields]); // Only run on mount, presetDestinationOption and presetHotelOption are stable
+
   // Load hotels for a destination from the API
   const loadHotelsForDestination = useCallback((destination: LocationOption | null) => {
     if (hideLocationFields) {
@@ -324,7 +378,7 @@ export default function SearchForm({
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
             type: "hotel",
-            parentDestinationId: destination.value,
+            parentDestinationId: destination.rawId ?? destination.value,
           }))
           .filter((option) => option.value.length > 0)
           .sort((a, b) => a.label.localeCompare(b.label));
@@ -364,7 +418,7 @@ export default function SearchForm({
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
             type: "hotel",
-            parentDestinationId: selectedLocation.value,
+            parentDestinationId: selectedLocation.rawId ?? selectedLocation.value,
           }))
           .filter((option) => option.value.length > 0)
           .sort((a, b) => a.label.localeCompare(b.label));
@@ -420,7 +474,7 @@ export default function SearchForm({
 
   // Submit handler
   const handleSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
+    async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       setIsSubmitting(true);
       setSearchError(null);
@@ -437,7 +491,7 @@ export default function SearchForm({
         return;
       }
 
-      const searchPayload = {
+      const searchPayload: AoryxSearchParams = {
         destinationCode:
           selectedLocation.type === "destination"
             ? selectedLocation.rawId ?? selectedLocation.value
@@ -465,10 +519,20 @@ export default function SearchForm({
       params.set("checkOutDate", searchPayload.checkOutDate);
       params.set("rooms", JSON.stringify(searchPayload.rooms));
 
-      router.push(`/results?${params.toString()}`);
-      setIsSubmitting(false);
+      try {
+        if (onSubmitSearch) {
+          await onSubmitSearch(searchPayload, params);
+        } else {
+          router.push(`/results?${params.toString()}`);
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unable to submit search.";
+        setSearchError(message);
+      } finally {
+        setIsSubmitting(false);
+      }
     },
-    [selectedLocation, dateRange.startDate, dateRange.endDate, rooms, router]
+    [selectedLocation, dateRange.startDate, dateRange.endDate, rooms, router, onSubmitSearch]
   );
 
   useEffect(() => {

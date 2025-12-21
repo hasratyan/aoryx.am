@@ -2,6 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   margin: auto;
   position: relative;
   --nav-fade-size: 15em;
