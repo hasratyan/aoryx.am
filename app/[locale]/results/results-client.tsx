@@ -9,9 +9,15 @@ import type { AoryxSearchResult } from "@/types/aoryx";
 import Image from "next/image";
 import Loader from "@/components/loader";
 import SearchForm from "@/components/search-form";
-import {useTranslations} from "@/components/language-provider";
+import { useLanguage, useTranslations } from "@/components/language-provider";
+import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 
 const ratingOptions = [5, 4, 3, 2, 1] as const;
+const intlLocales: Record<AppLocale, string> = {
+  hy: "hy-AM",
+  en: "en-GB",
+  ru: "ru-RU",
+};
 
 // Destination type for API response
 interface DestinationInfo {
@@ -25,11 +31,11 @@ interface DestinationApiResponse {
   destinations: DestinationInfo[];
 }
 
-function formatPrice(value: number | null, currency: string | null): string | null {
+function formatPrice(value: number | null, currency: string | null, locale: string): string | null {
   if (value === null || value === undefined) return null;
   const safeCurrency = currency ?? "USD";
   try {
-    return new Intl.NumberFormat("en", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: safeCurrency,
       maximumFractionDigits: 0,
@@ -39,15 +45,23 @@ function formatPrice(value: number | null, currency: string | null): string | nu
   }
 }
 
-function formatDate(value?: string | null): string | null {
+function formatDate(value: string | null | undefined, locale: string): string | null {
   if (!value) return null;
   const parsed = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(parsed);
+  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(parsed);
 }
 
 export default function ResultsClient() {
   const t = useTranslations();
+  const { locale } = useLanguage();
+  const intlLocale = intlLocales[locale] ?? "en-GB";
+  const pluralRules = useMemo(() => new Intl.PluralRules(intlLocale), [intlLocale]);
+  const formatPlural = (count: number, forms: PluralForms) => {
+    const category = pluralRules.select(count);
+    const template = forms[category] ?? forms.other;
+    return template.replace("{count}", count.toString());
+  };
   const searchParams = useSearchParams();
   const router = useRouter();
   const parsed = useMemo(
@@ -68,7 +82,7 @@ export default function ResultsClient() {
     max: number;
   } | null>(null);
   const [destinations, setDestinations] = useState<DestinationInfo[]>([]);
-  const missingError = parsed.payload ? null : (parsed.error ?? "Missing search details.");
+  const missingError = parsed.payload ? null : (parsed.error ?? t.results.errors.missingSearchDetails);
   const finalError = missingError ?? error;
 
   // Fetch destinations on mount to get destination names
@@ -97,15 +111,15 @@ export default function ResultsClient() {
         setError(null);
       })
       .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : "Unable to load results right now.";
+        const message = err instanceof Error ? err.message : t.results.errors.loadFailed;
         setError(message);
         setResult(null);
       })
       .finally(() => setLoading(false));
   }, [parsed.payload]);
 
-  const checkIn = formatDate(parsed.payload?.checkInDate);
-  const checkOut = formatDate(parsed.payload?.checkOutDate);
+  const checkIn = formatDate(parsed.payload?.checkInDate, intlLocale);
+  const checkOut = formatDate(parsed.payload?.checkOutDate, intlLocale);
   const nightsCount = useMemo(() => {
     if (!parsed.payload?.checkInDate || !parsed.payload?.checkOutDate) return null;
     const checkInDate = new Date(`${parsed.payload.checkInDate}T00:00:00`);
@@ -120,6 +134,14 @@ export default function ResultsClient() {
     parsed.payload?.rooms.reduce((sum, room) => sum + room.childrenAges.length, 0) ?? 0;
   const totalGuests = totalAdults + totalChildren;
   const roomsCount = parsed.payload?.rooms.length ?? 0;
+  const filtersToggleLabel = filtersOpen ? t.results.filters.closeLabel : t.results.filters.openLabel;
+  const placesFoundCount = result?.propertyCount ?? result?.hotels.length ?? 0;
+  const placesFoundLabel =
+    placesFoundCount > 0 ? formatPlural(placesFoundCount, t.results.placesFound) : null;
+  const nightsLabel =
+    nightsCount && nightsCount > 0
+      ? formatPlural(nightsCount, t.common.night)
+      : null;
   const matchedHotel = parsed.payload?.hotelCode
     ? result?.hotels.find((hotel) => hotel.code === parsed.payload?.hotelCode)
     : null;
@@ -275,23 +297,28 @@ export default function ResultsClient() {
             className="filters-toggle"
             aria-expanded={filtersOpen}
             aria-controls="results-filters"
+            aria-label={filtersToggleLabel}
+            title={filtersToggleLabel}
             onClick={() => setFiltersOpen((current) => !current)}
           >
-            {filtersOpen ? <><span className="material-symbols-rounded">close</span></> : <><span className="material-symbols-rounded">discover_tune</span>Filters</>}
+            <span className="material-symbols-rounded">
+              {filtersOpen ? "close" : "discover_tune"}
+            </span>
+            {!filtersOpen && t.results.filters.button}
           </button>
           <div className="filters-header">
-            <h2>Filters</h2>
+            <h2>{t.results.filters.title}</h2>
           </div>
           <div className="filters-section">
-            <h3>Price range</h3>
+            <h3>{t.results.filters.priceRange}</h3>
             {priceBounds ? (
               <>
                 <div className="filter-range-values">
                   <span>
-                    {formatPrice(priceRange?.min ?? priceBounds.min, result?.currency ?? null)}
+                    {formatPrice(priceRange?.min ?? priceBounds.min, result?.currency ?? null, intlLocale)}
                   </span>
                   <span>
-                    {formatPrice(priceRange?.max ?? priceBounds.max, result?.currency ?? null)}
+                    {formatPrice(priceRange?.max ?? priceBounds.max, result?.currency ?? null, intlLocale)}
                   </span>
                 </div>
                 <div className="filter-range-inputs">
@@ -332,11 +359,11 @@ export default function ResultsClient() {
                 </div>
               </>
             ) : (
-              <p className="filter-muted">No pricing data available.</p>
+              <p className="filter-muted">{t.results.filters.noPricing}</p>
             )}
           </div>
           <div className="filters-section">
-            <h3>Rating</h3>
+            <h3>{t.results.filters.rating}</h3>
             <div className="filter-options">
               {ratingOptions.map((rating) => (
                 <label key={rating} className="filter-option">
@@ -359,14 +386,14 @@ export default function ResultsClient() {
         </aside>
       ) : null}
       {loading ? (
-        <Loader text="Loading available stays ..." />
+        <Loader text={t.results.loading} />
       ) : finalError ? (
         <div className="error-container">
-          <Image src="/images/icons/error.gif" alt="Error" width={100} height={100} />
+          <Image src="/images/icons/error.gif" alt={t.results.errorAlt} width={100} height={100} />
           <p>
             {finalError}
           </p>
-          <Link href="/"><span className="material-symbols-rounded">arrow_back</span>Back to search</Link>
+          <Link href="/"><span className="material-symbols-rounded">arrow_back</span>{t.common.backToSearch}</Link>
         </div>
       ) : (
         <div className="container">
@@ -381,28 +408,23 @@ export default function ResultsClient() {
           </div>
           {result && result.hotels.length === 0 ? (
             <div className="results-empty">
-              <Image src="/images/icons/sad.gif" alt="No hotels found" width={100} height={100} />
-              <p>No hotels matched this search. Try adjusting dates or destination.</p>
+              <Image src="/images/icons/sad.gif" alt={t.results.emptyAlt} width={100} height={100} />
+              <p>{t.results.emptyMessage}</p>
             </div>
           ) : (
             <>
               <div className="results-top">
                 <h1>
-                  {destinationFromList?.name ?? result?.destination?.name ?? "UAE stays"}
-                  {(() => {
-                    const placesFound = result?.propertyCount ?? result?.hotels.length ?? 0;
-                    return (
-                      placesFound > 1 && (
-                        <span>
-                          • {placesFound} places found
-                        </span>
-                      )
-                    );
-                  })()}
+                  {destinationFromList?.name ?? result?.destination?.name ?? t.results.fallbackTitle}
+                  {placesFoundLabel && (
+                    <span>
+                      • {placesFoundLabel}
+                    </span>
+                  )}
                 </h1>
                 {result?.hotels.length ? (
                   <label className="results-sort">
-                    Sort by:
+                    {t.results.sortLabel}:
                     <select
                       value={sortBy}
                       onChange={(event) =>
@@ -415,10 +437,10 @@ export default function ResultsClient() {
                         )
                       }
                     >
-                      <option value="price-asc">Price (lowest first)</option>
-                      <option value="price-desc">Price (highest first)</option>
-                      <option value="rating-desc">Rating (high to low)</option>
-                      <option value="rating-asc">Rating (low to high)</option>
+                      <option value="price-asc">{t.results.sortOptions.priceAsc}</option>
+                      <option value="price-desc">{t.results.sortOptions.priceDesc}</option>
+                      <option value="rating-desc">{t.results.sortOptions.ratingDesc}</option>
+                      <option value="rating-asc">{t.results.sortOptions.ratingAsc}</option>
                     </select>
                   </label>
                 ) : null}
@@ -430,7 +452,7 @@ export default function ResultsClient() {
 
           <div id="hotels" className="grid">
             {sortedHotels.map((hotel, idx) => {
-              const formattedPrice = formatPrice(hotel.minPrice, hotel.currency);
+              const formattedPrice = formatPrice(hotel.minPrice, hotel.currency, intlLocale);
               const detailQuery =
                 parsed.payload && hotel.code
                   ? buildSearchQuery({
@@ -446,18 +468,26 @@ export default function ResultsClient() {
                 <div className="hotel-card" key={hotel.code ?? hotel.name ?? idx}>
                   <div className="image">
                     {hotel.imageUrl ? (
-                      <Image fill sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw" src={hotel.imageUrl} alt={hotel.name ?? "Hotel"}/>
+                      <Image
+                        fill
+                        sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
+                        src={hotel.imageUrl}
+                        alt={hotel.name ?? t.results.hotel.fallbackName}
+                      />
                     ) : (
-                      <span>{(hotel.name ?? "Hotel").charAt(0)}</span>
+                      <span>{(hotel.name ?? t.results.hotel.fallbackName).charAt(0)}</span>
                     )}
                   </div>
                   <div className="content">
                     <div className="header">
                       <div>
-                        <h3>{hotel.name ?? "Unnamed hotel"}</h3>
+                        <h3>{hotel.name ?? t.results.hotel.unnamed}</h3>
                         <p className="location">
                           <span className="material-symbols-rounded">location_on</span>
-                          {resolveCityName(hotel.city) ?? destinationFromList?.name ?? result?.destination?.name ?? "UAE"}
+                          {resolveCityName(hotel.city) ??
+                            destinationFromList?.name ??
+                            result?.destination?.name ??
+                            t.results.hotel.locationFallback}
                         </p>
                       </div>
                       {typeof hotel.rating === "number" && hotel.rating > 0 && (
@@ -474,12 +504,10 @@ export default function ResultsClient() {
                           {formattedPrice ? (
                             <>
                               {formattedPrice}
-                              {nightsCount && nightsCount > 1 && (
-                                <small> • {nightsCount} nights</small>
-                              )}
+                              {nightsLabel && <small> • {nightsLabel}</small>}
                             </>
                           ) : (
-                            <span className="result-price-muted">Contact for rates</span>
+                            <span className="result-price-muted">{t.common.contactForRates}</span>
                           )}
                         </div>
                       </div>
@@ -488,7 +516,7 @@ export default function ResultsClient() {
                         disabled={!detailHref}
                         onClick={() => detailHref && router.push(detailHref)}
                       >
-                        View options
+                        {t.results.viewOptions}
                       </button>
                     </div>
                   </div>

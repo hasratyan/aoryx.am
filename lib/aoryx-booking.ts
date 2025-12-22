@@ -236,7 +236,14 @@ export const validatePrebookState = (
 
 export const calculateBookingTotal = (payload: AoryxBookingPayload): number => {
   return payload.rooms.reduce((sum, room) => {
-    const price = Number.isFinite(room.price.net) ? room.price.net : room.price.gross;
-    return sum + (Number.isFinite(price) ? price : 0);
+    const net = room.price.net;
+    const gross = room.price.gross;
+    const price =
+      typeof net === "number" && Number.isFinite(net)
+        ? net
+        : typeof gross === "number" && Number.isFinite(gross)
+          ? gross
+          : 0;
+    return sum + price;
   }, 0);
 };

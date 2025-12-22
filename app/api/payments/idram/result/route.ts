@@ -161,11 +161,12 @@ export async function POST(request: NextRequest) {
     { returnDocument: "after" }
   );
 
-  if (!lock.value) {
+  const lockedRecord = lock?.value;
+  if (!lockedRecord) {
     return textResponse("OK", 200);
   }
 
-  const payload = lock.value.payload as AoryxBookingPayload | undefined;
+  const payload = lockedRecord.payload as AoryxBookingPayload | undefined;
   if (!payload) {
     await collection.updateOne(
       { billNo },
@@ -193,10 +194,10 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    if (lock.value.userId) {
+    if (lockedRecord.userId) {
       try {
         await recordUserBooking({
-          userId: lock.value.userId,
+          userId: lockedRecord.userId,
           payload,
           result,
           source: "aoryx-idram",

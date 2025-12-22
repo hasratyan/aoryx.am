@@ -39,10 +39,16 @@ export type SearchCopy = {
   adultsLabel: string;
   childrenLabel: string;
   childrenAges: string;
-  defaultGuests: number;
   submitIdle: string;
   submitLoading: string;
-  roomsLabel?: string;
+  roomsLabel: string;
+  datePlaceholder: string;
+  unknownHotel: string;
+  errors: {
+    missingLocation: string;
+    missingDates: string;
+    submit: string;
+  };
 };
 
 // API response type for destinations
@@ -282,7 +288,7 @@ export default function SearchForm({
       .finally(() => {
         setDestinationsLoading(false);
       });
-  }, [hideLocationFields]);
+  }, [hideLocationFields, copy.unknownHotel]);
 
   // Set default destination (Dubai) once destinations are loaded
   useEffect(() => {
@@ -320,7 +326,7 @@ export default function SearchForm({
         const options = (response.hotels ?? [])
           .map<LocationOption>((hotel) => ({
             value: hotel.systemId ?? "",
-            label: hotel.name ?? hotel.systemId ?? "Unknown hotel",
+            label: hotel.name ?? hotel.systemId ?? copy.unknownHotel,
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
             type: "hotel",
@@ -377,7 +383,7 @@ export default function SearchForm({
         const options = (response.hotels ?? [])
           .map<LocationOption>((hotel) => ({
             value: hotel.systemId ?? "",
-            label: hotel.name ?? hotel.systemId ?? "Unknown hotel",
+            label: hotel.name ?? hotel.systemId ?? copy.unknownHotel,
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
             type: "hotel",
@@ -417,7 +423,7 @@ export default function SearchForm({
         const options = (response.hotels ?? [])
           .map<LocationOption>((hotel) => ({
             value: hotel.systemId ?? "",
-            label: hotel.name ?? hotel.systemId ?? "Unknown hotel",
+            label: hotel.name ?? hotel.systemId ?? copy.unknownHotel,
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
             type: "hotel",
@@ -436,7 +442,7 @@ export default function SearchForm({
       .finally(() => {
         setHotelsLoading(false);
       });
-  }, [destinationsInitialized, selectedLocation, hideLocationFields]);
+  }, [destinationsInitialized, selectedLocation, hideLocationFields, copy.unknownHotel]);
 
   // Guest handlers
 
@@ -518,13 +524,13 @@ export default function SearchForm({
       setSearchError(null);
 
       if (!selectedLocation) {
-        setSearchError("Please select a destination or hotel.");
+        setSearchError(copy.errors.missingLocation);
         setIsSubmitting(false);
         return;
       }
 
       if (!dateRange.startDate || !dateRange.endDate) {
-        setSearchError("Please choose check-in and check-out dates.");
+        setSearchError(copy.errors.missingDates);
         setIsSubmitting(false);
         return;
       }
@@ -564,7 +570,7 @@ export default function SearchForm({
           router.push(`/results?${params.toString()}`);
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Unable to submit search.";
+        const message = err instanceof Error ? err.message : copy.errors.submit;
         setSearchError(message);
       } finally {
         setIsSubmitting(false);
@@ -706,7 +712,7 @@ export default function SearchForm({
                     {formatDateDisplay(dateRange.endDate, intlLocale)}
                   </>
                 )
-                : "Select dates"}
+                : copy.datePlaceholder}
             </span>
           </button>
           {showDatePicker && (
@@ -801,7 +807,7 @@ export default function SearchForm({
             
               <label>
                 <span className="material-symbols-rounded">hotel</span>
-                {copy.roomsLabel ?? "Rooms"}
+                {copy.roomsLabel}
                 <input
                   type="number"
                   name="rooms"

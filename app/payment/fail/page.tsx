@@ -1,12 +1,22 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 
-export default function PaymentFailPage() {
+const resolveLocale = async () => {
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("megatours-locale")?.value;
+  return locales.includes(cookieLocale as Locale) ? (cookieLocale as Locale) : defaultLocale;
+};
+
+export default async function PaymentFailPage() {
+  const t = getTranslations(await resolveLocale());
+
   return (
     <main className="container payment-status">
-      <h1>Payment failed</h1>
-      <p>We could not complete the payment. Please try again or contact support.</p>
+      <h1>{t.payment.failure.title}</h1>
+      <p>{t.payment.failure.body}</p>
       <Link href="/" className="payment-link">
-        Return to home
+        {t.payment.failure.cta}
       </Link>
     </main>
   );

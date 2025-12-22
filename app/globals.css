@@ -2744,6 +2744,64 @@ main.details{
   }
 }
 
+.policy-page{
+  color: #e2e8f0;
+  display: grid;
+  gap: 2.5rem;
+}
+
+.policy-header{
+  display: grid;
+  gap: 0.75em;
+  border-bottom: 1px solid #fff8;
+  padding-bottom: 0.75em;
+
+  h1{
+    font-size: clamp(1.7rem, 3vw + 1rem, 2rem);
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: normal;
+  }
+
+  p{
+    color: #cbd5e1;
+  }
+}
+
+.policy-section{
+  display: grid;
+  gap: 0.75rem;
+
+  h2{
+    font-size: clamp(1.25rem, 1.5vw + 0.9rem, 1.5rem);
+    font-weight: 600;
+    color: #f8fafc;
+    text-align: left;
+    margin-bottom: 0;
+  }
+
+  p{
+    color: #cbd5e1;
+  }
+
+  ul{
+    margin: 0;
+    padding-left: 1.2em;
+    display: grid;
+    gap: 0.5rem;
+    color: #cbd5e1;
+    list-style-type: disc;
+  }
+}
+
+.policy-note{
+  padding: 1rem 1.5rem;
+  border-radius: 1.25em;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
 .results-notice,  .error-container, .results-empty{
   color: #e2e8f0;
   display: flex;

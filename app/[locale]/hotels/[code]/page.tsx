@@ -8,7 +8,8 @@ import SearchForm from "@/components/search-form";
 import Loader from "@/components/loader";
 import { postJson } from "@/lib/api-helpers";
 import { parseSearchParams } from "@/lib/search-query";
-import { useTranslations } from "@/components/language-provider";
+import { useLanguage, useTranslations } from "@/components/language-provider";
+import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 import ImageGallery from "./ImageGallery";
 import type {
   AoryxBookingPayload,
@@ -24,11 +25,11 @@ function toFinite(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function formatPrice(value: number | null, currency: string | null): string | null {
+function formatPrice(value: number | null, currency: string | null, locale: string): string | null {
   if (value === null || value === undefined) return null;
   const safeCurrency = currency ?? "USD";
   try {
-    return new Intl.NumberFormat("en", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: safeCurrency,
       maximumFractionDigits: 0,
@@ -44,6 +45,12 @@ const pickMealLabel = (value?: string | null) => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+const intlLocales: Record<AppLocale, string> = {
+  hy: "hy-AM",
+  en: "en-GB",
+  ru: "ru-RU",
 };
 
 const getGroupMealLabel = (group: { option: AoryxRoomOption; items: AoryxRoomOption[] }) =>
@@ -97,52 +104,96 @@ type IdramCheckoutResponse = {
 
 type RemarkVariant = "mandatory" | "warning" | "info" | "note";
 
+type RemarkLabels = {
+  mandatory: string;
+  mandatoryTax: string;
+  mandatoryFee: string;
+  mandatoryCharge: string;
+  optional: string;
+  knowBeforeYouGo: string;
+  disclaimer: string;
+  note: string;
+};
+
+type PolicyLabels = {
+  cancellation: string;
+  noShow: string;
+  modification: string;
+};
+
 type RemarkMeta = {
   label: string;
   icon: string;
   variant: RemarkVariant;
 };
 
-const REMARK_TYPE_META: Record<string, RemarkMeta> = {
-  MANDATORY: { label: "Mandatory", icon: "priority_high", variant: "mandatory" },
-  MANDATORYTAX: { label: "Mandatory Tax", icon: "receipt_long", variant: "mandatory" },
-  MANDATORYFEE: { label: "Mandatory Fee", icon: "receipt_long", variant: "mandatory" },
-  MANDATORYCHARGE: { label: "Mandatory Charge", icon: "receipt_long", variant: "mandatory" },
-  OPTIONAL: { label: "Optional", icon: "info", variant: "info" },
-  KNOWBEFOREYOUGO: { label: "Know Before You Go", icon: "travel_explore", variant: "warning" },
-  DISCLAIMER: { label: "Disclaimer", icon: "gavel", variant: "warning" },
-  NOTE: { label: "Note", icon: "sticky_note_2", variant: "note" },
+type RemarkMetaConfig = {
+  labelKey: keyof RemarkLabels;
+  icon: string;
+  variant: RemarkVariant;
+};
+
+const REMARK_TYPE_META: Record<string, RemarkMetaConfig> = {
+  MANDATORY: { labelKey: "mandatory", icon: "priority_high", variant: "mandatory" },
+  MANDATORYTAX: { labelKey: "mandatoryTax", icon: "receipt_long", variant: "mandatory" },
+  MANDATORYFEE: { labelKey: "mandatoryFee", icon: "receipt_long", variant: "mandatory" },
+  MANDATORYCHARGE: { labelKey: "mandatoryCharge", icon: "receipt_long", variant: "mandatory" },
+  OPTIONAL: { labelKey: "optional", icon: "info", variant: "info" },
+  KNOWBEFOREYOUGO: { labelKey: "knowBeforeYouGo", icon: "travel_explore", variant: "warning" },
+  DISCLAIMER: { labelKey: "disclaimer", icon: "gavel", variant: "warning" },
+  NOTE: { labelKey: "note", icon: "sticky_note_2", variant: "note" },
 };
 
 const normalizeRemarkType = (input?: string | null) =>
   input ? input.replace(/[\s_-]/g, "").toUpperCase() : null;
 
-const getRemarkMeta = (type?: string | null): RemarkMeta => {
+const getRemarkMeta = (
+  type: string | null | undefined,
+  labels: RemarkLabels,
+  fallbackLabel: string
+): RemarkMeta => {
   const normalized = normalizeRemarkType(type);
   if (normalized) {
-    if (REMARK_TYPE_META[normalized]) return REMARK_TYPE_META[normalized];
-    if (normalized.startsWith("MANDATORY")) return REMARK_TYPE_META.MANDATORY;
+    const match = REMARK_TYPE_META[normalized];
+    if (match) {
+      return { label: labels[match.labelKey], icon: match.icon, variant: match.variant };
+    }
+    if (normalized.startsWith("MANDATORY")) {
+      const fallback = REMARK_TYPE_META.MANDATORY;
+      return { label: labels[fallback.labelKey], icon: fallback.icon, variant: fallback.variant };
+    }
   }
   return {
-    label: type?.trim() || "Info",
+    label: type?.trim() || fallbackLabel,
     icon: "info",
     variant: "info",
   };
 };
 
-const POLICY_TYPE_META: Record<string, RemarkMeta> = {
-  CAN: { label: "Cancellation", icon: "event_busy", variant: "warning" },
-  NOS: { label: "No Show", icon: "hotel", variant: "mandatory" },
-  MOD: { label: "Modification", icon: "edit", variant: "info" },
+type PolicyMetaConfig = {
+  labelKey: keyof PolicyLabels;
+  icon: string;
+  variant: RemarkVariant;
 };
 
-const getPolicyMeta = (type?: string | null): RemarkMeta => {
+const POLICY_TYPE_META: Record<string, PolicyMetaConfig> = {
+  CAN: { labelKey: "cancellation", icon: "event_busy", variant: "warning" },
+  NOS: { labelKey: "noShow", icon: "hotel", variant: "mandatory" },
+  MOD: { labelKey: "modification", icon: "edit", variant: "info" },
+};
+
+const getPolicyMeta = (
+  type: string | null | undefined,
+  labels: PolicyLabels,
+  fallbackLabel: string
+): RemarkMeta => {
   const normalized = normalizeRemarkType(type);
   if (normalized && POLICY_TYPE_META[normalized]) {
-    return POLICY_TYPE_META[normalized];
+    const match = POLICY_TYPE_META[normalized];
+    return { label: labels[match.labelKey], icon: match.icon, variant: match.variant };
   }
   return {
-    label: type?.trim() || "Policy",
+    label: type?.trim() || fallbackLabel,
     icon: "policy",
     variant: "info",
   };
@@ -224,24 +275,38 @@ const buildBookingGuests = (
   });
 };
 
-const validateBookingGuests = (rooms: BookingRoomState[]): string | null => {
+type BookingValidationCopy = {
+  roomNeedsAdult: string;
+  missingGuestNames: string;
+  invalidGuestAges: string;
+  invalidChildAge: string;
+  invalidAdultAge: string;
+};
+
+const fillTemplate = (template: string, values: Record<string, string | number>) =>
+  template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+
+const validateBookingGuests = (
+  rooms: BookingRoomState[],
+  copy: BookingValidationCopy
+): string | null => {
   for (const room of rooms) {
     const adultCount = room.guests.filter((guest) => guest.type === "Adult").length;
     if (adultCount === 0) {
-      return `Room ${room.roomIdentifier} must include at least one adult.`;
+      return fillTemplate(copy.roomNeedsAdult, { room: room.roomIdentifier });
     }
     for (const guest of room.guests) {
       if (!guest.firstName.trim() || !guest.lastName.trim()) {
-        return "Please enter first and last names for each guest.";
+        return copy.missingGuestNames;
       }
       if (!Number.isFinite(guest.age) || guest.age < 0) {
-        return "Guest ages must be valid numbers.";
+        return copy.invalidGuestAges;
       }
       if (guest.type === "Child" && guest.age > 17) {
-        return "Child ages must be between 0 and 17.";
+        return copy.invalidChildAge;
       }
       if (guest.type === "Adult" && guest.age < 18) {
-        return "Adult guests must be 18 years or older.";
+        return copy.invalidAdultAge;
       }
     }
   }
@@ -255,14 +320,20 @@ function decodeHtmlEntities(text: string): string {
   return textArea.value;
 }
 
-const formatPolicyDateTime = (iso?: string | null, time?: string | null) => {
+type FormatPlural = (count: number, forms: PluralForms) => string;
+
+const formatPolicyDateTime = (
+  iso: string | null | undefined,
+  time: string | null | undefined,
+  locale: string
+) => {
   if (!iso) return null;
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) {
     const base = iso.split("T")[0] ?? iso;
     return time ? `${base} ${time}` : base;
   }
-  const formatted = new Intl.DateTimeFormat("en-US", {
+  const formatted = new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -272,36 +343,53 @@ const formatPolicyDateTime = (iso?: string | null, time?: string | null) => {
 
 const describePolicyPenalty = (
   condition: BookingRoomState["policies"][number]["conditions"][number],
-  currency: string | null | undefined
+  currency: string | null | undefined,
+  locale: string,
+  formatPlural: FormatPlural,
+  nightCopy: PluralForms,
+  freeCancellationLabel: string
 ) => {
   const parts: string[] = [];
   if (typeof condition.percentage === "number" && condition.percentage > 0) {
     parts.push(`${condition.percentage}%`);
   }
   if (typeof condition.nights === "number" && condition.nights > 0) {
-    parts.push(`${condition.nights} night${condition.nights === 1 ? "" : "s"}`);
+    parts.push(formatPlural(condition.nights, nightCopy));
   }
   if (typeof condition.fixed === "number" && condition.fixed > 0) {
-    const formatted = formatPrice(condition.fixed, currency ?? "USD");
+    const formatted = formatPrice(condition.fixed, currency ?? "USD", locale);
     if (formatted) parts.push(formatted);
   }
   if (condition.text) {
     parts.push(condition.text);
   }
-  return parts.length > 0 ? parts.join(" + ") : "Free cancellation";
+  return parts.length > 0 ? parts.join(" + ") : freeCancellationLabel;
 };
 
 const describePolicyCondition = (
   condition: BookingRoomState["policies"][number]["conditions"][number],
-  currency: string | null | undefined
+  currency: string | null | undefined,
+  locale: string,
+  formatPlural: FormatPlural,
+  nightCopy: PluralForms,
+  freeCancellationLabel: string,
+  fromLabel: string,
+  untilLabel: string
 ) => {
-  const from = formatPolicyDateTime(condition.fromDate, condition.fromTime);
-  const to = formatPolicyDateTime(condition.toDate, condition.toTime);
+  const from = formatPolicyDateTime(condition.fromDate, condition.fromTime, locale);
+  const to = formatPolicyDateTime(condition.toDate, condition.toTime, locale);
   const windowParts: string[] = [];
-  if (from) windowParts.push(`From ${from}`);
-  if (to) windowParts.push(`until ${to}`);
+  if (from) windowParts.push(`${fromLabel} ${from}`);
+  if (to) windowParts.push(`${untilLabel} ${to}`);
   const timeWindow = windowParts.length > 0 ? windowParts.join(" ") : null;
-  const penalty = describePolicyPenalty(condition, currency);
+  const penalty = describePolicyPenalty(
+    condition,
+    currency,
+    locale,
+    formatPlural,
+    nightCopy,
+    freeCancellationLabel
+  );
   return timeWindow ? `${timeWindow} · ${penalty}` : penalty;
 };
 
@@ -311,6 +399,14 @@ export default function HotelDetailsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations();
+  const { locale } = useLanguage();
+  const intlLocale = intlLocales[locale] ?? "en-GB";
+  const pluralRules = useMemo(() => new Intl.PluralRules(intlLocale), [intlLocale]);
+  const formatPlural = (count: number, forms: PluralForms) => {
+    const category = pluralRules.select(count);
+    const template = forms[category] ?? forms.other;
+    return template.replace("{count}", count.toString());
+  };
   const { data: session, status: authStatus } = useSession();
 
   const hotelCode = Array.isArray(params.code) ? params.code[0] : params.code;
@@ -374,7 +470,7 @@ export default function HotelDetailsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          const message = err instanceof Error ? err.message : "Unable to load this hotel right now.";
+          const message = err instanceof Error ? err.message : t.hotel.errors.loadHotelFailed;
           setError(message);
           setHotelInfo(null);
         }
@@ -383,7 +479,7 @@ export default function HotelDetailsPage() {
     return () => {
       cancelled = true;
     };
-  }, [hotelCode]);
+  }, [hotelCode, t.hotel.errors.loadHotelFailed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -457,7 +553,7 @@ export default function HotelDetailsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          const message = err instanceof Error ? err.message : "Unable to load room options.";
+          const message = err instanceof Error ? err.message : t.hotel.errors.loadRoomOptionsFailed;
           setRoomsError(message);
           setRoomOptions([]);
         }
@@ -469,7 +565,7 @@ export default function HotelDetailsPage() {
     return () => {
       cancelled = true;
     };
-  }, [roomDetailsPayload]);
+  }, [roomDetailsPayload, t.hotel.errors.loadRoomOptionsFailed]);
 
   useEffect(() => {
     queueMicrotask(() => setAmenitiesExpanded(false));
@@ -666,7 +762,7 @@ export default function HotelDetailsPage() {
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : null;
   }, [parsed.payload?.checkInDate, parsed.payload?.checkOutDate]);
-  const night = nightsCount ? `${nightsCount} night${nightsCount === 1 ? "" : "s"}` : "night";
+  const night = formatPlural(nightsCount ?? 1, t.common.night);
 
   const initialRooms = parsed.payload?.rooms.map((room) => ({
     adults: room.adults,
@@ -719,19 +815,19 @@ export default function HotelDetailsPage() {
   const handlePrebook = useCallback(
     async (group: { key: string; option: AoryxRoomOption; items: AoryxRoomOption[] }) => {
       if (authStatus === "loading") {
-        setBookingError("Checking sign-in status. Please try again.");
+        setBookingError(t.hotel.errors.checkingSignIn);
         return;
       }
       if (!isSignedIn) {
         const query = searchParams.toString();
         const callbackUrl = query ? `${pathname}?${query}` : pathname;
-        setBookingError("Please sign in to book this room.");
+        setBookingError(t.hotel.errors.signInToBook);
         void signIn("google", { callbackUrl });
         return;
       }
       if (!hotelCode) return;
       if (!sessionId) {
-        setBookingError("Missing session details. Please run the search again.");
+        setBookingError(t.hotel.errors.missingSession);
         return;
       }
 
@@ -748,11 +844,11 @@ export default function HotelDetailsPage() {
         .filter((key): key is string => typeof key === "string" && key.length > 0);
 
       if (groupCode === null) {
-        setBookingError("This room option cannot be booked right now. Please try another option.");
+        setBookingError(t.hotel.errors.cannotBookOption);
         return;
       }
       if (rateKeys.length === 0) {
-        setBookingError("Missing rate keys for this room option. Please try another option.");
+        setBookingError(t.hotel.errors.missingRateKeys);
         return;
       }
 
@@ -773,14 +869,14 @@ export default function HotelDetailsPage() {
         });
         const guests = buildBookingGuests(result, roomDetailsPayload?.rooms ?? null);
         if (guests.length === 0) {
-          setBookingError("Unable to build guest details for this selection.");
+          setBookingError(t.hotel.errors.unableBuildGuests);
           return;
         }
         setActivePrebook({ groupCode, rateKeys, result });
         setBookingGuests(guests);
         setBookingOpen(true);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to prebook rate";
+        const message = err instanceof Error ? err.message : t.hotel.errors.prebookFailed;
         setBookingError(message);
       } finally {
         setBookingPreparing(false);
@@ -797,6 +893,7 @@ export default function HotelDetailsPage() {
       roomDetailsPayload?.rooms,
       searchParams,
       sessionId,
+      t,
     ]
   );
 
@@ -814,31 +911,31 @@ export default function HotelDetailsPage() {
   const handleBook = useCallback(async () => {
     if (!activePrebook || !hotelCode) return;
     if (authStatus === "loading") {
-      setBookingError("Checking sign-in status. Please try again.");
+      setBookingError(t.hotel.errors.checkingSignIn);
       return;
     }
     if (!isSignedIn) {
       const query = searchParams.toString();
       const callbackUrl = query ? `${pathname}?${query}` : pathname;
-      setBookingError("Please sign in to complete the booking.");
+      setBookingError(t.hotel.errors.signInToComplete);
       void signIn("google", { callbackUrl });
       return;
     }
 
-    const guestError = validateBookingGuests(bookingGuests);
+    const guestError = validateBookingGuests(bookingGuests, t.hotel.errors);
     if (guestError) {
       setBookingError(guestError);
       return;
     }
 
     if (activePrebook.result.isPriceChanged && !confirmPriceChange) {
-      setBookingError("Please confirm the updated price before booking.");
+      setBookingError(t.hotel.errors.confirmPriceChange);
       return;
     }
 
     const bookingSessionId = activePrebook.result.sessionId ?? sessionId;
     if (!bookingSessionId) {
-      setBookingError("Missing session details. Please prebook again.");
+      setBookingError(t.hotel.errors.missingSessionPrebook);
       return;
     }
 
@@ -847,7 +944,7 @@ export default function HotelDetailsPage() {
       destinationCode ??
       "";
     if (!destination) {
-      setBookingError("Missing destination code. Please search again.");
+      setBookingError(t.hotel.errors.missingDestination);
       return;
     }
 
@@ -856,7 +953,9 @@ export default function HotelDetailsPage() {
 
     for (const room of bookingGuests) {
       if (!room.rateKey) {
-        setBookingError(`Room ${room.roomIdentifier} is missing a rate key.`);
+        setBookingError(
+          fillTemplate(t.hotel.errors.roomMissingRateKey, { room: room.roomIdentifier })
+        );
         return;
       }
 
@@ -873,7 +972,9 @@ export default function HotelDetailsPage() {
       const tax = isFiniteNumber(room.price.tax) ? room.price.tax : 0;
 
       if (gross === null || net === null) {
-        setBookingError(`Room ${room.roomIdentifier} is missing price details.`);
+        setBookingError(
+          fillTemplate(t.hotel.errors.roomMissingPrice, { room: room.roomIdentifier })
+        );
         return;
       }
 
@@ -936,7 +1037,7 @@ export default function HotelDetailsPage() {
     try {
       const checkout = await postJson<IdramCheckoutResponse>("/api/payments/idram/checkout", payload);
       if (typeof document === "undefined") {
-        throw new Error("Unable to redirect to payment.");
+        throw new Error(t.hotel.errors.redirectPayment);
       }
       const form = document.createElement("form");
       form.method = "POST";
@@ -951,7 +1052,7 @@ export default function HotelDetailsPage() {
       document.body.appendChild(form);
       form.submit();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to start payment.";
+      const message = err instanceof Error ? err.message : t.hotel.errors.startPaymentFailed;
       setBookingError(message);
       setBookingLoading(false);
     }
@@ -970,6 +1071,7 @@ export default function HotelDetailsPage() {
     parsed.payload?.nationality,
     searchParams,
     sessionId,
+    t,
   ]);
 
   return (
@@ -1016,10 +1118,10 @@ export default function HotelDetailsPage() {
                 type="button"
                 className="map-button"
                 popoverTarget={mapPopoverId}
-                aria-label="View hotel on map"
+                aria-label={t.hotel.map.viewAria}
               >
                 <span className="material-symbols-rounded">map</span>
-                Show location on Map
+                {t.hotel.map.showButton}
               </button>
             )}
           </section>
@@ -1038,7 +1140,7 @@ export default function HotelDetailsPage() {
             <div className="results-error">
               <p>{finalError}</p>
               <div className="results-error-actions">
-                <Link href="/" className="btn btn-primary">Back to search</Link>
+                <Link href="/" className="btn btn-primary">{t.common.backToSearch}</Link>
               </div>
             </div>
           )}
@@ -1046,7 +1148,7 @@ export default function HotelDetailsPage() {
           {!finalError && galleryImages.length > 0 && (
               <ImageGallery
                 images={galleryImages}
-                altText={hotelInfo?.name ?? "Hotel"}
+                altText={hotelInfo?.name ?? t.results.hotel.fallbackName}
               />
           )}
 
@@ -1054,7 +1156,7 @@ export default function HotelDetailsPage() {
             <div className="container">
               {hotelInfo?.masterHotelAmenities?.length ? (
                 <div className="amenities-wrapper">
-                  <h2>Hotel Amenities</h2>
+                  <h2>{t.hotel.amenities.title}</h2>
                   <div
                     ref={amenitiesRef}
                     className={`amenities${amenitiesExpanded ? " is-expanded" : ""}`}
@@ -1075,13 +1177,13 @@ export default function HotelDetailsPage() {
                       <span className="material-symbols-rounded">
                         {amenitiesExpanded ? "expand_less" : "expand_more"}
                       </span>
-                      {amenitiesExpanded ? "Show less" : "Show all amenities"}
+                      {amenitiesExpanded ? t.hotel.amenities.showLess : t.hotel.amenities.showAll}
                     </button>
                   )}
                 </div>
               ) : null}
               <div className="search">
-                <h2>Create your next increadable experience.</h2>
+                <h2>{t.hotel.searchTitle}</h2>
                 <SearchForm
                   copy={t.search}
                   hideLocationFields
@@ -1100,32 +1202,32 @@ export default function HotelDetailsPage() {
             <div className="room-options">
               <div className="container">
                 {roomDetailsPayload && roomsLoading && (
-                  <Loader text="Loading room options" />
+                  <Loader text={t.hotel.roomOptions.loading} />
                 )}
                 {roomDetailsPayload && !roomsLoading && roomsError && (
                   <p className="room-options-error">{roomsError}</p>
                 )}
                 {roomDetailsPayload && !roomsLoading && !roomsError && groupedRoomOptions.length === 0 && (
-                  <p className="room-options-empty">No room options available.</p>
+                  <p className="room-options-empty">{t.hotel.roomOptions.empty}</p>
                 )}
                 {roomDetailsPayload && !roomsLoading && !roomsError && groupedRoomOptions.length > 0 && (
                   <>
                     <div className="room-options-header">
                       <h2>
-                        {visibleRoomOptions.length} room options
+                        {formatPlural(visibleRoomOptions.length, t.hotel.roomOptions.count)}
                         {isFiltered && groupedRoomOptions.length !== visibleRoomOptions.length && (
-                          <> of {groupedRoomOptions.length}</>
+                          <> {fillTemplate(t.hotel.roomOptions.of, { total: groupedRoomOptions.length })}</>
                         )}
                       </h2>
                       <div className="room-options-controls">
                         <label className="room-filter">
-                          <span>Meal</span>
+                          <span>{t.hotel.roomOptions.filterMeal}</span>
                           <select
                             value={mealFilter}
                             onChange={(event) => setMealFilter(event.target.value)}
                             disabled={mealOptions.length === 0}
                           >
-                            <option value="all">All meals</option>
+                            <option value="all">{t.hotel.roomOptions.allMeals}</option>
                             {mealOptions.map((option) => (
                               <option key={option.value} value={option.value}>
                                 {option.label}
@@ -1134,16 +1236,16 @@ export default function HotelDetailsPage() {
                           </select>
                         </label>
                         <label className="room-filter">
-                          <span>Price</span>
+                          <span>{t.hotel.roomOptions.filterPrice}</span>
                           <select
                             value={priceSort}
                             onChange={(event) =>
                               setPriceSort(event.target.value as "default" | "asc" | "desc")
                             }
                           >
-                            <option value="default">Recommended</option>
-                            <option value="asc">Lowest price</option>
-                            <option value="desc">Highest price</option>
+                            <option value="default">{t.hotel.roomOptions.recommended}</option>
+                            <option value="asc">{t.hotel.roomOptions.lowestPrice}</option>
+                            <option value="desc">{t.hotel.roomOptions.highestPrice}</option>
                           </select>
                         </label>
                       </div>
@@ -1152,13 +1254,14 @@ export default function HotelDetailsPage() {
                       <p className="room-options-error booking-error">{bookingError}</p>
                     )}
                     {visibleRoomOptions.length === 0 ? (
-                      <p className="room-options-empty">No room options match the current filters.</p>
+                      <p className="room-options-empty">{t.hotel.roomOptions.noMatch}</p>
                     ) : (
                       <div className="room-options-list">
                         {visibleRoomOptions.map((group) => {
                           const price = formatPrice(
                             group.totalPrice,
-                            group.currency ?? fallbackCurrency
+                            group.currency ?? fallbackCurrency,
+                            intlLocale
                           );
                           const rateKeys = group.items
                             .map((item) => item.rateKey)
@@ -1175,7 +1278,7 @@ export default function HotelDetailsPage() {
                           return (
                             <div key={group.key} className="room-card">
                               <div className="room-card-main">
-                                <h3>{group.option.name ?? "Room option"}</h3>
+                                <h3>{group.option.name ?? t.hotel.roomOptions.roomOptionFallback}</h3>
                                 <div className="room-meta">
                                   {group.option.boardType && (
                                     <span className="room-chip">{group.option.boardType}</span>
@@ -1186,11 +1289,15 @@ export default function HotelDetailsPage() {
                                         group.option.refundable ? "refundable" : "non-refundable"
                                       }`}
                                     >
-                                      {group.option.refundable ? "Refundable" : "Non-refundable"}
+                                      {group.option.refundable
+                                        ? t.hotel.roomOptions.refundable
+                                        : t.hotel.roomOptions.nonRefundable}
                                     </span>
                                   )}
                                   {typeof group.option.availableRooms === "number" && (
-                                    <span className="room-chip">{group.option.availableRooms} left</span>
+                                    <span className="room-chip">
+                                      {formatPlural(group.option.availableRooms, t.hotel.roomOptions.roomsLeft)}
+                                    </span>
                                   )}
                                 </div>
                                 {group.option.cancellationPolicy && (
@@ -1201,21 +1308,25 @@ export default function HotelDetailsPage() {
                                 {price ? (
                                   <span className="room-price">{price} <span>/ {night}</span></span>
                                 ) : (
-                                  <span className="room-price-muted">Contact for rates</span>
+                                  <span className="room-price-muted">{t.common.contactForRates}</span>
                                 )}
                                 {roomCount > 1 && (
                                   <div className="room-breakdown">
                                     {group.items.map((item, itemIndex) => {
                                       const itemPrice = formatPrice(
                                         item.totalPrice,
-                                        item.currency ?? group.currency ?? fallbackCurrency
+                                        item.currency ?? group.currency ?? fallbackCurrency,
+                                        intlLocale
                                       );
                                       return (
                                         <span
                                           key={`${group.key}-${itemIndex}`}
                                           className="room-breakdown-item"
                                         >
-                                          Room {itemIndex + 1}: {itemPrice ?? "Contact"}
+                                          {fillTemplate(t.hotel.roomOptions.roomBreakdown, {
+                                            index: itemIndex + 1,
+                                            price: itemPrice ?? t.common.contact,
+                                          })}
                                         </span>
                                       );
                                     })}
@@ -1229,10 +1340,10 @@ export default function HotelDetailsPage() {
                                     onClick={() => handlePrebook(group)}
                                   >
                                     {!isSignedIn
-                                      ? "Sign in to book"
+                                      ? t.hotel.roomOptions.signInToBook
                                       : isPrebooking
-                                      ? "Checking availability..."
-                                      : "Book now"}
+                                      ? t.hotel.roomOptions.checkingAvailability
+                                      : t.hotel.roomOptions.bookNow}
                                   </button>
                                 </div>
                               </div>
@@ -1255,17 +1366,19 @@ export default function HotelDetailsPage() {
               ref={bookingPopoverRef}
               aria-busy={bookingLoading || bookingPreparing}
             >
-              <h2>{hotelInfo?.name ?? "Guest details"}</h2>
+              <h2>{hotelInfo?.name ?? t.hotel.booking.titleFallback}</h2>
               {bookingResult ? (
                 <div className="booking-success">
-                  <p>Your booking request was submitted successfully.</p>
+                  <p>{t.hotel.booking.successMessage}</p>
                   {bookingResult.adsConfirmationNumber && (
-                    <p>Confirmation number: {bookingResult.adsConfirmationNumber}</p>
+                    <p>
+                      {t.hotel.booking.confirmationNumberLabel}: {bookingResult.adsConfirmationNumber}
+                    </p>
                   )}
-                  {bookingResult.status && <p>Status: {bookingResult.status}</p>}
+                  {bookingResult.status && <p>{t.common.status}: {bookingResult.status}</p>}
                   <div className="booking-actions">
                     <button type="button" className="booking-primary" onClick={handleCloseBooking}>
-                      Close
+                      {t.common.close}
                     </button>
                   </div>
                 </div>
@@ -1273,7 +1386,7 @@ export default function HotelDetailsPage() {
                 <div className="booking-body">
                   {activePrebook?.result.isPriceChanged && (
                     <p className="booking-warning">
-                      Price changed during verification. Please confirm the updated price before booking.
+                      {t.hotel.booking.priceChangeWarning}
                     </p>
                   )}
                   {activePrebook?.result.isPriceChanged && (
@@ -1283,7 +1396,7 @@ export default function HotelDetailsPage() {
                         checked={confirmPriceChange}
                         onChange={(event) => setConfirmPriceChange(event.target.checked)}
                       />
-                      I accept the updated price and wish to proceed.
+                      {t.hotel.booking.priceChangeConfirm}
                     </label>
                   )}
                   {bookingError && <b className="booking-error">{bookingError}</b>}
@@ -1301,14 +1414,16 @@ export default function HotelDetailsPage() {
                               updateGuestField(room.roomIdentifier, guest.id, "title", event.target.value)
                             }
                           >
-                            <option>Mr.</option>
-                            <option>Ms.</option>
-                            <option>Mrs.</option>
-                            {guest.type === "Child" && <option>Master</option>}
+                            <option value="Mr.">{t.hotel.booking.titles.mr}</option>
+                            <option value="Ms.">{t.hotel.booking.titles.ms}</option>
+                            <option value="Mrs.">{t.hotel.booking.titles.mrs}</option>
+                            {guest.type === "Child" && (
+                              <option value="Master">{t.hotel.booking.titles.master}</option>
+                            )}
                           </select>
                           <input
                             type="text"
-                            placeholder="First name"
+                            placeholder={t.hotel.booking.firstNamePlaceholder}
                             value={guest.firstName}
                             onChange={(event) =>
                               updateGuestField(room.roomIdentifier, guest.id, "firstName", event.target.value)
@@ -1316,7 +1431,7 @@ export default function HotelDetailsPage() {
                           />
                           <input
                             type="text"
-                            placeholder="Last name"
+                            placeholder={t.hotel.booking.lastNamePlaceholder}
                             value={guest.lastName}
                             onChange={(event) =>
                               updateGuestField(room.roomIdentifier, guest.id, "lastName", event.target.value)
@@ -1336,25 +1451,38 @@ export default function HotelDetailsPage() {
                       ))}
                       <div className="booking-room-details">
                         <div className="booking-detail-grid">
-                          {room.meal && <span>Meal plan: {room.meal}</span>}
-                          {room.rateType && <span>Rate type: {room.rateType}</span>}
+                          {room.meal && <span>{t.hotel.booking.mealPlanLabel}: {room.meal}</span>}
+                          {room.rateType && <span>{t.hotel.booking.rateTypeLabel}: {room.rateType}</span>}
                           {room.refundable !== null && (
-                            <span>{room.refundable ? "Refundable" : "Non-refundable"}</span>
+                            <span>
+                              {room.refundable
+                                ? t.hotel.roomOptions.refundable
+                                : t.hotel.roomOptions.nonRefundable}
+                            </span>
                           )}
                           {room.bedTypes.length > 0 && (
-                            <span>Bed type{room.bedTypes.length > 1 ? "s" : ""}: {room.bedTypes.join(", ")}</span>
+                            <span>
+                              {room.bedTypes.length > 1
+                                ? t.hotel.booking.bedTypePlural
+                                : t.hotel.booking.bedTypeSingle}
+                              : {room.bedTypes.join(", ")}
+                            </span>
                           )}
                           {room.inclusions.length > 0 && (
-                            <span>Inclusions: {room.inclusions.join(", ")}</span>
+                            <span>{t.hotel.booking.inclusionsLabel}: {room.inclusions.join(", ")}</span>
                           )}
                         </div>
                         {(room.policies.length > 0 || room.cancellationPolicy) && (
                           <div className="booking-policy">
-                            <h4>Cancellation policy</h4>
+                            <h4>{t.hotel.booking.cancellationPolicyTitle}</h4>
                             {room.policies.length > 0 ? (
                               <div className="remark-grid">
                                 {room.policies.map((policy, index) => {
-                                  const meta = getPolicyMeta(policy.type);
+                                  const meta = getPolicyMeta(
+                                    policy.type,
+                                    t.hotel.policies.types,
+                                    t.hotel.policies.defaultLabel
+                                  );
                                   const key = `${room.roomIdentifier}-policy-${index}`;
                                   return (
                                     <div key={key} className={`remark-card ${meta.variant}`}>
@@ -1373,13 +1501,19 @@ export default function HotelDetailsPage() {
                                             <li key={`${key}-condition-${conditionIndex}`}>
                                               {describePolicyCondition(
                                                 condition,
-                                                policy.currency ?? bookingCurrency
+                                                policy.currency ?? bookingCurrency,
+                                                intlLocale,
+                                                formatPlural,
+                                                t.common.night,
+                                                t.hotel.policy.freeCancellation,
+                                                t.hotel.policy.from,
+                                                t.hotel.policy.until
                                               )}
                                             </li>
                                           ))}
                                         </ul>
                                       ) : (
-                                        <p className="policy-summary">No penalty details provided.</p>
+                                        <p className="policy-summary">{t.hotel.booking.noPenaltyDetails}</p>
                                       )}
                                     </div>
                                   );
@@ -1392,10 +1526,14 @@ export default function HotelDetailsPage() {
                         )}
                         {room.remarks.length > 0 && (
                           <div className="booking-remarks">
-                            <h4>Remarks</h4>
+                            <h4>{t.hotel.booking.remarksTitle}</h4>
                             <div className="remark-grid">
                               {room.remarks.map((remark, index) => {
-                                const meta = getRemarkMeta(remark.type);
+                                const meta = getRemarkMeta(
+                                  remark.type,
+                                  t.hotel.remarks.types,
+                                  t.hotel.remarks.defaultLabel
+                                );
                                 const key = `${room.roomIdentifier}-remark-${index}`;
                                 return (
                                   <article key={key} className={`remark-card ${meta.variant}`}>
@@ -1411,7 +1549,7 @@ export default function HotelDetailsPage() {
                                         dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(remark.text) }}
                                       />
                                     ) : (
-                                      <p className="policy-summary">Additional information</p>
+                                      <p className="policy-summary">{t.hotel.booking.additionalInfo}</p>
                                     )}
                                   </article>
                                 );
@@ -1421,16 +1559,20 @@ export default function HotelDetailsPage() {
                         )}
                       </div>
                       <div className="booking-room-price">
-                        Room price: {formatPrice(room.price.net ?? room.price.gross, bookingCurrency) ?? "Contact"}
+                        {t.hotel.booking.roomPriceLabel}:{" "}
+                        {formatPrice(room.price.net ?? room.price.gross, bookingCurrency, intlLocale) ??
+                          t.common.contact}
                       </div>
                     </fieldset>
                   ))}
                   <div className="booking-summary">
-                    <span>Total</span>
-                    <strong>{formatPrice(bookingTotal, bookingCurrency) ?? "Contact"}</strong>
+                    <span>{t.common.total}</span>
+                    <strong>
+                      {formatPrice(bookingTotal, bookingCurrency, intlLocale) ?? t.common.contact}
+                    </strong>
                   </div>
                   <p className="booking-note">
-                    You will be redirected to Idram to complete the payment.
+                    {t.hotel.booking.paymentNote}
                   </p>
                   <div className="booking-actions">
                     <button
@@ -1439,7 +1581,7 @@ export default function HotelDetailsPage() {
                       onClick={handleCloseBooking}
                       disabled={bookingLoading}
                     >
-                      Close
+                      {t.common.close}
                     </button>
                     <button
                       type="button"
@@ -1447,7 +1589,7 @@ export default function HotelDetailsPage() {
                       onClick={handleBook}
                       disabled={bookingLoading}
                     >
-                      {bookingLoading ? "Redirecting to Idram..." : "Pay with Idram"}
+                      {bookingLoading ? t.hotel.booking.redirectingToIdram : t.hotel.booking.payWithIdram}
                     </button>
                   </div>
                 </div>
@@ -1456,7 +1598,7 @@ export default function HotelDetailsPage() {
                 type="button"
                 className="close"
                 onClick={handleCloseBooking}
-                aria-label="Close booking"
+                aria-label={t.hotel.booking.closeBookingAria}
               >
                 <span className="material-symbols-rounded" aria-hidden="true">
                   close
@@ -1467,21 +1609,21 @@ export default function HotelDetailsPage() {
 
           {hotelCoordinates && mapEmbedSrc && (
             <div id={mapPopoverId} popover="auto" className="popover">
-              <h2>Hotel location</h2>
+              <h2>{t.hotel.map.title}</h2>
               <iframe
-                title="Hotel map location"
+                title={t.hotel.map.iframeTitle}
                 src={mapEmbedSrc}
                 loading="lazy"
                 allowFullScreen
                 referrerPolicy="no-referrer-when-downgrade"
-                aria-label="Hotel location map"
+                aria-label={t.hotel.map.ariaLabel}
               />
               <button
                 type="button"
                 className="close"
                 popoverTarget={mapPopoverId}
                 popoverTargetAction="hide"
-                aria-label="Close map"
+                aria-label={t.hotel.map.closeLabel}
               >
                 <span className="material-symbols-rounded" aria-hidden="true">
                   close

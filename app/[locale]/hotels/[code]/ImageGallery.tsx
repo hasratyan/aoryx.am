@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useTranslations } from "@/components/language-provider";
 
 type ImageGalleryProps = {
   images: string[];
@@ -9,8 +10,11 @@ type ImageGalleryProps = {
 };
 
 export default function ImageGallery({ images, altText }: ImageGalleryProps) {
+  const t = useTranslations();
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const buildAlt = (index: number) =>
+    t.gallery.imageAlt.replace("{name}", altText).replace("{index}", String(index + 1));
 
   const openFullSizeImage = (index: number) => {
     setSelectedImageIndex(index);
@@ -140,13 +144,13 @@ export default function ImageGallery({ images, altText }: ImageGalleryProps) {
 
   return (
     <>
-      <div ref={listRef} className="image-gallery-wrapper" aria-label="Hotel image gallery">
+      <div ref={listRef} className="image-gallery-wrapper" aria-label={t.gallery.label}>
         <ul className="image-gallery">
           {images.map((src, idx) => (
             <li key={src} onClick={() => openFullSizeImage(idx)}>
               <Image
                 src={src}
-                alt={`${altText} Image ${idx + 1}`}
+                alt={buildAlt(idx)}
                 width={0}
                 height={0}
                 sizes="100vw"
@@ -168,13 +172,13 @@ export default function ImageGallery({ images, altText }: ImageGalleryProps) {
             >
               <Image
                 src={images[selectedImageIndex]}
-                alt={`${altText} Image ${selectedImageIndex + 1}`}
+                alt={buildAlt(selectedImageIndex)}
                 width={0}
                 height={0}
                 sizes="100vw"
                 priority
               />
-              <button onClick={closeFullSizeImage} className="close">
+              <button onClick={closeFullSizeImage} className="close" aria-label={t.gallery.closeLabel}>
                 <i className="material-symbols-outlined">close</i>
               </button>
               <button
@@ -183,6 +187,7 @@ export default function ImageGallery({ images, altText }: ImageGalleryProps) {
                   navigateImages("prev");
                 }}
                 className="prev"
+                aria-label={t.gallery.prevLabel}
               >
                 <i className="material-symbols-outlined">arrow_back_ios</i>
               </button>
@@ -192,6 +197,7 @@ export default function ImageGallery({ images, altText }: ImageGalleryProps) {
                   navigateImages("next");
                 }}
                 className="next"
+                aria-label={t.gallery.nextLabel}
               >
                 <i className="material-symbols-outlined">arrow_forward_ios</i>
               </button>

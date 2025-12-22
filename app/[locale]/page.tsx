@@ -163,9 +163,9 @@ export default function Home() {
               </div>
             </div>
             <div className="container">
-              <Image height={100} width={100} src={"/images/icons/beach-chair.png"} alt={"Vacation"}/>
-              <h2>Հանգստացեք հիմա, վճարեք հետո</h2>
-              <p>Օգտվեք RocketLine վճարման եղանակից և իրականացրեք Ձեր հանգստի վճարումը մինչև 60 ամիս ժամկետում։</p>
+              <Image height={100} width={100} src={"/images/icons/beach-chair.png"} alt={t.home.payLater.alt}/>
+              <h2>{t.home.payLater.title}</h2>
+              <p>{t.home.payLater.body}</p>
             </div>
             <div className="background">
               <div className="shape"></div>

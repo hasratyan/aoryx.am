@@ -130,7 +130,8 @@ export default function Header() {
           <button
             type="button"
             className="menu-toggle"
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileMenuOpen ? t.header.closeMenu : t.header.openMenu}
+            title={mobileMenuOpen ? t.header.closeMenu : t.header.openMenu}
             aria-expanded={mobileMenuOpen}
             aria-controls={`mobile-menu-${menuId}`}
             onClick={() => setMobileMenuOpen((open) => !open)}
@@ -151,7 +152,7 @@ export default function Header() {
           )}
 
           <div id={`mobile-menu-${menuId}`} className="header-menu" data-open={mobileMenuOpen ? "true" : "false"}>
-            <nav aria-label="Primary">
+            <nav aria-label={t.header.primaryNav}>
               {t.nav.map((item) => (
                 <a key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}>
                   {item.label}

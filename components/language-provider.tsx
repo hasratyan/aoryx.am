@@ -30,7 +30,7 @@ export function LanguageProvider({ children, initialLocale }: LanguageProviderPr
 
   const setLocale = (newLocale: Locale) => {
     // Set cookie for middleware to use on next navigation
-    document.cookie = `aoryx-locale=${newLocale};path=/;max-age=31536000`;
+    document.cookie = `megatours-locale=${newLocale};path=/;max-age=31536000`;
     
     // Navigate to the new locale path
     const segments = pathname.split("/");
