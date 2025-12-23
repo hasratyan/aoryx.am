@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
         let displayMeta = metadata;
         if (metadata && typeof metadata === 'object' && metadata.error) {
           const err = metadata.error;
+          // @ts-ignore
           displayMeta = {
             ...metadata,
             error: {
