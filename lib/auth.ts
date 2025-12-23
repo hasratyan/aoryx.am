@@ -3,6 +3,12 @@ import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import { upsertUserProfile } from "@/lib/user-data";
+import dns from "node:dns";
+
+// Force IPv4 as a potential fix for 403 Forbidden issues on Google endpoints in some environments
+if (typeof window === "undefined") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 const adapter = clientPromise ? MongoDBAdapter(clientPromise) : undefined;
 const isAuthDebug = process.env.NEXTAUTH_DEBUG === "true";
@@ -74,6 +80,7 @@ export const authOptions: NextAuthOptions = {
       clientId: googleClientId || "",
       clientSecret: googleClientSecret || "",
       authorization: {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
           prompt: "consent",
           access_type: "offline",
@@ -81,13 +88,11 @@ export const authOptions: NextAuthOptions = {
           scope: "openid email profile",
         },
       },
-      // Manual endpoint configuration to bypass 403 Forbidden on discovery or certs fetching
+      // Manual endpoint configuration to bypass potential 403 Forbidden on discovery or certs fetching
       token: "https://oauth2.googleapis.com/token",
       userinfo: "https://www.googleapis.com/oauth2/v3/userinfo",
-      // @ts-ignore - Using accounts.google.com for certs as it's often more accessible than www.googleapis.com
-      jwks_endpoint: "https://accounts.google.com/o/oauth2/v2/certs",
+      jwks_endpoint: "https://www.googleapis.com/oauth2/v3/certs",
       issuer: "https://accounts.google.com",
-      wellKnown: undefined,
       // Keep state and pkce as they are standard and secure.
       checks: ["pkce", "state"],
     }),
