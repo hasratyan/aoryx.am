@@ -7,12 +7,25 @@ import { upsertUserProfile } from "@/lib/user-data";
 const adapter = clientPromise ? MongoDBAdapter(clientPromise) : undefined;
 const isAuthDebug = process.env.NEXTAUTH_DEBUG === "true";
 
+// Sanitization and validation of environment variables
+const nextAuthUrl = process.env.NEXTAUTH_URL?.trim();
+const nextAuthSecret = process.env.NEXTAUTH_SECRET?.trim();
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+
 if (process.env.NODE_ENV === "production") {
-  if (!process.env.NEXTAUTH_URL) {
-    console.warn("[NextAuth][warn] NEXTAUTH_URL is not set in production. This often causes 'state missing' errors.");
+  if (!nextAuthUrl) {
+    console.warn("[NextAuth][warn] NEXTAUTH_URL is not set in production.");
+  } else if (nextAuthUrl.endsWith("/")) {
+    console.warn("[NextAuth][warn] NEXTAUTH_URL has a trailing slash. This can cause OAuth callback issues.");
   }
-  if (!process.env.NEXTAUTH_SECRET) {
-    console.error("[NextAuth][error] NEXTAUTH_SECRET is not set in production. This will cause authentication to fail.");
+
+  if (!nextAuthSecret) {
+    console.error("[NextAuth][error] NEXTAUTH_SECRET is not set in production.");
+  }
+
+  if (googleClientSecret && (googleClientSecret.startsWith('"') || googleClientSecret.endsWith('"'))) {
+    console.warn("[NextAuth][warn] GOOGLE_CLIENT_SECRET appears to be wrapped in quotes. This will cause 403 Forbidden errors.");
   }
 }
 
@@ -21,8 +34,24 @@ export const authOptions: NextAuthOptions = {
   debug: isAuthDebug,
   logger: {
     error(code, metadata) {
+      // Enhanced logging for callback errors to reveal the actual response from Google
       if (isAuthDebug || code === "OAUTH_CALLBACK_ERROR") {
-        console.error(`[NextAuth][error][${code}]`, metadata ?? "");
+        let displayMeta = metadata;
+        if (metadata && typeof metadata === 'object' && metadata.error) {
+          const err = metadata.error;
+          displayMeta = {
+            ...metadata,
+            error: {
+              message: err.message,
+              stack: err.stack,
+              code: err.code,
+              status: err.status,
+              // openid-client often puts the response body here
+              body: err.body || err.response?.body || err.data,
+            }
+          };
+        }
+        console.error(`[NextAuth][error][${code}]`, JSON.stringify(displayMeta, null, 2));
       }
     },
     warn(code) {
@@ -38,8 +67,8 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      clientId: googleClientId || "",
+      clientSecret: googleClientSecret || "",
       authorization: {
         params: {
           prompt: "consent",
@@ -48,13 +77,12 @@ export const authOptions: NextAuthOptions = {
           scope: "openid email profile",
         },
       },
-      // Using both pkce and state is more secure and standard.
-      // 403 Forbidden errors often relate to missing Google People API or restricted OAuth settings.
+      // Keep state and pkce as they are standard and secure.
       checks: ["pkce", "state"],
     }),
   ],
   session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: nextAuthSecret,
   callbacks: {
     async session({ session, token }) {
       if (session.user && token.sub) {
