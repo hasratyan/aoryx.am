@@ -879,23 +879,34 @@ main {
     }
 
     .hero-purpose {
-      margin: 0.75em auto 0;
+      margin: 1em auto 0;
       max-width: 40rem;
-      color: #fffd;
+      color: #fff;
       text-align: center;
       line-height: 1.6;
+      font-size: 1.1em;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
     .hero-privacy {
-      margin-top: 0.75em;
+      margin-top: 1em;
       text-align: center;
-      font-size: 0.95em;
+      font-size: 1em;
     }
 
     .hero-privacy a {
       color: #fff;
       text-decoration: underline;
-      text-underline-offset: 0.2em;
+      text-underline-offset: 0.25em;
+      font-weight: 500;
+      padding: 0.5em 1em;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 0.5em;
+      transition: background 0.2s ease;
+    }
+
+    .hero-privacy a:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
   }
 
