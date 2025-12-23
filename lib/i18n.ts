@@ -29,6 +29,7 @@ export type Translation = {
   hero: {
     title: string;
     subtitle: string;
+    purpose: string;
     marquee: string;
   };
   search: {
@@ -403,6 +404,8 @@ const translations: Record<Locale, Translation> = {
       title: "ԱՄԷ-ի հյուրանոցների էքսկլյուզիվ գներ՝ ուղիղ տուրօպերատորից",
       subtitle:
         "Հյուրանոց, տրանսֆեր, էքսկուրսիաներ ու թեմատիկ պարկերի տոմսեր՝ մեկ ամրագրումով, առանց միջնորդների ու թաքնված վճարների։",
+      purpose:
+        "Megatours-ը ԱՄԷ-ի ճանապարհորդությունների ամրագրման հարթակ է՝ հյուրանոցներ, տրանսֆերներ և փորձառություններ որոնելու, համեմատելու և մեկ վայրում ամրագրելու համար։",
       marquee: " ՀՅՈՒՐԱՆՈՑՆԵՐ  ✦  ՏՐԱՆՍՖԵՐՆԵՐ  ✦  ԹԵՄԱՏԻԿ ՊԱՐԿԵՐԻ ՏՈՄՍԵՐ  ✦  ԷՔՍԿՈՒՐՍԻԱՆԵՐ  ✦  ԱՎԻԱՏՈՄՍԵՐ  ✦  ԱՊԱՀՈՎԱԳՐՈՒԹՅՈՒՆ  ✦ ",
     },
     search: {
@@ -563,7 +566,7 @@ const translations: Record<Locale, Translation> = {
     },
     footer: {
       refundPolicy: "Վերադարձի քաղաքականություն",
-      securityPolicy: "Անվտանգության քաղաքականություն",
+      securityPolicy: "Գաղտնիության քաղաքականություն",
       b2bPartnership: "B2B համագործակցություն",
     },
     home: {
@@ -637,7 +640,7 @@ const translations: Record<Locale, Translation> = {
         note: "Եթե ունեք հարցեր, մեր աջակցությունը պատրաստ է օգնել և պարզաբանել ընթացակարգը։",
       },
       security: {
-        title: "Անվտանգության քաղաքականություն",
+        title: "Գաղտնիության քաղաքականություն",
         intro: "Ձեր տվյալներն ու վճարումները պաշտպանված են ժամանակակից անվտանգության պրակտիկայով և վերահսկվող մուտքով։",
         sections: [
           {
@@ -982,6 +985,8 @@ const translations: Record<Locale, Translation> = {
       title: "UAE hotel exclusives, direct from the tour operator",
       subtitle:
         "Hotels, transfers, excursions, and theme park tickets in one booking—no middlemen, no hidden fees.",
+      purpose:
+        "Megatours is a UAE travel booking platform to search, compare, and book hotels, transfers, and experiences in one place.",
       marquee: " HOTELS  ✦  TRANSFERS  ✦  THEME PARK TICKETS  ✦  EXCURSIONS  ✦  FLIGHTS  ✦  INSURANCE  ✦ ",
     },
     search: {
@@ -1560,6 +1565,8 @@ const translations: Record<Locale, Translation> = {
       title: "Эксклюзивные цены на отели в ОАЭ напрямую от туроператора",
       subtitle:
         "Отель, трансфер, экскурсии и билеты в тематические парки — в одном бронировании, без посредников и скрытых платежей.",
+      purpose:
+        "Megatours — платформа бронирования поездок по ОАЭ, где можно искать, сравнивать и бронировать отели, трансферы и впечатления в одном месте.",
       marquee: " ОТЕЛИ  ✦  ТРАНСФЕРЫ  ✦  БИЛЕТЫ В ТЕМАТИЧЕСКИЕ ПАРКИ  ✦  ЭКСКУРСИИ  ✦  АВИАБИЛЕТЫ  ✦  СТРАХОВКА  ✦ ",
     },
     search: {
@@ -1720,7 +1727,7 @@ const translations: Record<Locale, Translation> = {
     },
     footer: {
       refundPolicy: "Политика возврата",
-      securityPolicy: "Политика безопасности",
+      securityPolicy: "Политика конфиденциальности",
       b2bPartnership: "B2B сотрудничество",
     },
     home: {
@@ -1793,7 +1800,7 @@ const translations: Record<Locale, Translation> = {
         note: "Если нужна помощь, служба поддержки подскажет лучший вариант.",
       },
       security: {
-        title: "Политика безопасности",
+        title: "Политика конфиденциальности",
         intro: "Ваши данные и платежи защищены современными практиками безопасности и контролируемым доступом.",
         sections: [
           {

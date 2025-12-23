@@ -877,6 +877,26 @@ main {
       color:  #fffb;
       text-align: center;
     }
+
+    .hero-purpose {
+      margin: 0.75em auto 0;
+      max-width: 40rem;
+      color: #fffd;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .hero-privacy {
+      margin-top: 0.75em;
+      text-align: center;
+      font-size: 0.95em;
+    }
+
+    .hero-privacy a {
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
   }
 
   /* ==================== */
