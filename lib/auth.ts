@@ -3,14 +3,12 @@ import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import { upsertUserProfile } from "@/lib/user-data";
-import dns from "node:dns";
 
-// Force IPv4 as a potential fix for 403 Forbidden issues on Google endpoints in some environments
-if (typeof window === "undefined") {
-  dns.setDefaultResultOrder("ipv4first");
-}
-
-const adapter = clientPromise ? MongoDBAdapter(clientPromise) : undefined;
+const adapter = clientPromise
+  ? MongoDBAdapter(clientPromise, {
+      databaseName: process.env.MONGODB_DB,
+    })
+  : undefined;
 const isAuthDebug = process.env.NEXTAUTH_DEBUG === "true";
 
 // Sanitization and validation of environment variables

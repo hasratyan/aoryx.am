@@ -1,4 +1,10 @@
 import { MongoClient } from "mongodb";
+import dns from "node:dns";
+
+// Force IPv4 to avoid connectivity issues (like 403 Forbidden on Google or MongoDB connection timeouts)
+if (typeof window === "undefined") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 type GlobalWithMongo = typeof globalThis & {
   _mongoClientPromise?: Promise<MongoClient>;
@@ -15,9 +21,18 @@ if (uri.length > 0) {
     const client = new MongoClient(uri);
     clientPromise = globalWithMongo._mongoClientPromise ?? client.connect();
     globalWithMongo._mongoClientPromise = clientPromise;
+    
+    // Quick connection check
+    clientPromise.catch(err => {
+      console.error("[MongoDB] Connection error:", err.message);
+    });
   } catch (error) {
-    console.error("[MongoDB] Invalid MONGODB_URI", error);
+    console.error("[MongoDB] Initialization error (Invalid URI?):", error);
     clientPromise = null;
+  }
+} else {
+  if (process.env.NODE_ENV === "production") {
+    console.error("[MongoDB][error] MONGODB_URI is not set in environment.");
   }
 }
 
