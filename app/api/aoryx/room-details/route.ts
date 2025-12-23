@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { roomDetails, AoryxServiceError, AoryxClientError } from "@/lib/aoryx-client";
 import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
 import type { AoryxSearchParams, AoryxRoomSearch } from "@/types/aoryx";
-import { setSessionCookie } from "../_shared";
+import { obfuscateRoomOptions } from "@/lib/aoryx-rate-tokens";
 
 export const runtime = "nodejs";
 
@@ -71,8 +71,14 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await roomDetails(params);
-    const response = NextResponse.json(result);
-    setSessionCookie(response, result.sessionId);
+    const obfuscatedRooms = obfuscateRoomOptions(result.rooms, {
+      sessionId: result.sessionId,
+      hotelCode,
+    });
+    const response = NextResponse.json({
+      currency: result.currency ?? null,
+      rooms: obfuscatedRooms,
+    });
 
     return response;
   } catch (error) {

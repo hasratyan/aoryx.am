@@ -3,7 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { getPrebookState, getSessionFromCookie } from "@/app/api/aoryx/_shared";
-import { calculateBookingTotal, parseBookingPayload, validatePrebookState } from "@/lib/aoryx-booking";
+import { parseBookingPayload, validatePrebookState } from "@/lib/aoryx-booking";
+import { calculateBookingTotal } from "@/lib/booking-total";
+import { convertToAmd, getEffectiveAmdRates } from "@/lib/pricing";
 import type { AoryxBookingPayload } from "@/types/aoryx";
 
 export const runtime = "nodejs";
@@ -35,14 +37,9 @@ const normalizeLanguage = (value: string | undefined) => {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const sessionId = parseSessionId((body as { sessionId?: unknown }).sessionId) ?? getSessionFromCookie(request);
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: "Missing Aoryx session. Please search again." },
-        { status: 400 }
-      );
-    }
+    const sessionId =
+      parseSessionId((body as { sessionId?: unknown }).sessionId) ??
+      getSessionFromCookie(request);
 
     let payload: AoryxBookingPayload;
     try {
@@ -71,9 +68,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const amountValue = calculateBookingTotal(payload);
-    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+    const baseAmount = calculateBookingTotal(payload);
+    if (!Number.isFinite(baseAmount) || baseAmount <= 0) {
       return NextResponse.json({ error: "Invalid booking total." }, { status: 400 });
+    }
+
+    let amountValue = baseAmount;
+    let amountCurrency = payload.currency;
+
+    try {
+      const rates = await getEffectiveAmdRates();
+      const converted = convertToAmd(baseAmount, payload.currency, rates);
+      if (converted === null) {
+        throw new Error("Missing exchange rate");
+      }
+      amountValue = Number(converted.toFixed(2));
+      amountCurrency = "AMD";
+    } catch (error) {
+      console.error("[Idram][checkout] Failed to convert amount", error);
+      return NextResponse.json(
+        { error: "Failed to calculate AMD total. Please try again." },
+        { status: 500 }
+      );
     }
 
     const amountFormatted = formatAmount(amountValue);
@@ -95,7 +111,9 @@ export async function POST(request: NextRequest) {
       amount: {
         value: amountValue,
         formatted: amountFormatted,
-        currency: payload.currency,
+        currency: amountCurrency,
+        baseValue: baseAmount,
+        baseCurrency: payload.currency,
       },
       description,
       payload,

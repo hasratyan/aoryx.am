@@ -39,7 +39,8 @@ export interface StoredPrebookState {
   sessionId: string;
   hotelCode: string;
   groupCode: number;
-  rateKeys: string[];
+  rateKeys?: string[];
+  rateKeyHashes?: string[];
   isBookable: boolean | null;
   isPriceChanged: boolean | null;
   recordedAt: number;
@@ -60,7 +61,7 @@ const decodePrebookState = (value: string): StoredPrebookState | null => {
       typeof parsed.sessionId === "string" &&
       typeof parsed.hotelCode === "string" &&
       typeof parsed.groupCode === "number" &&
-      Array.isArray(parsed.rateKeys)
+      (Array.isArray(parsed.rateKeys) || Array.isArray(parsed.rateKeyHashes))
     ) {
       return parsed;
     }

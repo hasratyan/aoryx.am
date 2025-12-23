@@ -1,5 +1,6 @@
 import type { AoryxBookingPayload } from "@/types/aoryx";
 import type { StoredPrebookState } from "@/app/api/aoryx/_shared";
+import { decodeRateToken, hashRateKey, isRateToken } from "@/lib/aoryx-rate-tokens";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -92,15 +93,27 @@ const ensureSingleLeadGuest = (rooms: AoryxBookingPayload["rooms"]): AoryxBookin
   }));
 };
 
-const parseRooms = (input: unknown): AoryxBookingPayload["rooms"] => {
+const parseRooms = (
+  input: unknown,
+  context?: { sessionId?: string; hotelCode?: string }
+): {
+  rooms: AoryxBookingPayload["rooms"];
+  groupCodeFromTokens: number | null;
+  sessionIdFromTokens: string | null;
+} => {
   if (!Array.isArray(input) || input.length === 0) {
     throw new Error("rooms must be a non-empty array");
   }
 
+  let sawToken = false;
+  let sawRaw = false;
+  const groupCodes: number[] = [];
+  const sessionIds: string[] = [];
+
   const parsed = input.map((room, index) => {
     const roomRecord = room as UnknownRecord;
     const roomIdentifierRaw = roomRecord.roomIdentifier;
-    const rateKey = sanitizeString(roomRecord.rateKey) ?? "";
+    const rateKeyRaw = sanitizeString(roomRecord.rateKey) ?? "";
     const price = roomRecord.price as
       | { gross?: unknown; net?: unknown; tax?: unknown }
       | undefined;
@@ -111,6 +124,25 @@ const parseRooms = (input: unknown): AoryxBookingPayload["rooms"] => {
 
     const roomIdentifier = typeof roomIdentifierRaw === "number" ? roomIdentifierRaw : index + 1;
 
+    let rateKey = rateKeyRaw;
+    if (rateKeyRaw && isRateToken(rateKeyRaw)) {
+      sawToken = true;
+      const decoded = decodeRateToken(rateKeyRaw);
+      if (context?.sessionId && decoded.sessionId && decoded.sessionId !== context.sessionId) {
+        throw new Error("Rate token session mismatch. Please prebook again.");
+      }
+      if (context?.hotelCode && decoded.hotelCode && decoded.hotelCode !== context.hotelCode) {
+        throw new Error("Rate token hotel mismatch. Please prebook again.");
+      }
+      rateKey = decoded.rateKey;
+      groupCodes.push(decoded.groupCode);
+      if (decoded.sessionId) {
+        sessionIds.push(decoded.sessionId);
+      }
+    } else {
+      sawRaw = true;
+    }
+
     if (!rateKey) {
       throw new Error(`Room ${roomIdentifier} is missing rateKey`);
     }
@@ -120,7 +152,10 @@ const parseRooms = (input: unknown): AoryxBookingPayload["rooms"] => {
 
     const guests = parseGuests(roomRecord.guests);
     const adultsRaw = roomRecord.adults;
-    const adults = typeof adultsRaw === "number" ? adultsRaw : guests.filter((g) => g.type === "Adult").length;
+    const adults =
+      typeof adultsRaw === "number"
+        ? adultsRaw
+        : guests.filter((g) => g.type === "Adult").length;
 
     if (!Number.isFinite(adults) || adults <= 0) {
       throw new Error(`Invalid adults count for room ${roomIdentifier}`);
@@ -154,10 +189,28 @@ const parseRooms = (input: unknown): AoryxBookingPayload["rooms"] => {
     };
   });
 
-  return ensureSingleLeadGuest(parsed);
+  if (sawToken && sawRaw) {
+    throw new Error("Mixed rate token and raw rate key payload.");
+  }
+
+  let groupCodeFromTokens: number | null = null;
+  if (groupCodes.length > 0) {
+    groupCodeFromTokens = groupCodes[0];
+    if (groupCodes.some((code) => code !== groupCodeFromTokens)) {
+      throw new Error("Rate selection changed. Please prebook again.");
+    }
+  }
+
+  const uniqueSessionIds = Array.from(new Set(sessionIds));
+  const sessionIdFromTokens = uniqueSessionIds.length > 0 ? uniqueSessionIds[0] : null;
+  if (uniqueSessionIds.length > 1) {
+    throw new Error("Rate selection changed. Please prebook again.");
+  }
+
+  return { rooms: ensureSingleLeadGuest(parsed), groupCodeFromTokens, sessionIdFromTokens };
 };
 
-export const parseBookingPayload = (body: unknown, sessionId: string): AoryxBookingPayload => {
+export const parseBookingPayload = (body: unknown, sessionId?: string): AoryxBookingPayload => {
   const record = body as UnknownRecord;
   const hotelCode = sanitizeString(record.hotelCode) ?? "";
   if (!hotelCode) {
@@ -169,27 +222,38 @@ export const parseBookingPayload = (body: unknown, sessionId: string): AoryxBook
     throw new Error("destinationCode is required");
   }
 
-  const groupCode = Number(record.groupCode);
-  if (!Number.isFinite(groupCode)) {
-    throw new Error("groupCode must be a number");
-  }
-
   const nationality = sanitizeString(record.nationality) ?? "AM";
   const countryCode = sanitizeString(record.countryCode) ?? "AE";
   const currency = sanitizeString(record.currency) ?? "USD";
   const customerRefNumber = sanitizeString(record.customerRefNumber) ?? `MEGA-${Date.now()}`;
 
-  const rooms = parseRooms(record.rooms);
+  const { rooms, groupCodeFromTokens, sessionIdFromTokens } = parseRooms(record.rooms, {
+    sessionId,
+    hotelCode,
+  });
+  const parsedGroupCode = Number(record.groupCode);
+  const resolvedGroupCode = Number.isFinite(parsedGroupCode) ? parsedGroupCode : groupCodeFromTokens;
+  if (resolvedGroupCode === null || !Number.isFinite(resolvedGroupCode)) {
+    throw new Error("groupCode must be a number");
+  }
+  if (groupCodeFromTokens !== null && groupCodeFromTokens !== resolvedGroupCode) {
+    throw new Error("Rate selection changed. Please prebook again.");
+  }
+
+  const resolvedSessionId = sessionId ?? sessionIdFromTokens ?? "";
+  if (!resolvedSessionId) {
+    throw new Error("sessionId is required");
+  }
 
   return {
-    sessionId,
+    sessionId: resolvedSessionId,
     hotelCode,
     destinationCode,
     countryCode,
     currency,
     nationality,
     customerRefNumber,
-    groupCode,
+    groupCode: resolvedGroupCode,
     rooms,
     acknowledgePriceChange: Boolean(record.acknowledgePriceChange),
   };
@@ -212,12 +276,25 @@ export const validatePrebookState = (
   }
 
   const requestedKeys = payload.rooms.map((room) => room.rateKey).sort();
-  const prebookKeys = [...prebookState.rateKeys].sort();
-  if (
-    requestedKeys.length !== prebookKeys.length ||
-    requestedKeys.some((key, index) => key !== prebookKeys[index])
-  ) {
-    throw new Error("Rate selection changed. Please prebook again.");
+  if (Array.isArray(prebookState.rateKeyHashes) && prebookState.rateKeyHashes.length > 0) {
+    const requestedHashes = requestedKeys.map(hashRateKey).sort();
+    const prebookHashes = [...prebookState.rateKeyHashes].sort();
+    if (
+      requestedHashes.length !== prebookHashes.length ||
+      requestedHashes.some((hash, index) => hash !== prebookHashes[index])
+    ) {
+      throw new Error("Rate selection changed. Please prebook again.");
+    }
+  } else if (Array.isArray(prebookState.rateKeys) && prebookState.rateKeys.length > 0) {
+    const prebookKeys = [...prebookState.rateKeys].sort();
+    if (
+      requestedKeys.length !== prebookKeys.length ||
+      requestedKeys.some((key, index) => key !== prebookKeys[index])
+    ) {
+      throw new Error("Rate selection changed. Please prebook again.");
+    }
+  } else {
+    throw new Error("Missing prebook details. Please prebook again.");
   }
 
   const prebookAgeMs = Date.now() - prebookState.recordedAt;
@@ -232,18 +309,4 @@ export const validatePrebookState = (
   if (prebookState.isPriceChanged === true && payload.acknowledgePriceChange !== true) {
     throw new Error("Price changed. Please confirm to proceed.");
   }
-};
-
-export const calculateBookingTotal = (payload: AoryxBookingPayload): number => {
-  return payload.rooms.reduce((sum, room) => {
-    const net = room.price.net;
-    const gross = room.price.gross;
-    const price =
-      typeof net === "number" && Number.isFinite(net)
-        ? net
-        : typeof gross === "number" && Number.isFinite(gross)
-          ? gross
-          : 0;
-    return sum + price;
-  }, 0);
 };

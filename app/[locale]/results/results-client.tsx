@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { postJson } from "@/lib/api-helpers";
+import { useSearchParams } from "next/navigation";
 import { buildSearchQuery, parseSearchParams } from "@/lib/search-query";
 import type { AoryxSearchResult } from "@/types/aoryx";
 import Image from "next/image";
-import Loader from "@/components/loader";
 import SearchForm from "@/components/search-form";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
+import { convertToAmd, useAmdRates } from "@/lib/use-amd-rates";
 
 const ratingOptions = [5, 4, 3, 2, 1] as const;
 const intlLocales: Record<AppLocale, string> = {
@@ -26,20 +25,38 @@ interface DestinationInfo {
   rawId?: string;
 }
 
-interface DestinationApiResponse {
-  countryCode: string;
-  destinations: DestinationInfo[];
-}
+type SafeSearchResult = Omit<AoryxSearchResult, "sessionId">;
+
+type HotelWithPricing = SafeSearchResult["hotels"][number] & {
+  displayPrice: number | null;
+  displayCurrency: string | null;
+};
+
+type ResultsClientProps = {
+  initialResult: SafeSearchResult | null;
+  initialError: string | null;
+  initialDestinations?: DestinationInfo[];
+};
 
 function formatPrice(value: number | null, currency: string | null, locale: string): string | null {
   if (value === null || value === undefined) return null;
-  const safeCurrency = currency ?? "USD";
+  const safeCurrency = (currency ?? "USD").trim().toUpperCase();
+  const symbolOverrides: Record<string, string> = {
+    AMD: "֏",
+    USD: "$",
+  };
   try {
-    return new Intl.NumberFormat(locale, {
+    const formatter = new Intl.NumberFormat(locale, {
       style: "currency",
       currency: safeCurrency,
       maximumFractionDigits: 0,
-    }).format(value);
+    });
+    const override = symbolOverrides[safeCurrency];
+    if (!override) return formatter.format(value);
+    return formatter
+      .formatToParts(value)
+      .map((part) => (part.type === "currency" ? override : part.value))
+      .join("");
   } catch {
     return `${safeCurrency} ${value}`;
   }
@@ -52,7 +69,11 @@ function formatDate(value: string | null | undefined, locale: string): string | 
   return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(parsed);
 }
 
-export default function ResultsClient() {
+export default function ResultsClient({
+  initialResult,
+  initialError,
+  initialDestinations = [],
+}: ResultsClientProps) {
   const t = useTranslations();
   const { locale } = useLanguage();
   const intlLocale = intlLocales[locale] ?? "en-GB";
@@ -63,15 +84,13 @@ export default function ResultsClient() {
     return template.replace("{count}", count.toString());
   };
   const searchParams = useSearchParams();
-  const router = useRouter();
   const parsed = useMemo(
     () => parseSearchParams(new URLSearchParams(searchParams.toString())),
     [searchParams]
   );
 
-  const [result, setResult] = useState<AoryxSearchResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SafeSearchResult | null>(initialResult);
+  const [error, setError] = useState<string | null>(initialError);
   const [sortBy, setSortBy] = useState<
     "price-asc" | "price-desc" | "rating-desc" | "rating-asc"
   >("rating-desc");
@@ -81,42 +100,22 @@ export default function ResultsClient() {
     min: number;
     max: number;
   } | null>(null);
-  const [destinations, setDestinations] = useState<DestinationInfo[]>([]);
+  const [destinations, setDestinations] = useState<DestinationInfo[]>(initialDestinations);
+  const { rates: amdRates } = useAmdRates();
   const missingError = parsed.payload ? null : (parsed.error ?? t.results.errors.missingSearchDetails);
   const finalError = missingError ?? error;
 
-  // Fetch destinations on mount to get destination names
   useEffect(() => {
-    postJson<DestinationApiResponse>("/api/aoryx/country-info", { countryCode: "AE" })
-      .then((response) => {
-        setDestinations(response.destinations ?? []);
-      })
-      .catch((err) => {
-        console.error("Failed to load destinations:", err);
-      });
-  }, []);
+    setPriceRangeOverride(null);
+  }, [amdRates]);
 
   useEffect(() => {
-    if (!parsed.payload) return;
-
-    queueMicrotask(() => {
-      setLoading(true);
-      setError(null);
-      setResult(null);
-    });
-
-    postJson<AoryxSearchResult>("/api/aoryx/search", parsed.payload)
-      .then((data) => {
-        setResult(data);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : t.results.errors.loadFailed;
-        setError(message);
-        setResult(null);
-      })
-      .finally(() => setLoading(false));
-  }, [parsed.payload]);
+    setResult(initialResult);
+    setError(initialError);
+    setDestinations(initialDestinations);
+    setSelectedRatings([]);
+    setPriceRangeOverride(null);
+  }, [initialDestinations, initialError, initialResult]);
 
   const checkIn = formatDate(parsed.payload?.checkInDate, intlLocale);
   const checkOut = formatDate(parsed.payload?.checkOutDate, intlLocale);
@@ -192,16 +191,42 @@ export default function ResultsClient() {
     children: room.childrenAges.length,
     childAges: room.childrenAges,
   }));
+
+  const hotelsWithPricing = useMemo<HotelWithPricing[]>(() => {
+    return (result?.hotels ?? []).map((hotel) => {
+      const baseCurrency = hotel.currency ?? result?.currency ?? null;
+      const basePrice =
+        typeof hotel.minPrice === "number" && !Number.isNaN(hotel.minPrice)
+          ? hotel.minPrice
+          : null;
+      const converted = basePrice !== null && amdRates
+        ? convertToAmd(basePrice, baseCurrency, amdRates)
+        : null;
+      const displayPrice =
+        typeof converted === "number"
+          ? Math.round(converted)
+          : basePrice !== null
+            ? Math.round(basePrice)
+            : null;
+      const displayCurrency =
+        amdRates && typeof converted === "number" ? "AMD" : baseCurrency ?? "USD";
+      return {
+        ...hotel,
+        displayPrice,
+        displayCurrency,
+      };
+    });
+  }, [amdRates, result?.currency, result?.hotels]);
   const priceBounds = useMemo(() => {
-    const prices = (result?.hotels ?? [])
-      .map((hotel) => hotel.minPrice)
+    const prices = hotelsWithPricing
+      .map((hotel) => hotel.displayPrice)
       .filter((price): price is number => typeof price === "number" && !Number.isNaN(price));
     if (!prices.length) return null;
     return {
       min: Math.min(...prices),
       max: Math.max(...prices),
     };
-  }, [result?.hotels]);
+  }, [hotelsWithPricing]);
 
   const priceRange = useMemo(() => {
     if (!priceBounds) return null;
@@ -223,7 +248,7 @@ export default function ResultsClient() {
   }, [priceBounds, priceRangeOverride]);
 
   const sortedHotels = useMemo(() => {
-    const hotels = [...(result?.hotels ?? [])];
+    const hotels = [...hotelsWithPricing];
     if (!hotels.length) return [];
     const ratingSet = new Set(selectedRatings);
     const hasActivePriceFilter =
@@ -232,8 +257,8 @@ export default function ResultsClient() {
       (priceRange.min > priceBounds.min || priceRange.max < priceBounds.max);
     const filteredHotels = hotels.filter((hotel) => {
       if (priceBounds && priceRange) {
-        if (typeof hotel.minPrice === "number") {
-          if (hotel.minPrice < priceRange.min || hotel.minPrice > priceRange.max) return false;
+        if (typeof hotel.displayPrice === "number") {
+          if (hotel.displayPrice < priceRange.min || hotel.displayPrice > priceRange.max) return false;
         } else if (hasActivePriceFilter) {
           return false;
         }
@@ -259,14 +284,14 @@ export default function ResultsClient() {
       return direction === "asc" ? a - b : b - a;
     };
     const comparePrice = (a: typeof hotels[number], b: typeof hotels[number], direction: "asc" | "desc") => {
-      const priceDelta = compareNullable(a.minPrice, b.minPrice, direction);
+      const priceDelta = compareNullable(a.displayPrice, b.displayPrice, direction);
       if (priceDelta !== 0) return priceDelta;
       return compareNullable(a.rating, b.rating, "desc");
     };
     const compareRating = (a: typeof hotels[number], b: typeof hotels[number], direction: "asc" | "desc") => {
       const ratingDelta = compareNullable(a.rating, b.rating, direction);
       if (ratingDelta !== 0) return ratingDelta;
-      return compareNullable(a.minPrice, b.minPrice, "asc");
+      return compareNullable(a.displayPrice, b.displayPrice, "asc");
     };
     switch (sortBy) {
       case "price-asc":
@@ -283,7 +308,7 @@ export default function ResultsClient() {
         break;
     }
     return filteredHotels;
-  }, [priceBounds, priceRange, result?.hotels, selectedRatings, sortBy]);
+  }, [hotelsWithPricing, priceBounds, priceRange, selectedRatings, sortBy]);
 
   return (
     <main className="results">
@@ -315,10 +340,18 @@ export default function ResultsClient() {
               <>
                 <div className="filter-range-values">
                   <span>
-                    {formatPrice(priceRange?.min ?? priceBounds.min, result?.currency ?? null, intlLocale)}
+                    {formatPrice(
+                      priceRange?.min ?? priceBounds.min,
+                      amdRates ? "AMD" : result?.currency ?? "USD",
+                      intlLocale
+                    )}
                   </span>
                   <span>
-                    {formatPrice(priceRange?.max ?? priceBounds.max, result?.currency ?? null, intlLocale)}
+                    {formatPrice(
+                      priceRange?.max ?? priceBounds.max,
+                      amdRates ? "AMD" : result?.currency ?? "USD",
+                      intlLocale
+                    )}
                   </span>
                 </div>
                 <div className="filter-range-inputs">
@@ -385,9 +418,7 @@ export default function ResultsClient() {
           </div>
         </aside>
       ) : null}
-      {loading ? (
-        <Loader text={t.results.loading} />
-      ) : finalError ? (
+      {finalError ? (
         <div className="error-container">
           <Image src="/images/icons/error.gif" alt={t.results.errorAlt} width={100} height={100} />
           <p>
@@ -452,7 +483,7 @@ export default function ResultsClient() {
 
           <div id="hotels" className="grid">
             {sortedHotels.map((hotel, idx) => {
-              const formattedPrice = formatPrice(hotel.minPrice, hotel.currency, intlLocale);
+              const formattedPrice = formatPrice(hotel.displayPrice, hotel.displayCurrency, intlLocale);
               const detailQuery =
                 parsed.payload && hotel.code
                   ? buildSearchQuery({
@@ -514,7 +545,9 @@ export default function ResultsClient() {
                       <button
                         type="button"
                         disabled={!detailHref}
-                        onClick={() => detailHref && router.push(detailHref)}
+                        onClick={() =>
+                          detailHref && window.open(detailHref, "_blank", "noopener,noreferrer")
+                        }
                       >
                         {t.results.viewOptions}
                       </button>

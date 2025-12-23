@@ -115,6 +115,99 @@ export type Translation = {
       cta: string;
     };
   };
+  profile: {
+    title: string;
+    subtitle: string;
+    memberSince: string;
+    signIn: {
+      title: string;
+      body: string;
+      cta: string;
+    };
+    stats: {
+      bookings: string;
+      searches: string;
+      favorites: string;
+      nights: string;
+      lastActivity: string;
+    };
+    bookings: {
+      title: string;
+      subtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+      status: {
+        confirmed: string;
+        pending: string;
+        failed: string;
+        unknown: string;
+      };
+      labels: {
+        bookingId: string;
+        confirmation: string;
+        hotelCode: string;
+        destination: string;
+        rooms: string;
+        guests: string;
+        total: string;
+        bookedOn: string;
+      };
+      viewHotel: string;
+    };
+    searches: {
+      title: string;
+      subtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+      labels: {
+        dates: string;
+        results: string;
+        rooms: string;
+        guests: string;
+        destination: string;
+        hotel: string;
+        searchedOn: string;
+      };
+      searchAgain: string;
+    };
+    favorites: {
+      title: string;
+      subtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+      viewHotel: string;
+      locationFallback: string;
+      labels: {
+        rating: string;
+        savedOn: string;
+        code: string;
+      };
+    };
+    insights: {
+      title: string;
+      subtitle: string;
+      labels: {
+        topDestination: string;
+        averageStay: string;
+        roomsBooked: string;
+        lastBooking: string;
+      };
+      empty: string;
+    };
+    actions: {
+      title: string;
+      browse: string;
+      items: {
+        newSearch: { title: string; body: string; cta: string };
+        savedTravelers: { title: string; body: string; cta: string };
+        priceAlerts: { title: string; body: string; cta: string };
+      };
+    };
+    errors: {
+      title: string;
+      body: string;
+    };
+  };
   policies: {
     refund: {
       title: string;
@@ -173,6 +266,12 @@ export type Translation = {
     night: PluralForms;
   };
   hotel: {
+    favorites: {
+      save: string;
+      saved: string;
+      saving: string;
+      signIn: string;
+    };
     map: {
       viewAria: string;
       showButton: string;
@@ -313,7 +412,7 @@ const translations: Record<Locale, Translation> = {
       adultsLabel: "Մեծահասակ",
       childrenLabel: "Երեխա",
       childrenAges: "Երեխայի տարիքը",
-      roomsLabel: "Սենյակներ",
+      roomsLabel: "Սենյակ",
       datePlaceholder: "Ընտրել ամսաթվերը",
       submitIdle: "Որոնել",
       submitLoading: "Որոնում...",
@@ -582,6 +681,111 @@ const translations: Record<Locale, Translation> = {
         note: "Մենք մշտապես բարելավում ենք պաշտպանությունը՝ ձեր վստահությունը պահպանելու համար։",
       },
     },
+    profile: {
+      title: "Ձեր ճանապարհորդության վահանակը",
+      subtitle: "Ամրագրումները, որոնումները և կարևոր մանրամասները՝ մեկ վայրում։",
+      memberSince: "Ակտիվ է",
+      signIn: {
+        title: "Մուտք գործեք՝ ձեր ուղևորությունները տեսնելու համար",
+        body: "Մուտք գործեք Google-ով՝ տեսնելու ամրագրումները, որոնման պատմությունը և նախընտրությունները։",
+        cta: "Մուտք գործել Google-ով",
+      },
+      stats: {
+        bookings: "Ընդհանուր ամրագրումներ",
+        searches: "Պահպանված որոնումներ",
+        favorites: "Նախընտրած հյուրանոցներ",
+        nights: "Փնտրված գիշերներ",
+        lastActivity: "Վերջին ակտիվություն",
+      },
+      bookings: {
+        title: "Ձեր ամրագրումները",
+        subtitle: "Կարգավիճակը և հաստատումները՝ մեկ հայացքով։",
+        emptyTitle: "Ամրագրումներ դեռ չկան",
+        emptyBody: "Երբ ամրագրեք, այստեղ կտեսնեք բոլոր հաստատման համարները։",
+        status: {
+          confirmed: "Հաստատված",
+          pending: "Մշակման մեջ",
+          failed: "Չհաջողված",
+          unknown: "Սպասման մեջ",
+        },
+        labels: {
+          bookingId: "Ամրագրման ID",
+          confirmation: "Հաստատում",
+          hotelCode: "Հյուրանոցի կոդ",
+          destination: "Ուղղություն",
+          rooms: "Սենյակներ",
+          guests: "Հյուրեր",
+          total: "Ընդհանուր",
+          bookedOn: "Ամրագրման ամսաթիվ",
+        },
+        viewHotel: "Դիտել հյուրանոցը",
+      },
+      searches: {
+        title: "Որոնման պատմություն",
+        subtitle: "Վերաբացեք որոնումը մի քանի վայրկյանում։",
+        emptyTitle: "Որոնումներ դեռ չկան",
+        emptyBody: "Սկսեք որոնել՝ և ձեր վերջին որոնումները կպահվեն այստեղ։",
+        labels: {
+          dates: "Ամսաթվեր",
+          results: "Արդյունքներ",
+          rooms: "Սենյակներ",
+          guests: "Հյուրեր",
+          destination: "Ուղղություն",
+          hotel: "Հյուրանոց",
+          searchedOn: "Որոնման ամսաթիվ",
+        },
+        searchAgain: "Կրկնել որոնումը",
+      },
+      favorites: {
+        title: "Նախընտրած հյուրանոցներ",
+        subtitle: "Ձեր պահպանված տարբերակները՝ արագ վերադարձի համար։",
+        emptyTitle: "Դեռ նախընտրած հյուրանոցներ չկան",
+        emptyBody: "Հյուրանոցի էջում ընտրեք «Պահպանել»՝ որպեսզի վերադառնաք այստեղ մեկ հպումով։",
+        viewHotel: "Դիտել հյուրանոցը",
+        locationFallback: "Ուղղությունը նշված չէ",
+        labels: {
+          rating: "Վարկանիշ",
+          savedOn: "Պահպանված է",
+          code: "Հյուրանոցի կոդ",
+        },
+      },
+      insights: {
+        title: "Վերլուծություն",
+        subtitle: "Ձեր ճանապարհորդական սովորությունների արագ պատկեր։",
+        labels: {
+          topDestination: "Ամենապահանջված ուղղություն",
+          averageStay: "Միջին տևողություն",
+          roomsBooked: "Ամրագրված սենյակներ",
+          lastBooking: "Վերջին ամրագրում",
+        },
+        empty: "Դեռ տվյալներ չկան",
+      },
+      actions: {
+        title: "Արագ գործողություններ",
+        browse: "Դիտել ընտրվածները",
+        items: {
+          newSearch: {
+            title: "Նոր որոնում",
+            body: "Գտեք թարմ գներ բոլոր էմիրաթներում։",
+            cta: "Որոնել հյուրանոցներ",
+          },
+          savedTravelers: {
+            title: "Պահպանված հյուրեր",
+            body: "Պահպանեք տվյալները՝ արագ ամրագրման համար։",
+            cta: "Շուտով",
+          },
+          priceAlerts: {
+            title: "Գնային ազդարարումներ",
+            body: "Հետևեք գներին և ստացեք ծանուցումներ։",
+            cta: "Շուտով",
+          },
+        },
+      },
+      errors: {
+        title: "Տվյալները բեռնել չհաջողվեց",
+        body: "Խնդրում ենք կրկին փորձել մի փոքր ուշ։",
+      },
+    },
     results: {
       filters: {
         button: "Ֆիլտրեր",
@@ -632,6 +836,12 @@ const translations: Record<Locale, Translation> = {
       },
     },
     hotel: {
+      favorites: {
+        save: "Պահպանել նախընտրածներում",
+        saved: "Պահպանված է",
+        saving: "Պահպանվում է...",
+        signIn: "Մուտք գործեք՝ պահելու համար",
+      },
       map: {
         viewAria: "Դիտել հյուրանոցը քարտեզում",
         showButton: "Ցուցադրել քարտեզում",
@@ -1049,6 +1259,111 @@ const translations: Record<Locale, Translation> = {
         note: "We continuously improve our defenses to keep your trust.",
       },
     },
+    profile: {
+      title: "Your travel dashboard",
+      subtitle: "All your bookings, searches, and trip details—organized in one place.",
+      memberSince: "Member since",
+      signIn: {
+        title: "Sign in to see your trips",
+        body: "Log in with Google to access bookings, search history, and personal preferences.",
+        cta: "Sign in with Google",
+      },
+      stats: {
+        bookings: "Total bookings",
+        searches: "Saved searches",
+        favorites: "Saved hotels",
+        nights: "Nights searched",
+        lastActivity: "Last activity",
+      },
+      bookings: {
+        title: "Your bookings",
+        subtitle: "Confirmation details and booking status at a glance.",
+        emptyTitle: "No bookings yet",
+        emptyBody: "When you book a stay, it will appear here with all confirmation numbers.",
+        status: {
+          confirmed: "Confirmed",
+          pending: "Processing",
+          failed: "Failed",
+          unknown: "Pending",
+        },
+        labels: {
+          bookingId: "Booking ID",
+          confirmation: "Confirmation",
+          hotelCode: "Hotel code",
+          destination: "Destination",
+          rooms: "Rooms",
+          guests: "Guests",
+          total: "Total",
+          bookedOn: "Booked on",
+        },
+        viewHotel: "View hotel",
+      },
+      searches: {
+        title: "Search history",
+        subtitle: "Reopen a search in seconds.",
+        emptyTitle: "No searches yet",
+        emptyBody: "Start exploring and your recent searches will be saved here.",
+        labels: {
+          dates: "Dates",
+          results: "Results",
+          rooms: "Rooms",
+          guests: "Guests",
+          destination: "Destination",
+          hotel: "Hotel",
+          searchedOn: "Searched on",
+        },
+        searchAgain: "Search again",
+      },
+      favorites: {
+        title: "Favorite hotels",
+        subtitle: "Your saved stays, ready for the next booking.",
+        emptyTitle: "No favorites yet",
+        emptyBody: "Tap “Save” on any hotel page to keep it here for quick access.",
+        viewHotel: "View hotel",
+        locationFallback: "Location not specified",
+        labels: {
+          rating: "Rating",
+          savedOn: "Saved on",
+          code: "Hotel code",
+        },
+      },
+      insights: {
+        title: "Insights",
+        subtitle: "A quick look at your travel patterns.",
+        labels: {
+          topDestination: "Top destination",
+          averageStay: "Average trip length",
+          roomsBooked: "Rooms booked",
+          lastBooking: "Last booking",
+        },
+        empty: "Not enough data yet",
+      },
+      actions: {
+        title: "Quick actions",
+        browse: "Browse featured stays",
+        items: {
+          newSearch: {
+            title: "Start a new search",
+            body: "Find fresh rates across the UAE.",
+            cta: "Search hotels",
+          },
+          savedTravelers: {
+            title: "Saved travelers",
+            body: "Store traveler details for faster checkout.",
+            cta: "Coming soon",
+          },
+          priceAlerts: {
+            title: "Price alerts",
+            body: "Track rates and get notified.",
+            cta: "Coming soon",
+          },
+        },
+      },
+      errors: {
+        title: "We couldn't load your data",
+        body: "Please try again in a few minutes.",
+      },
+    },
     results: {
       filters: {
         button: "Filters",
@@ -1099,6 +1414,12 @@ const translations: Record<Locale, Translation> = {
       },
     },
     hotel: {
+      favorites: {
+        save: "Save to favorites",
+        saved: "Saved",
+        saving: "Saving...",
+        signIn: "Sign in to save",
+      },
       map: {
         viewAria: "View hotel on map",
         showButton: "Show location on map",
@@ -1516,6 +1837,111 @@ const translations: Record<Locale, Translation> = {
         note: "Мы постоянно улучшаем защиту, чтобы сохранить ваше доверие.",
       },
     },
+    profile: {
+      title: "Ваш личный кабинет путешествий",
+      subtitle: "Все бронирования, поиски и ключевые детали — в одном месте.",
+      memberSince: "На платформе с",
+      signIn: {
+        title: "Войдите, чтобы увидеть свои поездки",
+        body: "Войдите через Google, чтобы открыть бронирования, историю поиска и предпочтения.",
+        cta: "Войти через Google",
+      },
+      stats: {
+        bookings: "Всего бронирований",
+        searches: "Сохраненные поиски",
+        favorites: "Избранные отели",
+        nights: "Ночей в поиске",
+        lastActivity: "Последняя активность",
+      },
+      bookings: {
+        title: "Ваши бронирования",
+        subtitle: "Статус и подтверждения — в одном месте.",
+        emptyTitle: "Бронирований пока нет",
+        emptyBody: "Когда вы забронируете отель, здесь появятся номера подтверждений.",
+        status: {
+          confirmed: "Подтверждено",
+          pending: "В обработке",
+          failed: "Не удалось",
+          unknown: "Ожидание",
+        },
+        labels: {
+          bookingId: "ID бронирования",
+          confirmation: "Подтверждение",
+          hotelCode: "Код отеля",
+          destination: "Направление",
+          rooms: "Номера",
+          guests: "Гости",
+          total: "Итого",
+          bookedOn: "Дата бронирования",
+        },
+        viewHotel: "Открыть отель",
+      },
+      searches: {
+        title: "История поиска",
+        subtitle: "Возвращайтесь к поиску за пару секунд.",
+        emptyTitle: "Поисков пока нет",
+        emptyBody: "Начните поиск — и последние запросы будут храниться здесь.",
+        labels: {
+          dates: "Даты",
+          results: "Результаты",
+          rooms: "Номера",
+          guests: "Гости",
+          destination: "Направление",
+          hotel: "Отель",
+          searchedOn: "Дата поиска",
+        },
+        searchAgain: "Повторить поиск",
+      },
+      favorites: {
+        title: "Избранные отели",
+        subtitle: "Сохраненные варианты, чтобы вернуться к ним в один клик.",
+        emptyTitle: "Избранных пока нет",
+        emptyBody: "Нажмите «Сохранить» на странице отеля, и он появится здесь.",
+        viewHotel: "Открыть отель",
+        locationFallback: "Локация не указана",
+        labels: {
+          rating: "Рейтинг",
+          savedOn: "Сохранено",
+          code: "Код отеля",
+        },
+      },
+      insights: {
+        title: "Инсайты",
+        subtitle: "Короткий срез ваших путешествий.",
+        labels: {
+          topDestination: "Частое направление",
+          averageStay: "Средняя длительность",
+          roomsBooked: "Забронировано номеров",
+          lastBooking: "Последнее бронирование",
+        },
+        empty: "Недостаточно данных",
+      },
+      actions: {
+        title: "Быстрые действия",
+        browse: "Смотреть подборку",
+        items: {
+          newSearch: {
+            title: "Новый поиск",
+            body: "Найдите свежие цены по всем эмиратам.",
+            cta: "Искать отели",
+          },
+          savedTravelers: {
+            title: "Сохраненные путешественники",
+            body: "Храните данные для быстрого оформления.",
+            cta: "Скоро",
+          },
+          priceAlerts: {
+            title: "Уведомления о ценах",
+            body: "Следите за тарифами и получайте уведомления.",
+            cta: "Скоро",
+          },
+        },
+      },
+      errors: {
+        title: "Не удалось загрузить данные",
+        body: "Пожалуйста, попробуйте позже.",
+      },
+    },
     results: {
       filters: {
         button: "Фильтры",
@@ -1570,6 +1996,12 @@ const translations: Record<Locale, Translation> = {
       },
     },
     hotel: {
+      favorites: {
+        save: "Сохранить в избранное",
+        saved: "Сохранено",
+        saving: "Сохраняем...",
+        signIn: "Войдите, чтобы сохранить",
+      },
       map: {
         viewAria: "Показать отель на карте",
         showButton: "Показать на карте",

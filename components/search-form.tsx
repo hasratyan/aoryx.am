@@ -567,7 +567,9 @@ export default function SearchForm({
         if (onSubmitSearch) {
           await onSubmitSearch(searchPayload, params);
         } else {
-          router.push(`/results?${params.toString()}`);
+          const resultsPath = `/${appLocale}/results`;
+          const query = params.toString();
+          router.push(query ? `${resultsPath}?${query}` : resultsPath);
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : copy.errors.submit;
@@ -576,7 +578,7 @@ export default function SearchForm({
         setIsSubmitting(false);
       }
     },
-    [selectedLocation, dateRange.startDate, dateRange.endDate, rooms, router, onSubmitSearch]
+    [selectedLocation, dateRange.startDate, dateRange.endDate, rooms, router, onSubmitSearch, appLocale]
   );
 
   useEffect(() => {
@@ -804,7 +806,6 @@ export default function SearchForm({
       {showRoomCount && (
         <div className="field">
           <div className="rooms">
-            
               <label>
                 <span className="material-symbols-rounded">hotel</span>
                 {copy.roomsLabel}
@@ -817,7 +818,6 @@ export default function SearchForm({
                   onChange={(e) => updateRoomCount(parseInt(e.target.value) || 1)}
                 />
               </label>
-        
             </div>
         </div>
       )}

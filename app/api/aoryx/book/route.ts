@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recordUserBooking } from "@/lib/user-data";
 import { parseBookingPayload, validatePrebookState } from "@/lib/aoryx-booking";
+import { obfuscateBookingResult } from "@/lib/aoryx-rate-tokens";
 
 export const runtime = "nodejs";
 
@@ -19,14 +20,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const sessionId = parseSessionId((body as { sessionId?: unknown }).sessionId) ?? getSessionFromCookie(request);
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: "Missing Aoryx session. Please search again." },
-        { status: 400 }
-      );
-    }
+    const sessionId =
+      parseSessionId((body as { sessionId?: unknown }).sessionId) ??
+      getSessionFromCookie(request);
 
     let payload: AoryxBookingPayload;
     try {
@@ -46,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await book(payload);
-    const response = NextResponse.json(result);
+    const response = NextResponse.json(obfuscateBookingResult(result));
     clearPrebookCookie(response);
 
     try {

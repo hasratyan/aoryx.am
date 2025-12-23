@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useLanguage } from "@/components/language-provider";
 
@@ -29,14 +30,16 @@ export default function AuthActions() {
   if (session?.user) {
     return (
       <div className="auth-user">
-        <div className="avatar">
-          {session.user.image ? (
-            <Image src={session.user.image} alt={session.user.name || t.auth.signedIn} fill sizes="48px" />
-          ) : (
-            <div className="avatar-fallback">{initials(session.user.name, t.auth.guestInitialsFallback)}</div>
-          )}
-        </div>
-        <div className="auth-name">{session.user.name || t.auth.guestNameFallback}</div>
+        <Link href={`/${locale}/profile`} className="auth-profile">
+          <div className="avatar">
+            {session.user.image ? (
+              <Image src={session.user.image} alt={session.user.name || t.auth.signedIn} fill sizes="48px" />
+            ) : (
+              <div className="avatar-fallback">{initials(session.user.name, t.auth.guestInitialsFallback)}</div>
+            )}
+          </div>
+          <div className="auth-name">{session.user.name || t.auth.guestNameFallback}</div>
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: `/${locale}` })}
           type="button"

@@ -8,17 +8,6 @@ import { recordUserSearch } from "@/lib/user-data";
 
 export const runtime = "nodejs";
 
-// Cookie helper
-function setSessionCookie(response: NextResponse, sessionId: string): void {
-  response.cookies.set("aoryx_session", sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60, // 1 hour
-    path: "/",
-  });
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -89,8 +78,8 @@ export async function POST(request: NextRequest) {
 
     const result = await search(params);
 
-    const response = NextResponse.json(result);
-    setSessionCookie(response, result.sessionId);
+    const { sessionId: _sessionId, ...safeResult } = result;
+    const response = NextResponse.json(safeResult);
 
     try {
       const session = await getServerSession(authOptions);
