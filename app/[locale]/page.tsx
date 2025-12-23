@@ -38,11 +38,7 @@ export default function Home() {
                 speed={3}
               />
               <h3>{t.hero.subtitle}</h3>
-              <p className="hero-purpose">{t.hero.purpose}</p>
               <SearchForm copy={t.search} />
-              <p className="hero-privacy">
-                <Link href={`/${locale}/privacy-policy`}>{t.footer.securityPolicy}</Link>
-              </p>
             </div>
           </div>
         </div>
