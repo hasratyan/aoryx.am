@@ -727,6 +727,7 @@ main {
         display: flex;
         gap: 0.5em;
         align-items: center;
+        justify-content: left;
         padding: .25em 1em 0.25em 0.8em;
         background-color: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.3);
