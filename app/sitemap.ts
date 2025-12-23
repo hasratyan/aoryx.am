@@ -17,8 +17,8 @@ type RouteDefinition = {
 const routeDefinitions: RouteDefinition[] = [
   { path: "", priority: 1, changeFrequency: "daily" },
   { path: "/results", priority: 0.7, changeFrequency: "weekly" },
-  { path: "/refund", priority: 0.4, changeFrequency: "monthly" },
-  { path: "/security", priority: 0.4, changeFrequency: "monthly" },
+  { path: "/refund-policy", priority: 0.4, changeFrequency: "monthly" },
+  { path: "/privacy-policy", priority: 0.4, changeFrequency: "monthly" },
 ];
 
 const hotelRoutes: RouteDefinition[] = hotels.map((hotel) => ({
