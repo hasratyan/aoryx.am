@@ -4,99 +4,19 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import { upsertUserProfile } from "@/lib/user-data";
 
-const adapter = clientPromise
-  ? MongoDBAdapter(clientPromise, {
-      databaseName: process.env.MONGODB_DB,
-    })
-  : undefined;
-const isAuthDebug = process.env.NEXTAUTH_DEBUG === "true";
+const adapter = clientPromise ? MongoDBAdapter(clientPromise) : undefined;
 
-// Sanitization and validation of environment variables
-const nextAuthUrl = process.env.NEXTAUTH_URL?.trim();
-const nextAuthSecret = process.env.NEXTAUTH_SECRET?.trim();
-const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-
-if (process.env.NODE_ENV === "production") {
-  if (!nextAuthUrl) {
-    console.warn("[NextAuth][warn] NEXTAUTH_URL is not set in production.");
-  } else if (nextAuthUrl.endsWith("/")) {
-    console.warn("[NextAuth][warn] NEXTAUTH_URL has a trailing slash. This can cause OAuth callback issues.");
-  }
-
-  if (!nextAuthSecret) {
-    console.error("[NextAuth][error] NEXTAUTH_SECRET is not set in production.");
-  }
-
-  if (googleClientSecret && (googleClientSecret.startsWith('"') || googleClientSecret.endsWith('"'))) {
-    console.warn("[NextAuth][warn] GOOGLE_CLIENT_SECRET appears to be wrapped in quotes. This will cause 403 Forbidden errors.");
-  }
-}
 
 export const authOptions: NextAuthOptions = {
   ...(adapter ? { adapter } : {}),
-  debug: isAuthDebug,
-  logger: {
-    error(code, metadata) {
-      // Enhanced logging for callback errors to reveal the actual response from Google
-      if (isAuthDebug || code === "OAUTH_CALLBACK_ERROR") {
-        let displayMeta: any = metadata;
-        if (metadata && typeof metadata === 'object' && (metadata as any).error) {
-          const err = (metadata as any).error;
-          displayMeta = {
-            ...metadata,
-            error: {
-              message: err.message,
-              stack: err.stack,
-              code: err.code,
-              status: err.status,
-              // openid-client often puts the response body and headers here
-              body: err.body || err.response?.body || err.data,
-              headers: err.response?.headers,
-              // Capture any specific oauth errors
-              error: err.error,
-              error_description: err.error_description,
-            }
-          };
-        }
-        console.error(`[NextAuth][error][${code}]`, JSON.stringify(displayMeta, null, 2));
-      }
-    },
-    warn(code) {
-      if (isAuthDebug) {
-        console.warn(`[NextAuth][warn][${code}]`);
-      }
-    },
-    debug(code, metadata) {
-      if (isAuthDebug) {
-        console.log(`[NextAuth][debug][${code}]`, metadata ?? "");
-      }
-    },
-  },
   providers: [
     GoogleProvider({
-      clientId: googleClientId || "",
-      clientSecret: googleClientSecret || "",
-      authorization: {
-        url: "https://accounts.google.com/o/oauth2/v2/auth",
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-          scope: "openid email profile",
-        },
-      },
-      // Manual endpoint configuration to bypass potential 403 Forbidden on discovery or certs fetching
-      token: "https://oauth2.googleapis.com/token",
-      userinfo: "https://www.googleapis.com/oauth2/v3/userinfo",
-      jwks_endpoint: "https://www.googleapis.com/oauth2/v3/certs",
-      issuer: "https://accounts.google.com",
-      // Keep state and pkce as they are standard and secure.
-      checks: ["pkce", "state"],
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
   session: { strategy: "jwt" },
-  secret: nextAuthSecret,
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async session({ session, token }) {
       if (session.user && token.sub) {
