@@ -1142,7 +1142,7 @@ const translations: Record<Locale, Translation> = {
     },
     footer: {
       refundPolicy: "Refund policy",
-      securityPolicy: "Security policy",
+      securityPolicy: "Privacy policy",
       b2bPartnership: "B2B partnership",
     },
     home: {
@@ -1215,7 +1215,7 @@ const translations: Record<Locale, Translation> = {
         note: "Questions? Our support team is ready to help and guide you through the process.",
       },
       security: {
-        title: "Security policy",
+        title: "Privacy policy",
         intro: "Your data and payments are protected with modern security practices and controlled access.",
         sections: [
           {
