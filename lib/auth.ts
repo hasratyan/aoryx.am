@@ -36,10 +36,9 @@ export const authOptions: NextAuthOptions = {
     error(code, metadata) {
       // Enhanced logging for callback errors to reveal the actual response from Google
       if (isAuthDebug || code === "OAUTH_CALLBACK_ERROR") {
-        let displayMeta = metadata;
-        if (metadata && typeof metadata === 'object' && metadata.error) {
-          const err = metadata.error;
-          // @ts-ignore
+        let displayMeta: any = metadata;
+        if (metadata && typeof metadata === 'object' && (metadata as any).error) {
+          const err = (metadata as any).error;
           displayMeta = {
             ...metadata,
             error: {
