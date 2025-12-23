@@ -7,8 +7,13 @@ import { upsertUserProfile } from "@/lib/user-data";
 const adapter = clientPromise ? MongoDBAdapter(clientPromise) : undefined;
 const isAuthDebug = process.env.NEXTAUTH_DEBUG === "true";
 
-if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_URL) {
-  console.warn("[NextAuth][warn] NEXTAUTH_URL is not set in production. This often causes 'state missing' errors.");
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.NEXTAUTH_URL) {
+    console.warn("[NextAuth][warn] NEXTAUTH_URL is not set in production. This often causes 'state missing' errors.");
+  }
+  if (!process.env.NEXTAUTH_SECRET) {
+    console.error("[NextAuth][error] NEXTAUTH_SECRET is not set in production. This will cause authentication to fail.");
+  }
 }
 
 export const authOptions: NextAuthOptions = {
@@ -16,7 +21,7 @@ export const authOptions: NextAuthOptions = {
   debug: isAuthDebug,
   logger: {
     error(code, metadata) {
-      if (isAuthDebug) {
+      if (isAuthDebug || code === "OAUTH_CALLBACK_ERROR") {
         console.error(`[NextAuth][error][${code}]`, metadata ?? "");
       }
     },
@@ -40,12 +45,12 @@ export const authOptions: NextAuthOptions = {
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
+          scope: "openid email profile",
         },
       },
-      // In some production environments, PKCE can cause "state missing" errors.
-      // If the error persists, you can try changing this to checks: ["none"] (not recommended)
-      // or ensure NEXTAUTH_URL is set correctly with https.
-      checks: ["state"],
+      // Using both pkce and state is more secure and standard.
+      // 403 Forbidden errors often relate to missing Google People API or restricted OAuth settings.
+      checks: ["pkce", "state"],
     }),
   ],
   session: { strategy: "jwt" },
