@@ -7,6 +7,10 @@ import { upsertUserProfile } from "@/lib/user-data";
 const adapter = clientPromise ? MongoDBAdapter(clientPromise) : undefined;
 const isAuthDebug = process.env.NEXTAUTH_DEBUG === "true";
 
+if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_URL) {
+  console.warn("[NextAuth][warn] NEXTAUTH_URL is not set in production. This often causes 'state missing' errors.");
+}
+
 export const authOptions: NextAuthOptions = {
   ...(adapter ? { adapter } : {}),
   debug: isAuthDebug,
@@ -31,6 +35,16 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
+      // In some production environments, PKCE can cause "state missing" errors.
+      // If the error persists, you can try changing this to checks: ["none"] (not recommended)
+      // or ensure NEXTAUTH_URL is set correctly with https.
       checks: ["state"],
     }),
   ],
