@@ -46,8 +46,12 @@ export const authOptions: NextAuthOptions = {
               stack: err.stack,
               code: err.code,
               status: err.status,
-              // openid-client often puts the response body here
+              // openid-client often puts the response body and headers here
               body: err.body || err.response?.body || err.data,
+              headers: err.response?.headers,
+              // Capture any specific oauth errors
+              error: err.error,
+              error_description: err.error_description,
             }
           };
         }
@@ -77,6 +81,13 @@ export const authOptions: NextAuthOptions = {
           scope: "openid email profile",
         },
       },
+      // Manual endpoint configuration to bypass 403 Forbidden on discovery or certs fetching
+      token: "https://oauth2.googleapis.com/token",
+      userinfo: "https://www.googleapis.com/oauth2/v3/userinfo",
+      // @ts-ignore - Using accounts.google.com for certs as it's often more accessible than www.googleapis.com
+      jwks_endpoint: "https://accounts.google.com/o/oauth2/v2/certs",
+      issuer: "https://accounts.google.com",
+      wellKnown: undefined,
       // Keep state and pkce as they are standard and secure.
       checks: ["pkce", "state"],
     }),
