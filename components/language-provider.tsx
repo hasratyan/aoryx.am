@@ -40,8 +40,12 @@ export function LanguageProvider({ children, initialLocale }: LanguageProviderPr
     } else {
       segments.splice(1, 0, newLocale);
     }
+    
+    const queryString = typeof window !== "undefined" ? window.location.search : "";
     const newPath = segments.join("/") || `/${newLocale}`;
-    router.push(newPath);
+    const destination = `${newPath}${queryString}`;
+    
+    router.push(destination);
   };
 
   // Update document lang attribute when locale changes
