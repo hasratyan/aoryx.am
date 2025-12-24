@@ -115,6 +115,11 @@ export type Translation = {
       body: string;
       cta: string;
     };
+    errors: {
+      invalidBill: string;
+      unauthorized: string;
+      signInRequired: string;
+    };
   };
   profile: {
     title: string;
@@ -587,6 +592,11 @@ const translations: Record<Locale, Translation> = {
         title: "Վճարումը չի հաջողվել",
         body: "Չհաջողվեց ավարտել վճարումը։ Խնդրում ենք փորձել կրկին կամ դիմել աջակցությանը։",
         cta: "Վերադառնալ գլխավոր էջ",
+      },
+      errors: {
+        invalidBill: "Անվավեր վճարման համար կամ ամրագրումը չի գտնվել:",
+        unauthorized: "Դուք չունեք այս ամրագրման մանրամասները տեսնելու թույլտվություն:",
+        signInRequired: "Խնդրում ենք մուտք գործել՝ ձեր ամրագրման մանրամասները տեսնելու համար:",
       },
     },
     policies: {
@@ -1169,6 +1179,11 @@ const translations: Record<Locale, Translation> = {
         body: "We couldn't complete the payment. Please try again or contact support.",
         cta: "Return to home",
       },
+      errors: {
+        invalidBill: "Invalid bill number or booking not found.",
+        unauthorized: "You do not have permission to view this booking details.",
+        signInRequired: "Please sign in to view your booking details.",
+      },
     },
     policies: {
       refund: {
@@ -1748,6 +1763,11 @@ const translations: Record<Locale, Translation> = {
         title: "Платеж не прошел",
         body: "Не удалось завершить оплату. Попробуйте еще раз или свяжитесь с поддержкой.",
         cta: "На главную",
+      },
+      errors: {
+        invalidBill: "Неверный номер счета или бронирование не найдено.",
+        unauthorized: "У вас нет разрешения на просмотр деталей этого бронирования.",
+        signInRequired: "Пожалуйста, войдите, чтобы просмотреть детали вашего бронирования.",
       },
     },
     policies: {
