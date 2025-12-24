@@ -1033,6 +1033,9 @@ export default function HotelClient({
 
     const payload: BookingPayloadInput = {
       hotelCode,
+      hotelName: hotelInfo?.name,
+      checkInDate: parsed.payload?.checkInDate,
+      checkOutDate: parsed.payload?.checkOutDate,
       destinationCode: destination,
       countryCode: parsed.payload?.countryCode ?? "AE",
       currency: bookingCurrency,

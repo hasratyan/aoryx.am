@@ -222,6 +222,10 @@ export const parseBookingPayload = (body: unknown, sessionId?: string): AoryxBoo
     throw new Error("destinationCode is required");
   }
 
+  const hotelName = sanitizeString(record.hotelName);
+  const checkInDate = sanitizeString(record.checkInDate);
+  const checkOutDate = sanitizeString(record.checkOutDate);
+
   const nationality = sanitizeString(record.nationality) ?? "AM";
   const countryCode = sanitizeString(record.countryCode) ?? "AE";
   const currency = sanitizeString(record.currency) ?? "USD";
@@ -248,6 +252,9 @@ export const parseBookingPayload = (body: unknown, sessionId?: string): AoryxBoo
   return {
     sessionId: resolvedSessionId,
     hotelCode,
+    hotelName,
+    checkInDate,
+    checkOutDate,
     destinationCode,
     countryCode,
     currency,

@@ -422,6 +422,9 @@ export interface AoryxBookingRoomPayload {
 export interface AoryxBookingPayload {
   sessionId: string;
   hotelCode: string;
+  hotelName?: string | null;
+  checkInDate?: string | null;
+  checkOutDate?: string | null;
   destinationCode: string;
   countryCode: string;
   currency: string;
