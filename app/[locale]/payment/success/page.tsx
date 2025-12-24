@@ -134,7 +134,7 @@ export default async function PaymentSuccessPage({
         </div>
       </div>
 
-      <p style={{ marginTop: "1rem" }}>{t.payment.success.note}</p>
+      <p>{t.payment.success.note}</p>
       <Link href="/profile" className="payment-link">
         <span className="material-symbols-rounded">account_circle</span>
         {t.payment.success.cta}

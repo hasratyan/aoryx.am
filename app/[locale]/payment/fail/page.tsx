@@ -70,7 +70,7 @@ export default async function PaymentFailPage({
         <span className="material-symbols-rounded">error</span>
         <h1>{t.profile.errors.title}</h1>
         <p>{t.payment.errors[errorKey]}</p>
-        <Link href="/" className="payment-link" style={{ marginTop: "1.5rem" }}>
+        <Link href="/" className="payment-link">
           <span className="material-symbols-rounded">home</span>
           {t.payment.failure.cta}
         </Link>
@@ -124,7 +124,7 @@ export default async function PaymentFailPage({
         </div>
       </div>
 
-      <Link href="/" className="payment-link" style={{ marginTop: "1.5rem" }}>
+      <Link href="/" className="payment-link">
         <span className="material-symbols-rounded">home</span>
         {t.payment.failure.cta}
       </Link>
