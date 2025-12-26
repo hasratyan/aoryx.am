@@ -5,10 +5,10 @@ import Link from "next/link";
 import AuthActions from "@/components/auth-actions";
 import GradualBlur from "@/components/GradualBlur";
 import LanguageSwitcher from "@/components/language-switcher";
-import { useTranslations } from "@/components/language-provider";
+import { useLanguage } from "@/components/language-provider";
 
 export default function Header() {
-  const t = useTranslations();
+  const { locale, t } = useLanguage();
   const menuId = useId();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileHeaderHidden, setMobileHeaderHidden] = useState(false);
@@ -91,7 +91,7 @@ export default function Header() {
         opacity={1}
       />
       <div className="header-inner container">
-        <Link href="/" className="logo">
+        <Link href={`/${locale}`} className="logo">
           <svg width="100%" height="100%" viewBox="0 0 1091 143" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <g transform="matrix(1,0,0,1,-2523.92,-3265.57)">
                 <g transform="matrix(1,0,0,1,-8406,2337)">
@@ -154,9 +154,9 @@ export default function Header() {
           <div id={`mobile-menu-${menuId}`} className="header-menu" data-open={mobileMenuOpen ? "true" : "false"}>
             <nav aria-label={t.header.primaryNav}>
               {t.nav.map((item) => (
-                <a key={item.href} href={`/${item.href}`} onClick={() => setMobileMenuOpen(false)}>
+                <Link key={item.href} href={`/${locale}/${item.href}`} onClick={() => setMobileMenuOpen(false)}>
                   {item.label}
-                </a>
+                </Link>
               ))}
             </nav>
             <LanguageSwitcher />

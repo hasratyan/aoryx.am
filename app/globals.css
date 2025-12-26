@@ -1131,25 +1131,139 @@ main {
   /* IDRAM SECTION */
   /* ==================== */
 
-  #idram{
+  .embla {
+    overflow: hidden;
+    width: 100%;
+    --slide-size: 80%;
+    background-color: #020617f2;
+    margin-block: -7em -4em;
+
+    @media screen and (max-width: 1900px) {
+      --slide-spacing: 3rem;
+    }
+
+    @media screen and (max-width: 1400px) {
+      --slide-spacing: 5rem;
+    }
+
+    @media screen and (max-width: 1024px) {
+      --slide-spacing: 2rem;
+    }
+  }
+
+  .embla__viewport {
+    overflow: hidden;
+    padding-block: 7em;
+  }
+
+  .embla__container {
+    display: flex;
+    touch-action: pan-y pinch-zoom;
+    margin-left: calc(var(--slide-spacing) * -1);
+  }
+
+  .embla__slide {
+    transform: translate3d(0, 0, 0);
+    flex: 0 0 var(--slide-size);
+    min-width: 0;
+    padding-left: var(--slide-spacing);
+  }
+
+  #idram {
+    background: url("/images/icons/mobile-payment.png") right 7% bottom 10% / auto no-repeat, linear-gradient(145deg, #e9401b, #f5821e, #ffab45) border-box;
+    background-size: 180px, cover;
+    box-shadow: 0 0 100px #f5832059;
+    @media screen and (max-width: 1024px) {
+      background: linear-gradient(145deg, #e9401b, #f5821e, #ffab45) border-box;
+    }
+    .background{
+      &:after{
+        background: linear-gradient(180deg, #fff0, #ee601e);
+      }
+      &:before{
+        background: linear-gradient(90deg, #ee601e, transparent);
+      }
+      .shape{
+        border-left: 3px solid #ee601e;
+        border-bottom: 3px solid #ee601e;
+      }
+    }
+  }
+
+  #flydubai {
+    background: url("/images/icons/flydubai-airplane.png") right 5% bottom 40% / auto no-repeat, linear-gradient(145deg, #004a99, #0056b3, #007bff) border-box;
+    background-size: 400px, cover;
+    box-shadow: 0 0 100px #0056b359;
+    @media screen and (max-width: 1024px) {
+      background: linear-gradient(145deg, #004a99, #0056b3, #007bff) border-box;
+    }
+    .header{
+      .logos{
+        svg{
+          max-width: 170px!important;
+          @media screen and (max-width: 500px) {
+            max-width: 130px!important;
+          }
+        }
+      }
+    }
+    .background{
+      &:after{
+        background: linear-gradient(180deg, #fff0, #0056b3);
+      }
+      &:before{
+        background: linear-gradient(90deg, #0056b3, transparent);
+      }
+      .shape{
+        border-left: 3px solid #0056b3;
+        border-bottom: 3px solid #0056b3;
+      }
+    }
+  }
+
+  #efes {
+    background: url("/images/icons/suitcase.png") right 10% bottom / auto no-repeat, linear-gradient(145deg, #d71921, #ed1c24, #f25c63) border-box;
+    background-size: 200px, cover;
+    box-shadow: 0 0 100px #ed1c2459;
+    @media screen and (max-width: 1024px) {
+      background: linear-gradient(145deg, #d71921, #ed1c24, #f25c63) border-box;
+    }
+    .background{
+      &:after{
+        background: linear-gradient(180deg, #fff0, #ed1c24);
+      }
+      &:before{
+        background: linear-gradient(90deg, #ed1c24, transparent);
+      }
+      .shape{
+        border-left: 3px solid #ed1c24;
+        border-bottom: 3px solid #ed1c24;
+      }
+    }
+  }
+
+  #idram, #efes, #flydubai {
     z-index: 2;
     margin-top: 1em;
     max-width: 1400px;
     margin-inline: auto;
     width: 100%;
+    height: 100%;
     border-radius: 2em;
-    background: linear-gradient(145deg, #e9401b, #f5821e, #ffab45) border-box;
     border: 2px solid #ffffff1a;
-    box-shadow: 0 0 100px #f5832059;
     padding-block: 6em;
     position: relative;
+    align-content: center;
 
     @media screen and (max-width: 1024px) {
       padding-block: 7em 5em;
+      .background{
+        display: none;
+      }
     }
 
     @media screen and (max-width: 768px) {
-      padding-block: 7em 3em;
+      padding-block: 5em 3em;
     }
 
     @media screen and (max-width: 450px) {
@@ -1209,11 +1323,12 @@ main {
           bottom: -0.5rem;
         }
 
+        img{
+          height: 60px;
+          width: auto;
+        }
+
         svg{
-          fill-rule:evenodd;
-          clip-rule:evenodd;
-          stroke-linejoin:round;
-          stroke-miterlimit:2;
           fill: #212121;
           height: 40px;
           width: auto;
@@ -1246,8 +1361,8 @@ main {
       }
 
       img{
-        height: 100px;
         width: auto;
+        height: 100px;
         grid-area: icon;
         filter: drop-shadow(0px 0px 10px #fff2);
         border-radius: 1em;
@@ -1256,6 +1371,7 @@ main {
           height: 80px;
         }
       }
+
       h2{
         color: #fff;
         font-size: clamp(1.5rem, 5vw + 1rem, 2rem);
@@ -1271,6 +1387,10 @@ main {
         align-self: start;
         text-shadow: 0 0 15px #0002;
         font-size: 1.1rem;
+        max-width: 70%;
+        @media screen and (max-width: 1024px) {
+          max-width: none;
+        }
       }
     }
 
@@ -1285,7 +1405,6 @@ main {
         content: "";
         border-radius: inherit;
         mix-blend-mode: multiply;
-        background: linear-gradient(180deg, #fff0, #ee601e);
         position: absolute;
         top: 0;
         left: 0;
@@ -1295,7 +1414,6 @@ main {
         content: "";
         border-radius: inherit;
         mix-blend-mode: multiply;
-        background: linear-gradient(90deg, #ee601e, transparent);
         width: 80%;
         height: 3px;
         position: absolute;
@@ -1309,8 +1427,6 @@ main {
         bottom: 0;
         width: 20%;
         height: 20%;
-        border-left: 3px solid #ee601e;
-        border-bottom: 3px solid #ee601e;
         border-bottom-left-radius: 3em;
       }
     }
@@ -1321,7 +1437,7 @@ main {
   /* ==================== */
 
   #trust{
-    padding-block: 4em 2em;
+    padding-block: 7em 2em;
 
     .grid {
       gap: 2em;

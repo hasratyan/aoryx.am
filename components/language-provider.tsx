@@ -29,7 +29,7 @@ export function LanguageProvider({ children, initialLocale }: LanguageProviderPr
     : (initialLocale ?? defaultLocale);
 
   const setLocale = (newLocale: Locale) => {
-    // Set cookie for middleware to use on next navigation
+    // Set cookie for proxy to use on next navigation
     document.cookie = `megatours-locale=${newLocale};path=/;max-age=31536000`;
     
     // Navigate to the new locale path

@@ -16,7 +16,7 @@ function parseRooms(raw: string | null): { rooms: AoryxSearchParams["rooms"]; no
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return { rooms: createDefaultRooms(), notice: "Room selection was reset because it looked invalid." };
+      return { rooms: createDefaultRooms(), notice: "Your room selection has been reset due to invalid data. Please re-enter your preferences." };
     }
 
     const rooms = parsed.map((room: Record<string, unknown>, index: number) => ({
@@ -29,7 +29,7 @@ function parseRooms(raw: string | null): { rooms: AoryxSearchParams["rooms"]; no
 
     return { rooms };
   } catch {
-    return { rooms: createDefaultRooms(), notice: "Room selection was reset because it looked invalid." };
+    return { rooms: createDefaultRooms(), notice: "Your room selection has been reset due to invalid data. Please re-enter your preferences." };
   }
 }
 
@@ -44,11 +44,11 @@ export function parseSearchParams(searchParams: URLSearchParams): ParsedSearch {
   const { rooms, notice } = parseRooms(searchParams.get("rooms"));
 
   if (!checkInDate || !checkOutDate) {
-    return { payload: null, error: "Missing travel dates. Start a new search." };
+    return { payload: null, error: "Please select your travel dates to begin your search." };
   }
 
   if (!destinationCode && !hotelCode) {
-    return { payload: null, error: "Choose a destination or hotel to see results." };
+    return { payload: null, error: "Please select a destination or hotel to view available results." };
   }
 
   return {
