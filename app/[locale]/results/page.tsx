@@ -3,6 +3,7 @@ import ResultsClient from "./results-client";
 import { parseSearchParams } from "@/lib/search-query";
 import { search, AoryxClientError, AoryxServiceError } from "@/lib/aoryx-client";
 import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
+import { getEffectiveAmdRates } from "@/lib/pricing";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recordUserSearch } from "@/lib/user-data";
@@ -34,8 +35,13 @@ export default async function ResultsPage({ searchParams }: PageProps) {
   const parsed = parseSearchParams(buildSearchParams(resolvedSearchParams));
   let initialResult: SafeSearchResult | null = null;
   let initialError: string | null = null;
+  let initialAmdRates: { USD: number; EUR: number } | null = null;
 
   if (parsed.payload) {
+    const ratesPromise = getEffectiveAmdRates().catch((error) => {
+      console.error("[ExchangeRates] Failed to load rates", error);
+      return null;
+    });
     try {
       const params = {
         ...parsed.payload,
@@ -89,6 +95,7 @@ export default async function ResultsPage({ searchParams }: PageProps) {
         initialError = "Failed to perform search.";
       }
     }
+    initialAmdRates = await ratesPromise;
   }
 
   return (
@@ -97,6 +104,7 @@ export default async function ResultsPage({ searchParams }: PageProps) {
         initialResult={initialResult}
         initialError={initialError}
         initialDestinations={[]}
+        initialAmdRates={initialAmdRates}
       />
     </Suspense>
   );

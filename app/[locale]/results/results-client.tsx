@@ -36,6 +36,7 @@ type ResultsClientProps = {
   initialResult: SafeSearchResult | null;
   initialError: string | null;
   initialDestinations?: DestinationInfo[];
+  initialAmdRates?: { USD: number; EUR: number } | null;
 };
 
 function formatPrice(value: number | null, currency: string | null, locale: string): string | null {
@@ -73,6 +74,7 @@ export default function ResultsClient({
   initialResult,
   initialError,
   initialDestinations = [],
+  initialAmdRates,
 }: ResultsClientProps) {
   const t = useTranslations();
   const { locale } = useLanguage();
@@ -101,7 +103,7 @@ export default function ResultsClient({
     max: number;
   } | null>(null);
   const [destinations, setDestinations] = useState<DestinationInfo[]>(initialDestinations);
-  const { rates: amdRates } = useAmdRates();
+  const { rates: amdRates } = useAmdRates(initialAmdRates);
   const missingError = parsed.payload ? null : (parsed.error ?? t.results.errors.missingSearchDetails);
   const finalError = missingError ?? error;
 

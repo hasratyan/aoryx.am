@@ -193,6 +193,7 @@ type HotelClientProps = {
   initialHotelError?: string | null;
   initialRoomsError?: string | null;
   initialFallbackCoordinates?: { lat: number; lon: number } | null;
+  initialAmdRates?: { USD: number; EUR: number } | null;
 };
 
 type IdramCheckoutResponse = {
@@ -525,6 +526,7 @@ export default function HotelClient({
   initialHotelError = null,
   initialRoomsError = null,
   initialFallbackCoordinates = null,
+  initialAmdRates,
 }: HotelClientProps) {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -541,7 +543,7 @@ export default function HotelClient({
   };
   const { data: session, status: authStatus } = useSession();
   const isSignedIn = Boolean(session?.user);
-  const { rates: amdRates } = useAmdRates();
+  const { rates: amdRates } = useAmdRates(initialAmdRates);
 
   const formatDisplayPrice = useCallback(
     (amount: number | null | undefined, currency: string | null | undefined) => {

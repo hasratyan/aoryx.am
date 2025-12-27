@@ -3,6 +3,7 @@ import { hotelInfo, hotelsInfoByDestinationId, roomDetails, AoryxClientError, Ao
 import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
 import { parseSearchParams } from "@/lib/search-query";
 import { obfuscateRoomOptions } from "@/lib/aoryx-rate-tokens";
+import { getEffectiveAmdRates } from "@/lib/pricing";
 import type { AoryxHotelInfoResult, AoryxRoomOption, AoryxSearchParams } from "@/types/aoryx";
 
 const toFinite = (value: number | null | undefined): number | null =>
@@ -47,6 +48,12 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
   if (payload && hotelCode) {
     payload.hotelCode = hotelCode;
   }
+  const ratesPromise = hotelCode
+    ? getEffectiveAmdRates().catch((error) => {
+        console.error("[ExchangeRates] Failed to load rates", error);
+        return null;
+      })
+    : Promise.resolve(null);
 
   let hotelInfoResult: AoryxHotelInfoResult | null = null;
   let hotelError: string | null = null;
@@ -108,6 +115,8 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
     }
   }
 
+  const initialAmdRates = await ratesPromise;
+
   return (
     <HotelClient
       initialHotelInfo={hotelInfoResult}
@@ -115,6 +124,7 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
       initialHotelError={hotelError}
       initialRoomsError={roomsError}
       initialFallbackCoordinates={fallbackCoordinates}
+      initialAmdRates={initialAmdRates}
     />
   );
 }

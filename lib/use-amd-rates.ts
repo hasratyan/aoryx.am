@@ -11,6 +11,9 @@ type AmdRates = {
 const normalizeCurrency = (currency: string | null | undefined) =>
   (currency ?? "USD").trim().toUpperCase();
 
+const isValidRates = (value: AmdRates | null | undefined): value is AmdRates =>
+  Boolean(value && Number.isFinite(value.USD) && Number.isFinite(value.EUR));
+
 export const convertToAmd = (
   amount: number,
   currency: string | null | undefined,
@@ -24,12 +27,19 @@ export const convertToAmd = (
   return null;
 };
 
-export function useAmdRates() {
-  const [rates, setRates] = useState<AmdRates | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useAmdRates(initialRates?: AmdRates | null) {
+  const hasInitialRates = isValidRates(initialRates);
+  const [rates, setRates] = useState<AmdRates | null>(hasInitialRates ? initialRates : null);
+  const [loading, setLoading] = useState(!hasInitialRates);
 
   useEffect(() => {
     let active = true;
+
+    if (hasInitialRates) {
+      return () => {
+        active = false;
+      };
+    }
 
     setLoading(true);
     getJson<AmdRates>("/api/utils/exchange-rates")
@@ -52,7 +62,7 @@ export function useAmdRates() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [hasInitialRates]);
 
   return { rates, loading };
 }
