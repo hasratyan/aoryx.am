@@ -245,18 +245,18 @@ export default function Home() {
               ))}
           </div>
 
-          <section id="faq" aria-labelledby="perks-title">
-            <h2>{t.perks.title}</h2>
+          <section id="faq" aria-labelledby="faq-title">
+            <h2>{t.faq.title}</h2>
             <div>
-              {t.perks.items.map((perk) => (
-                <details key={perk.title}>
+              {t.faq.items.map((faq) => (
+                <details key={faq.title}>
                   <summary>
-                    {perk.title}
+                    {faq.title}
                     <span className="material-symbols-rounded" aria-hidden="true">
                       keyboard_arrow_right
                     </span>
                   </summary>
-                  <p>{perk.body}</p>
+                  <p>{faq.body}</p>
                 </details>
               ))}
             </div>

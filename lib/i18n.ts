@@ -68,7 +68,7 @@ export type Translation = {
     offers: { title: string; badge: string; description: string; cta: string }[];
   };
   featured: { title: string; subtitle: string; cta: string };
-  perks: {
+  faq: {
     title: string;
     items: { title: string; body: string }[];
   };
@@ -504,11 +504,11 @@ const translations: Record<Locale, Translation> = {
     nav: [
       { href: "#featured", label: "Լավագույն Հյուրանոցներ" },
       { href: "#offers", label: "Բացառիկ Առաջարկներ" },
-      { href: "#perks", label: "Առավելություններ" },
+      { href: "#faq", label: "ՀՏՀ" },
     ],
     labels: { exclusive: "Բացառիկ" },
     hero: {
-      title: "ԱՄԷ-ի Հյուրանոցների Բացառիկ Գներ՝ Ուղիղ Տուրօպերատորից",
+      title: "ԱՄԷ-ի հյուրանոցների բացառիկ արժեքներ՝ ուղիղ տուրօպերատորից",
       subtitle:
         "Ամրագրեք հյուրանոցներ, տրանսֆերներ, էքսկուրսիաներ և թեմատիկ պարկերի տոմսեր մեկ հարթակում՝ առանց միջնորդների և թաքնված վճարների:",
       purpose:
@@ -534,53 +534,53 @@ const translations: Record<Locale, Translation> = {
       },
     },
     services: {
-      title: "Ամեն ինչ՝ կատարյալ հանգստի համար",
+      title: "Ծառայություններ՝ Անթերի Ուղևորության Համար",
       items: [
-        {
-          icon: "directions_car",
-          title: "Տրանսֆերներ",
-          description: "Հարմարավետ օդանավակայանային և քաղաքային տրանսֆերներ",
-        },
         {
           icon: "hotel",
           title: "Հյուրանոցներ",
-          description: "480+ պրեմիում հյուրանոցներ ԱՄԷ-ում՝ էքսկլյուզիվ գներով",
-        },
-        {
-          icon: "tour",
-          title: "Էքսկուրսիաներ",
-          description: "Ընտրված տուրեր և եզակի փորձառություններ",
-        },
-        {
-          icon: "attractions",
-          title: "Թեմատիկ պարկեր",
-          description: "Առանց հերթի մուտք՝ լավագույն ատրակցիոններին",
+          description: "ԱՄԷ-ի լավագույն հյուրանոցները՝ էքսկլյուզիվ արժեքներով և ներառումներով։",
         },
         {
           icon: "flight",
           title: "Ավիատոմսեր",
-          description: "Լավագույն առաջարկներ ավիատոմսերի համար ամբողջ աշխարհում",
+          description: "Թռիչքների ուղիղ ամրագրում դեպի ԱՄԷ",
+        },
+        {
+          icon: "directions_car",
+          title: "Տրանսֆերներ",
+          description: "Խմբային և անհատական տրանսֆերներ՝ օդանավակայանից մինչև հյուրանոց և հակառակ ուղղությամբ։",
+        },
+        {
+          icon: "tour",
+          title: "Էքսկուրսիաներ",
+          description: "Հատուկ մշակված ծրագրեր՝ կատարյալ հանգստի համար։",
+        },
+        {
+          icon: "attractions",
+          title: "Թեմատիկ պարկեր",
+          description: "Տոմսեր և առաջարկներ՝ ԱՄԷ-ի ամենապահանջված ատրակցիոնների համար։",
         },
         {
           icon: "shield_with_heart",
           title: "Ապահովագրություն",
-          description: "Ապահովագրություն՝ հանգիստը վստահ պահելու համար",
+          description: "Ճանապարհորդական ապահովագրություն՝ հանգիստ ու պաշտպանված ուղևորության համար։",
         },
       ],
     },
     bundleSave: {
-      title: "Միավորիր ծառայությունները և խնայիր մինչև 30%",
-      savings: "Խնայիր մինչև 30%",
+      title: "Միավորեք ծառայությունները և խնայեք մինչև 30%",
+      savings: "Խնայեք մինչև 30%",
       features: [
         {
           icon: "savings",
-          title: "Լավագույն գնի երաշխիք",
-          description: "Գինը կհամեմատենք և կառաջարկենք լավագույն տարբերակը",
+          title: "Հատուկ արժեքներ",
+          description: "Ուղիղ համագործակցությունները թույլ են տալիս առաջարկել էքսկլյուզիվ արժեքներ՝ առանց միջնորդավճարների։",
         },
         {
           icon: "schedule",
           title: "Ամեն ինչ մեկ ամրագրմամբ",
-          description: "Խնայիր ժամանակ՝ մեկ պատվերով",
+          description: "Խնայեք ժամանակ՝ միավորելով ճանապարհորդական ծառայությունները մեկ փաթեթում։",
         },
         {
           icon: "support_agent",
@@ -593,7 +593,7 @@ const translations: Record<Locale, Translation> = {
     trustStats: {
       title: "Մեզ վստահում են հազարավոր ճանապարհորդներ",
       stats: [
-        { value: "50,000+", label: "Գոհ հյուրեր", icon: "people" },
+        { value: "50,000+", label: "Գոհ հաճախորդ", icon: "people" },
         { value: "4.9/5", label: "Միջին գնահատական", icon: "star" },
         { value: "24/7", label: "Աջակցություն օնլայն", icon: "support_agent" },
         { value: "100%", label: "Ապահով ամրագրում", icon: "security" },
@@ -622,28 +622,28 @@ const translations: Record<Locale, Translation> = {
       ],
     },
     featured: {
-      title: "Հյուրանոցներ՝ բոնուսներով արդեն ներառված",
-      subtitle: "Նախապես համաձայնեցված հավելումներ, ճկուն չեղարկում, ակնթարթային հաստատում",
-      cta: "Տեսնել բոլոր էմիրաթները",
+      title: "Ընտրված հյուրանոցներ՝ հատուկ առաջարկներով",
+      subtitle: "Ճկուն չեղարկում, հավելյալ բոնուսներ և ակնթարթային հաստատում։",
+      cta: "Դիտել բոլոր առաջարկները",
     },
-    perks: {
-      title: "Ամեն ինչ, ինչ սպասում են ուղիղ հյուրերը",
+    faq: {
+      title: "Հաճախ տրվող հարցեր",
       items: [
         {
-          title: "Քաղաք, ծով, անապատ",
-          body: "Դուբայ, Աբու Դաբի և հյուսիսային էմիրաթների ընտրանի",
+          title: "Լավագույն ուղղությունները ԱՄԷ-ում",
+          body: "Դուբայ, Աբու Դաբի և Հյուսիսային Էմիրաթներ՝ ձեր ոճին համապատասխան ընտրված տարբերակներով։",
         },
         {
-          title: "Թափանցիկ գներ",
-          body: "Բոլոր հարկերը ներառված են, ճկուն պայմաններով",
+          title: "Թափանցիկ պայմաններ",
+          body: "Տեսնում եք վերջնական արժեքը նախքան վճարումը՝ առանց թաքնված վճարների։",
         },
         {
-          title: "Կոնսիերժ հայերեն/անգլերեն",
-          body: "Տրանսֆեր, ուշ դուրսգրում, ռեստորանների ամրագրում",
+          title: "Աջակցություն հայերեն, ռուսերեն, անգլերեն",
+          body: "Օգնություն՝ տրանսֆերներից մինչև հատուկ ցանկություններ ու հարցումներ։",
         },
         {
-          title: "Պրոֆիլ՝ վերադարձի համար",
-          body: "Պահպանիր որոնումները և ամրագրիր արագ Google-ով",
+          title: "Արագ վերադառնալ ձեր որոնումներին",
+          body: "Պահպանեք նախընտրությունները և շարունակեք այնտեղից, որտեղ կանգնել էիք։",
         },
       ],
     },
@@ -1202,7 +1202,7 @@ const translations: Record<Locale, Translation> = {
     nav: [
       { href: "#featured", label: "Premier Stays" },
       { href: "#offers", label: "Exclusive Offers" },
-      { href: "#perks", label: "Why Megatours" },
+      { href: "#faq", label: "FAQ" },
     ],
 
     labels: {
@@ -1249,7 +1249,7 @@ const translations: Record<Locale, Translation> = {
           icon: "flight",
           title: "Flights",
           description:
-            "Competitive airfare options selected to complement your travel plans with flexibility and reliability.",
+            "Direct flight bookings to the UAE.",
         },
         {
           icon: "directions_car",
@@ -1339,8 +1339,8 @@ const translations: Record<Locale, Translation> = {
         "Flexible cancellation, added benefits, and instant confirmation — secured through direct agreements.",
       cta: "Explore Hotels Across the Emirates",
     },
-    perks: {
-      title: "The Direct Guest Experience — Elevated",
+    faq: {
+      title: "Frequently Asked Questions",
       items: [
         {
           title: "Iconic Destinations",
@@ -1918,7 +1918,7 @@ const translations: Record<Locale, Translation> = {
     nav: [
       { href: "#featured", label: "Подборка отелей" },
       { href: "#offers", label: "Специальные предложения" },
-      { href: "#perks", label: "Преимущества" },
+      { href: "#faq", label: "ЧЗВ" },
     ],
     labels: { exclusive: "Эксклюзив" },
     hero: {
@@ -1961,7 +1961,7 @@ const translations: Record<Locale, Translation> = {
           icon: "flight",
           title: "Авиабилеты",
           description:
-            "Гибкие и надежные варианты перелетов, подобранные под ваш маршрут.",
+            "Прямое бронирование авиабилетов в ОАЭ.",
         },
         {
           icon: "directions_car",
@@ -2051,8 +2051,8 @@ const translations: Record<Locale, Translation> = {
         "Гибкая отмена, дополнительные преимущества и мгновенное подтверждение — благодаря прямым контрактам.",
       cta: "Открыть отели по всем эмиратам",
     },
-    perks: {
-      title: "Прямой гостевой опыт — на новом уровне",
+    faq: {
+      title: "Часто задаваемые вопросы",
       items: [
         {
           title: "Иконические направления",
