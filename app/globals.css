@@ -890,6 +890,10 @@ main {
       -mask-image: linear-gradient(to right, transparent, #000 var(--nav-fade-size), #000 calc(100% - var(--nav-fade-size)), transparent);
       -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--nav-fade-size), #000 calc(100% - var(--nav-fade-size)), transparent);
 
+      @media screen and (max-width:1024px) {
+        mask-image: none;
+      }
+
       .hotel-card{
         max-width: 400px;
       }
@@ -1300,6 +1304,7 @@ main {
 
     @media screen and (max-width: 450px) {
       padding-block: 6em 2em;
+            align-content: start;
     }
 
     .header{
@@ -1406,7 +1411,7 @@ main {
 
       h2{
         color: #fff;
-        font-size: clamp(1.5rem, 5vw + 1rem, 2rem);
+        font-size: clamp(1.5rem, 3vw + 1rem, 2rem);
         font-weight: 600;
         line-height: normal;
         grid-area: title;
@@ -1422,6 +1427,9 @@ main {
         max-width: 70%;
         @media screen and (max-width: 1024px) {
           max-width: none;
+        }
+        @media screen and (max-width: 768px) {
+          font-size: 1rem;
         }
       }
     }
@@ -1721,11 +1729,6 @@ footer{
 }
 
 #hotels{
-
-  @media screen and (max-width:1024px) {
-    mask-image: none;
-  }
-
    .group{
      padding-block: 0.75em;
    }
