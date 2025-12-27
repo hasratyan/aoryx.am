@@ -1,4 +1,4 @@
-import type { AoryxBookingPayload } from "@/types/aoryx";
+import type { AoryxBookingPayload, AoryxTransferChargeType, AoryxTransferType } from "@/types/aoryx";
 import type { StoredPrebookState } from "@/app/api/aoryx/_shared";
 import { decodeRateToken, hashRateKey, isRateToken } from "@/lib/aoryx-rate-tokens";
 
@@ -19,6 +19,12 @@ const sanitizeString = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const isTransferType = (value: string): value is AoryxTransferType =>
+  value === "INDIVIDUAL" || value === "GROUP";
+
+const isChargeType = (value: string): value is AoryxTransferChargeType =>
+  value === "PER_PAX" || value === "PER_VEHICLE";
+
 const parseTransferSelection = (
   input: unknown
 ): AoryxBookingPayload["transferSelection"] => {
@@ -26,7 +32,7 @@ const parseTransferSelection = (
   const record = input as UnknownRecord;
   const transferTypeRaw = sanitizeString(record.transferType)?.toUpperCase();
   const transferType =
-    transferTypeRaw === "INDIVIDUAL" || transferTypeRaw === "GROUP" ? transferTypeRaw : undefined;
+    transferTypeRaw && isTransferType(transferTypeRaw) ? transferTypeRaw : undefined;
 
   const originRaw = record.origin as UnknownRecord | undefined;
   const origin = originRaw
@@ -76,7 +82,7 @@ const parseTransferSelection = (
   const pricingRaw = record.pricing as UnknownRecord | undefined;
   const chargeTypeRaw = sanitizeString(pricingRaw?.chargeType)?.toUpperCase();
   const chargeType =
-    chargeTypeRaw === "PER_PAX" || chargeTypeRaw === "PER_VEHICLE" ? chargeTypeRaw : undefined;
+    chargeTypeRaw && isChargeType(chargeTypeRaw) ? chargeTypeRaw : undefined;
   const pricing = pricingRaw
     ? {
         currency: sanitizeString(pricingRaw.currency),

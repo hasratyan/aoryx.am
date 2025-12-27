@@ -840,7 +840,7 @@ export default function HotelClient({
     if (!selectedTransfer || !transferPaxCount) return 0;
     const oneWay = toNumberValue(selectedTransfer.pricing?.oneWay);
     if (oneWay === null) return 0;
-    const chargeType = selectedTransfer.pricing.chargeType ?? "PER_PAX";
+    const chargeType = selectedTransfer.pricing?.chargeType ?? "PER_PAX";
     const minPax = selectedTransfer.paxRange?.minPax ?? 1;
     const paxForCalc = Math.max(transferPaxCount, minPax);
     const vehicleQty = transferVehicleQuantity[selectedTransfer.id ?? ""] ?? 1;
@@ -1476,11 +1476,13 @@ export default function HotelClient({
       const transferId = transferSelectionPayload.id ?? "transfer";
       const details = transferSelectionPayload.flightDetails ?? { flightNumber: "", arrivalDateTime: "" };
       const currentErrors: TransferFieldErrors[string] = {};
+      const flightNumber = details.flightNumber?.trim() ?? "";
+      const arrivalDateTime = details.arrivalDateTime?.trim() ?? "";
 
-      if (!details.flightNumber.trim()) {
+      if (!flightNumber) {
         currentErrors.flightNumber = t.hotel.addons.transfers.flightNumberRequired;
       }
-      if (!details.arrivalDateTime.trim()) {
+      if (!arrivalDateTime) {
         currentErrors.arrivalDateTime = t.hotel.addons.transfers.arrivalRequired;
       }
 
