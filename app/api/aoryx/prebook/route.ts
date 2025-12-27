@@ -111,11 +111,19 @@ export async function POST(request: NextRequest) {
     const result = await preBook(sessionId, hotelCode, resolvedGroupCode, rateKeys, currency);
 
     const resolvedSessionId = result.sessionId || sessionId;
+    const rooms = result.rooms.map((room) => ({
+      roomIdentifier: typeof room.roomIdentifier === "number" ? room.roomIdentifier : null,
+      policies: Array.isArray(room.policies) ? room.policies : [],
+      remarks: Array.isArray(room.remarks) ? room.remarks : [],
+      cancellationPolicy: room.cancellationPolicy ?? null,
+    }));
+
     const response = NextResponse.json({
       isBookable: result.isBookable ?? null,
       isSoldOut: result.isSoldOut ?? null,
       isPriceChanged: result.isPriceChanged ?? null,
       currency: result.currency ?? null,
+      rooms,
     });
     setPrebookCookie(response, {
       sessionId: resolvedSessionId,

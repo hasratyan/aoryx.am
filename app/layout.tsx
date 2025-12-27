@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import * as React from "react";
+import { GoogleTagManager } from '@next/third-parties/google'
 // import { Google_Sans } from "next/font/google";
 import 'material-symbols';
 import Header from "@/components/header";
+import Footer from "@/components/footer";
 import Providers from "@/components/providers";
 import "./globals.css";
-import Footer from "@/components/footer";
 
 // const body = Google_Sans({
 //   subsets: ["latin"],
@@ -40,6 +41,7 @@ export default function RootLayout({children,}: Readonly<{
       />
     </head>
     {/*<body className={`${body.variable} ${display.variable} antialiased`}>*/}
+    <GoogleTagManager gtmId="GTM-MQJD3BQN" />
     <body className={`antialiased`}>
       <Providers>
         <div className="page">

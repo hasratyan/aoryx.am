@@ -2751,8 +2751,8 @@ main.details{
 
   .booking-addons-chip{
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
     padding: 0.35em 0.75em;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.12);

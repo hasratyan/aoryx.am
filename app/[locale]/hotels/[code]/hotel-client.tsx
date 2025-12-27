@@ -162,11 +162,19 @@ type PrebookContext = {
   currency: string | null;
 };
 
+type PrebookRoomSnapshot = {
+  roomIdentifier: number | null;
+  policies: NonNullable<AoryxRoomOption["policies"]>;
+  remarks: NonNullable<AoryxRoomOption["remarks"]>;
+  cancellationPolicy: string | null;
+};
+
 type PrebookSummary = {
   isBookable: boolean | null;
   isSoldOut: boolean | null;
   isPriceChanged: boolean | null;
   currency?: string | null;
+  rooms?: PrebookRoomSnapshot[];
 };
 
 type BookingPayloadInput = Omit<AoryxBookingPayload, "groupCode" | "sessionId"> & {
@@ -362,6 +370,31 @@ const buildBookingGuests = (
       },
       guests,
       childAges,
+    };
+  });
+};
+
+const mergePrebookExtras = (
+  selectedRooms: AoryxRoomOption[],
+  prebookRooms?: PrebookRoomSnapshot[]
+): AoryxRoomOption[] => {
+  if (!prebookRooms || prebookRooms.length === 0) return selectedRooms;
+  const prebookByIdentifier = new Map<number, PrebookRoomSnapshot>();
+  prebookRooms.forEach((room) => {
+    if (typeof room.roomIdentifier === "number") {
+      prebookByIdentifier.set(room.roomIdentifier, room);
+    }
+  });
+
+  return selectedRooms.map((room, index) => {
+    const identifier = typeof room.roomIdentifier === "number" ? room.roomIdentifier : null;
+    const matched = identifier !== null ? prebookByIdentifier.get(identifier) : prebookRooms[index];
+    if (!matched) return room;
+    return {
+      ...room,
+      policies: matched.policies.length > 0 ? matched.policies : room.policies ?? [],
+      remarks: matched.remarks.length > 0 ? matched.remarks : room.remarks ?? [],
+      cancellationPolicy: matched.cancellationPolicy ?? room.cancellationPolicy ?? null,
     };
   });
 };
@@ -1369,6 +1402,9 @@ export default function HotelClient({
       setBookingError(null);
       setBookingResult(null);
       setConfirmPriceChange(false);
+      setBookingOpen(false);
+      setBookingGuests([]);
+      setActivePrebook(null);
 
       try {
         const result = await postJson<PrebookSummary>("/api/aoryx/prebook", {
@@ -1376,7 +1412,8 @@ export default function HotelClient({
           rateKeys,
           currency: prebookCurrency,
         });
-        const guests = buildBookingGuests(group.items, roomDetailsPayload?.rooms ?? null);
+        const mergedRooms = mergePrebookExtras(group.items, result.rooms);
+        const guests = buildBookingGuests(mergedRooms, roomDetailsPayload?.rooms ?? null);
         if (guests.length === 0) {
           setBookingError(t.hotel.errors.unableBuildGuests);
           return;
