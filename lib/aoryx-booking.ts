@@ -19,6 +19,207 @@ const sanitizeString = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const parseTransferSelection = (
+  input: unknown
+): AoryxBookingPayload["transferSelection"] => {
+  if (!input || typeof input !== "object") return undefined;
+  const record = input as UnknownRecord;
+  const transferTypeRaw = sanitizeString(record.transferType)?.toUpperCase();
+  const transferType =
+    transferTypeRaw === "INDIVIDUAL" || transferTypeRaw === "GROUP" ? transferTypeRaw : undefined;
+
+  const originRaw = record.origin as UnknownRecord | undefined;
+  const origin = originRaw
+    ? {
+        locationCode: sanitizeString(originRaw.locationCode),
+        locationType: sanitizeString(originRaw.locationType),
+        countryCode: sanitizeString(originRaw.countryCode),
+        cityCode: sanitizeString(originRaw.cityCode),
+        zoneCode: sanitizeString(originRaw.zoneCode),
+        airportCode: sanitizeString(originRaw.airportCode),
+        name: sanitizeString(originRaw.name),
+      }
+    : undefined;
+
+  const destinationRaw = record.destination as UnknownRecord | undefined;
+  const destination = destinationRaw
+    ? {
+        locationCode: sanitizeString(destinationRaw.locationCode),
+        locationType: sanitizeString(destinationRaw.locationType),
+        countryCode: sanitizeString(destinationRaw.countryCode),
+        cityCode: sanitizeString(destinationRaw.cityCode),
+        zoneCode: sanitizeString(destinationRaw.zoneCode),
+        airportCode: sanitizeString(destinationRaw.airportCode),
+        name: sanitizeString(destinationRaw.name),
+      }
+    : undefined;
+
+  const vehicleRaw = record.vehicle as UnknownRecord | undefined;
+  const vehicle = vehicleRaw
+    ? {
+        code: sanitizeString(vehicleRaw.code),
+        category: sanitizeString(vehicleRaw.category),
+        name: sanitizeString(vehicleRaw.name),
+        maxPax: toNumber(vehicleRaw.maxPax),
+        maxBags: toNumber(vehicleRaw.maxBags),
+      }
+    : undefined;
+
+  const paxRangeRaw = record.paxRange as UnknownRecord | undefined;
+  const paxRange = paxRangeRaw
+    ? {
+        minPax: toNumber(paxRangeRaw.minPax),
+        maxPax: toNumber(paxRangeRaw.maxPax),
+      }
+    : undefined;
+
+  const pricingRaw = record.pricing as UnknownRecord | undefined;
+  const chargeTypeRaw = sanitizeString(pricingRaw?.chargeType)?.toUpperCase();
+  const chargeType =
+    chargeTypeRaw === "PER_PAX" || chargeTypeRaw === "PER_VEHICLE" ? chargeTypeRaw : undefined;
+  const pricing = pricingRaw
+    ? {
+        currency: sanitizeString(pricingRaw.currency),
+        chargeType,
+        oneWay: toNumber(pricingRaw.oneWay),
+        return: toNumber(pricingRaw.return),
+      }
+    : undefined;
+
+  const validityRaw = record.validity as UnknownRecord | undefined;
+  const validity = validityRaw
+    ? {
+        from: sanitizeString(validityRaw.from),
+        to: sanitizeString(validityRaw.to),
+      }
+    : undefined;
+
+  const flightDetailsRaw = record.flightDetails as UnknownRecord | undefined;
+  const flightDetails = flightDetailsRaw
+    ? {
+        flightNumber: sanitizeString(flightDetailsRaw.flightNumber) ?? "",
+        arrivalDateTime: sanitizeString(flightDetailsRaw.arrivalDateTime) ?? "",
+      }
+    : undefined;
+
+  const selection = {
+    id: sanitizeString(record.id),
+    transferType,
+    origin,
+    destination,
+    bothDirections: typeof record.bothDirections === "boolean" ? record.bothDirections : undefined,
+    vehicle,
+    paxRange,
+    pricing,
+    validity,
+    includeReturn: typeof record.includeReturn === "boolean" ? record.includeReturn : undefined,
+    quantity: toNumber(record.quantity),
+    flightDetails,
+    totalPrice: toNumber(record.totalPrice),
+    paxCount: toNumber(record.paxCount),
+  };
+
+  if (!selection.totalPrice && !selection.id && !selection.transferType) {
+    return undefined;
+  }
+
+  return selection;
+};
+
+const parseExcursions = (
+  input: unknown
+): AoryxBookingPayload["excursions"] => {
+  if (!input || typeof input !== "object") return undefined;
+  const record = input as UnknownRecord;
+  const totalAmountRaw = toNumber(record.totalAmount);
+  const selectionsRaw = Array.isArray(record.selections) ? record.selections : [];
+
+  const selections = selectionsRaw
+    .map((entry) => {
+      const entryRecord = entry as UnknownRecord;
+      const id = sanitizeString(entryRecord.id);
+      if (!id) return null;
+      return {
+        id,
+        name: sanitizeString(entryRecord.name),
+        quantityAdult: toNumber(entryRecord.quantityAdult),
+        quantityChild: toNumber(entryRecord.quantityChild),
+        priceAdult: toNumber(entryRecord.priceAdult),
+        priceChild: toNumber(entryRecord.priceChild),
+        currency: sanitizeString(entryRecord.currency),
+        childPolicy: sanitizeString(entryRecord.childPolicy),
+        totalPrice: toNumber(entryRecord.totalPrice),
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+
+  if (selections.length === 0 && totalAmountRaw === null) {
+    return undefined;
+  }
+
+  const totalAmount =
+    totalAmountRaw ??
+    selections.reduce((sum, selection) => {
+      if (typeof selection.totalPrice === "number") return sum + selection.totalPrice;
+      const adultPrice = selection.priceAdult ?? 0;
+      const childPrice = selection.priceChild ?? selection.priceAdult ?? 0;
+      const adultQty = selection.quantityAdult ?? 0;
+      const childQty = selection.quantityChild ?? 0;
+      return sum + adultQty * adultPrice + childQty * childPrice;
+    }, 0);
+
+  return {
+    totalAmount,
+    selections,
+  };
+};
+
+const parseInsurance = (
+  input: unknown
+): AoryxBookingPayload["insurance"] => {
+  if (!input || typeof input !== "object") return undefined;
+  const record = input as UnknownRecord;
+  const planId = sanitizeString(record.planId);
+  if (!planId) return undefined;
+  return {
+    planId,
+    planName: sanitizeString(record.planName),
+    note: sanitizeString(record.note),
+    price: toNumber(record.price),
+    currency: sanitizeString(record.currency),
+  };
+};
+
+const parseAirTickets = (
+  input: unknown
+): AoryxBookingPayload["airTickets"] => {
+  if (!input || typeof input !== "object") return undefined;
+  const record = input as UnknownRecord;
+  const origin = sanitizeString(record.origin);
+  const destination = sanitizeString(record.destination);
+  const departureDate = sanitizeString(record.departureDate);
+  const returnDate = sanitizeString(record.returnDate);
+  const cabinClass = sanitizeString(record.cabinClass);
+  const notes = sanitizeString(record.notes);
+  const price = toNumber(record.price);
+  const currency = sanitizeString(record.currency);
+
+  if (!origin && !destination && !departureDate && !returnDate && !cabinClass && !notes && price === null) {
+    return undefined;
+  }
+
+  return {
+    origin,
+    destination,
+    departureDate,
+    returnDate,
+    cabinClass,
+    notes,
+    price,
+    currency,
+  };
+};
+
 const parseGuests = (input: unknown): AoryxBookingPayload["rooms"][number]["guests"] => {
   if (!Array.isArray(input) || input.length === 0) {
     throw new Error("Each room requires at least one guest");
@@ -230,6 +431,10 @@ export const parseBookingPayload = (body: unknown, sessionId?: string): AoryxBoo
   const countryCode = sanitizeString(record.countryCode) ?? "AE";
   const currency = sanitizeString(record.currency) ?? "USD";
   const customerRefNumber = sanitizeString(record.customerRefNumber) ?? `MEGA-${Date.now()}`;
+  const transferSelection = parseTransferSelection(record.transferSelection);
+  const excursions = parseExcursions(record.excursions);
+  const insurance = parseInsurance(record.insurance);
+  const airTickets = parseAirTickets(record.airTickets);
 
   const { rooms, groupCodeFromTokens, sessionIdFromTokens } = parseRooms(record.rooms, {
     sessionId,
@@ -262,6 +467,10 @@ export const parseBookingPayload = (body: unknown, sessionId?: string): AoryxBoo
     customerRefNumber,
     groupCode: resolvedGroupCode,
     rooms,
+    transferSelection,
+    excursions,
+    insurance,
+    airTickets,
     acknowledgePriceChange: Boolean(record.acknowledgePriceChange),
   };
 };

@@ -11,13 +11,20 @@ import { parseSearchParams } from "@/lib/search-query";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 import { convertToAmd, useAmdRates } from "@/lib/use-amd-rates";
+import Image from "next/image";
 import ImageGallery from "./ImageGallery";
 import type {
   AoryxBookingPayload,
   AoryxBookingResult,
+  AoryxExcursionTicket,
+  AoryxExcursionsPayload,
   AoryxHotelInfoResult,
   AoryxRoomOption,
   AoryxRoomSearch,
+  AoryxTransferRate,
+  AoryxTransferSelection,
+  BookingAirTicketRequest,
+  BookingInsuranceSelection,
 } from "@/types/aoryx";
 
 function toFinite(value: number | null | undefined): number | null {
@@ -48,6 +55,15 @@ function formatPrice(value: number | null, currency: string | null, locale: stri
   }
 }
 
+const toNumberValue = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
 const normalizeMealLabel = (value: string) => value.trim().toLowerCase();
 
 const pickMealLabel = (value?: string | null) => {
@@ -68,6 +84,20 @@ const getGroupMealLabel = (group: { option: AoryxRoomOption; items: AoryxRoomOpt
   pickMealLabel(group.items.find((item) => pickMealLabel(item.boardType))?.boardType) ??
   pickMealLabel(group.items.find((item) => pickMealLabel(item.meal))?.meal) ??
   null;
+
+const buildTransferId = (transfer: AoryxTransferRate) =>
+  transfer._id ??
+  [
+    transfer.transferType ?? "transfer",
+    transfer.origin?.locationCode ?? transfer.origin?.name ?? "origin",
+    transfer.destination?.locationCode ?? transfer.destination?.name ?? "destination",
+    transfer.vehicle?.name ?? transfer.vehicle?.category ?? "vehicle",
+    transfer.paxRange?.maxPax ?? "pax",
+    transfer.pricing?.oneWay ?? "price",
+  ].join("|");
+
+const buildExcursionId = (excursion: AoryxExcursionTicket) =>
+  excursion._id ?? excursion.activityCode ?? excursion.name ?? "excursion";
 
 type GuestForm = {
   id: string;
@@ -97,6 +127,31 @@ type BookingRoomState = {
   };
   guests: GuestForm[];
   childAges: number[];
+};
+
+type TransferFieldErrors = Record<
+  string,
+  {
+    flightNumber?: string;
+    arrivalDateTime?: string;
+  }
+>;
+
+type TransferFlightDetails = {
+  flightNumber: string;
+  arrivalDateTime: string;
+};
+
+type ExcursionSelectionState = {
+  adults: number;
+  children: number;
+};
+
+type InsurancePlan = {
+  id: string;
+  title: string;
+  description: string;
+  highlight?: string;
 };
 
 type PrebookContext = {
@@ -491,6 +546,38 @@ export default function HotelClient({
   const [bookingResult, setBookingResult] = useState<AoryxBookingResult | null>(null);
   const [confirmPriceChange, setConfirmPriceChange] = useState(false);
   const [prebookingKey, setPrebookingKey] = useState<string | null>(null);
+  const [showTransfers, setShowTransfers] = useState(false);
+  const [showExcursions, setShowExcursions] = useState(false);
+  const [showInsurance, setShowInsurance] = useState(false);
+  const [showFlights, setShowFlights] = useState(false);
+  const [transferOptions, setTransferOptions] = useState<AoryxTransferRate[]>([]);
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [selectedTransferId, setSelectedTransferId] = useState<string | null>(null);
+  const [includeReturnTransfer, setIncludeReturnTransfer] = useState(false);
+  const [transferFlightDetails, setTransferFlightDetails] = useState<
+    Record<string, TransferFlightDetails>
+  >({});
+  const [transferVehicleQuantity, setTransferVehicleQuantity] = useState<Record<string, number>>({});
+  const [transferFieldErrors, setTransferFieldErrors] = useState<TransferFieldErrors>({});
+  const [excursionOptions, setExcursionOptions] = useState<AoryxExcursionTicket[]>([]);
+  const [excursionLoading, setExcursionLoading] = useState(false);
+  const [excursionError, setExcursionError] = useState<string | null>(null);
+  const [excursionSelections, setExcursionSelections] = useState<
+    Record<string, ExcursionSelectionState>
+  >({});
+  const [excursionFee, setExcursionFee] = useState(0);
+  const [insuranceSelection, setInsuranceSelection] = useState<BookingInsuranceSelection | null>(
+    null
+  );
+  const [flightRequest, setFlightRequest] = useState<BookingAirTicketRequest>({
+    origin: "",
+    destination: "",
+    departureDate: "",
+    returnDate: "",
+    cabinClass: "",
+    notes: "",
+  });
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [roomsError, setRoomsError] = useState<string | null>(initialRoomsError);
   const [mealFilter, setMealFilter] = useState<string>("all");
@@ -527,6 +614,32 @@ export default function HotelClient({
     setBookingResult(null);
     setConfirmPriceChange(false);
     setPrebookingKey(null);
+    setShowTransfers(false);
+    setShowExcursions(false);
+    setShowInsurance(false);
+    setShowFlights(false);
+    setTransferOptions([]);
+    setTransferLoading(false);
+    setTransferError(null);
+    setSelectedTransferId(null);
+    setIncludeReturnTransfer(false);
+    setTransferFlightDetails({});
+    setTransferVehicleQuantity({});
+    setTransferFieldErrors({});
+    setExcursionOptions([]);
+    setExcursionLoading(false);
+    setExcursionError(null);
+    setExcursionSelections({});
+    setExcursionFee(0);
+    setInsuranceSelection(null);
+    setFlightRequest({
+      origin: "",
+      destination: "",
+      departureDate: "",
+      returnDate: "",
+      cabinClass: "",
+      notes: "",
+    });
   }, [initialRoomDetails, initialRoomsError]);
 
   useEffect(() => {
@@ -681,7 +794,13 @@ export default function HotelClient({
     return sorted;
   }, [groupedRoomOptions, mealFilter, priceSort]);
   const isFiltered = mealFilter !== "all" || priceSort !== "default";
-  const bookingTotal = useMemo(() => {
+  const bookingCurrency =
+    activePrebook?.currency ??
+    initialRoomDetails?.currency ??
+    fallbackCurrency ??
+    parsed.payload?.currency ??
+    "USD";
+  const roomsTotal = useMemo(() => {
     if (bookingGuests.length === 0) return null;
     const total = bookingGuests.reduce((sum, room) => {
       const price = isFiniteNumber(room.price.net)
@@ -693,6 +812,275 @@ export default function HotelClient({
     }, 0);
     return total > 0 ? total : null;
   }, [bookingGuests]);
+
+  const totalGuests = useMemo(
+    () => bookingGuests.reduce((sum, room) => sum + room.guests.length, 0),
+    [bookingGuests]
+  );
+  const adultGuests = useMemo(
+    () =>
+      bookingGuests.reduce(
+        (sum, room) => sum + room.guests.filter((guest) => guest.type === "Adult").length,
+        0
+      ),
+    [bookingGuests]
+  );
+  const childGuests = Math.max(totalGuests - adultGuests, 0);
+
+  const transferOptionsWithId = useMemo(
+    () => transferOptions.map((transfer) => ({ ...transfer, id: buildTransferId(transfer) })),
+    [transferOptions]
+  );
+  const selectedTransfer = useMemo(
+    () => transferOptionsWithId.find((transfer) => transfer.id === selectedTransferId) ?? null,
+    [selectedTransferId, transferOptionsWithId]
+  );
+  const transferPaxCount = totalGuests > 0 ? totalGuests : null;
+  const transferTotalPrice = useMemo(() => {
+    if (!selectedTransfer || !transferPaxCount) return 0;
+    const oneWay = toNumberValue(selectedTransfer.pricing?.oneWay);
+    if (oneWay === null) return 0;
+    const chargeType = selectedTransfer.pricing.chargeType ?? "PER_PAX";
+    const minPax = selectedTransfer.paxRange?.minPax ?? 1;
+    const paxForCalc = Math.max(transferPaxCount, minPax);
+    const vehicleQty = transferVehicleQuantity[selectedTransfer.id ?? ""] ?? 1;
+    const multiplier = chargeType === "PER_PAX" ? paxForCalc : vehicleQty;
+    const perDirection = oneWay * multiplier;
+    return includeReturnTransfer ? perDirection * 2 : perDirection;
+  }, [
+    includeReturnTransfer,
+    selectedTransfer,
+    transferPaxCount,
+    transferVehicleQuantity,
+  ]);
+
+  const excursionOptionsWithId = useMemo(
+    () => excursionOptions.map((excursion) => ({ ...excursion, id: buildExcursionId(excursion) })),
+    [excursionOptions]
+  );
+  const excursionSelectionsPayload = useMemo<AoryxExcursionsPayload | null>(() => {
+    const selections = excursionOptionsWithId
+      .map((excursion) => {
+        const selection = excursionSelections[excursion.id] ?? { adults: 0, children: 0 };
+        const totalCount = selection.adults + selection.children;
+        if (totalCount <= 0) return null;
+        const adultPrice = toNumberValue(excursion.pricing?.adult);
+        const childPrice = toNumberValue(excursion.pricing?.child) ?? adultPrice;
+        const totalPrice =
+          (adultPrice ?? 0) * selection.adults + (childPrice ?? 0) * selection.children;
+        return {
+          id: excursion.id,
+          name: excursion.name ?? null,
+          quantityAdult: selection.adults,
+          quantityChild: selection.children,
+          priceAdult: adultPrice,
+          priceChild: childPrice,
+          currency: excursion.pricing?.currency ?? null,
+          childPolicy: excursion.childPolicy ?? null,
+          totalPrice,
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+
+    if (selections.length === 0) return null;
+    const totalAmount = selections.reduce((sum, entry) => sum + (entry.totalPrice ?? 0), 0);
+    return { totalAmount, selections };
+  }, [excursionOptionsWithId, excursionSelections]);
+
+  const excursionsTotal = excursionSelectionsPayload?.totalAmount ?? 0;
+  const insuranceTotal =
+    typeof insuranceSelection?.price === "number" ? insuranceSelection.price : 0;
+  const flightsTotal =
+    typeof flightRequest.price === "number" ? flightRequest.price : 0;
+  const packageTotal =
+    roomsTotal !== null
+      ? roomsTotal + transferTotalPrice + excursionsTotal + insuranceTotal + flightsTotal
+      : null;
+  const transferDisplayTotal =
+    transferTotalPrice > 0
+      ? formatDisplayPrice(
+          transferTotalPrice,
+          selectedTransfer?.pricing?.currency ?? bookingCurrency
+        )
+      : null;
+  const excursionsDisplayTotal =
+    excursionsTotal > 0
+      ? formatDisplayPrice(
+          excursionsTotal,
+          excursionSelectionsPayload?.selections[0]?.currency ?? bookingCurrency
+        )
+      : null;
+
+  const transferSelectionPayload = useMemo<AoryxTransferSelection | null>(() => {
+    if (!showTransfers || !selectedTransfer) return null;
+    const id = selectedTransfer.id ?? buildTransferId(selectedTransfer);
+    const flightDetails = transferFlightDetails[id] ?? { flightNumber: "", arrivalDateTime: "" };
+    const quantity = transferVehicleQuantity[id] ?? 1;
+    return {
+      ...selectedTransfer,
+      id,
+      includeReturn: includeReturnTransfer,
+      quantity,
+      flightDetails,
+      totalPrice: transferTotalPrice,
+      paxCount: transferPaxCount ?? undefined,
+    };
+  }, [
+    includeReturnTransfer,
+    selectedTransfer,
+    showTransfers,
+    transferFlightDetails,
+    transferPaxCount,
+    transferTotalPrice,
+    transferVehicleQuantity,
+  ]);
+
+  const insuranceSelectionPayload = useMemo<BookingInsuranceSelection | null>(() => {
+    if (!showInsurance || !insuranceSelection) return null;
+    return insuranceSelection;
+  }, [insuranceSelection, showInsurance]);
+
+  const flightRequestPayload = useMemo<BookingAirTicketRequest | null>(() => {
+    if (!showFlights) return null;
+    const origin = flightRequest.origin?.trim() ?? "";
+    const destination = flightRequest.destination?.trim() ?? "";
+    const departureDate = flightRequest.departureDate?.trim() ?? "";
+    const returnDate = flightRequest.returnDate?.trim() ?? "";
+    const cabinClass = flightRequest.cabinClass?.trim() ?? "";
+    const notes = flightRequest.notes?.trim() ?? "";
+    const price = flightRequest.price ?? null;
+    const currency = flightRequest.currency ?? null;
+
+    if (
+      !origin &&
+      !destination &&
+      !departureDate &&
+      !returnDate &&
+      !cabinClass &&
+      !notes &&
+      price === null
+    ) {
+      return null;
+    }
+
+    return {
+      origin,
+      destination,
+      departureDate,
+      returnDate,
+      cabinClass,
+      notes,
+      price,
+      currency,
+    };
+  }, [flightRequest, showFlights]);
+
+  useEffect(() => {
+    if (!bookingOpen || !showTransfers) return;
+    const destinationLabel = hotelInfo?.address?.cityName ?? "";
+    if (!destinationCode && !destinationLabel) {
+      setTransferError(t.hotel.addons.transfers.missingDestination);
+      setTransferOptions([]);
+      return;
+    }
+
+    let active = true;
+    setTransferLoading(true);
+    setTransferError(null);
+
+    postJson<{ transfers?: AoryxTransferRate[] }>("/api/aoryx/transfers", {
+      destinationLocationCode: destinationCode,
+      destinationName: destinationLabel,
+      paxCount: transferPaxCount ?? undefined,
+      travelDate: parsed.payload?.checkInDate,
+    })
+      .then((data) => {
+        if (!active) return;
+        setTransferOptions(Array.isArray(data.transfers) ? data.transfers : []);
+      })
+      .catch((error) => {
+        if (!active) return;
+        const message = error instanceof Error ? error.message : t.hotel.addons.transfers.loadFailed;
+        setTransferError(message);
+      })
+      .finally(() => {
+        if (active) setTransferLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    bookingOpen,
+    destinationCode,
+    hotelInfo?.address?.cityName,
+    parsed.payload?.checkInDate,
+    showTransfers,
+    t.hotel.addons.transfers,
+    transferPaxCount,
+  ]);
+
+  useEffect(() => {
+    if (!bookingOpen || !showExcursions) return;
+
+    let active = true;
+    setExcursionLoading(true);
+    setExcursionError(null);
+
+    postJson<{ excursions?: AoryxExcursionTicket[]; excursionFee?: number }>("/api/aoryx/excursions", {
+      limit: 200,
+    })
+      .then((data) => {
+        if (!active) return;
+        setExcursionOptions(Array.isArray(data.excursions) ? data.excursions : []);
+        if (typeof data.excursionFee === "number") {
+          setExcursionFee(data.excursionFee);
+        }
+      })
+      .catch((error) => {
+        if (!active) return;
+        const message = error instanceof Error ? error.message : t.hotel.addons.excursions.loadFailed;
+        setExcursionError(message);
+      })
+      .finally(() => {
+        if (active) setExcursionLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [bookingOpen, showExcursions, t.hotel.addons.excursions]);
+
+  useEffect(() => {
+    if (showTransfers) return;
+    setSelectedTransferId(null);
+    setIncludeReturnTransfer(false);
+    setTransferFieldErrors({});
+    setTransferFlightDetails({});
+    setTransferVehicleQuantity({});
+  }, [showTransfers]);
+
+  useEffect(() => {
+    if (showExcursions) return;
+    setExcursionSelections({});
+  }, [showExcursions]);
+
+  useEffect(() => {
+    if (showInsurance) return;
+    setInsuranceSelection(null);
+  }, [showInsurance]);
+
+  useEffect(() => {
+    if (showFlights) return;
+    setFlightRequest({
+      origin: "",
+      destination: "",
+      departureDate: "",
+      returnDate: "",
+      cabinClass: "",
+      notes: "",
+    });
+  }, [showFlights]);
 
   const presetDestination = destinationCode
     ? {
@@ -788,12 +1176,37 @@ export default function HotelClient({
     };
   }, [authStatus, hotelCode]);
 
-  const bookingCurrency =
-    activePrebook?.currency ??
-    initialRoomDetails?.currency ??
-    fallbackCurrency ??
-    parsed.payload?.currency ??
-    "USD";
+  const insurancePlans = useMemo<InsurancePlan[]>(
+    () => [
+      {
+        id: "essential",
+        title: t.hotel.addons.insurance.plans.essential.title,
+        description: t.hotel.addons.insurance.plans.essential.description,
+      },
+      {
+        id: "complete",
+        title: t.hotel.addons.insurance.plans.complete.title,
+        description: t.hotel.addons.insurance.plans.complete.description,
+        highlight: t.hotel.addons.insurance.plans.complete.highlight,
+      },
+      {
+        id: "premium",
+        title: t.hotel.addons.insurance.plans.premium.title,
+        description: t.hotel.addons.insurance.plans.premium.description,
+      },
+    ],
+    [t.hotel.addons.insurance.plans]
+  );
+
+  const cabinClasses = useMemo(
+    () => [
+      { value: "economy", label: t.hotel.addons.flights.cabin.economy },
+      { value: "premium", label: t.hotel.addons.flights.cabin.premium },
+      { value: "business", label: t.hotel.addons.flights.cabin.business },
+      { value: "first", label: t.hotel.addons.flights.cabin.first },
+    ],
+    [t.hotel.addons.flights.cabin]
+  );
 
   const handleFavoriteToggle = useCallback(async () => {
     if (!hotelCode) return;
@@ -842,6 +1255,87 @@ export default function HotelClient({
           };
         })
       );
+    },
+    []
+  );
+
+  const getFlightDetails = useCallback(
+    (id: string): TransferFlightDetails =>
+      transferFlightDetails[id] ?? { flightNumber: "", arrivalDateTime: "" },
+    [transferFlightDetails]
+  );
+
+  const updateFlightDetails = useCallback(
+    (id: string, field: keyof TransferFlightDetails, value: string) => {
+      setTransferFlightDetails((prev) => ({
+        ...prev,
+        [id]: {
+          ...(prev[id] ?? { flightNumber: "", arrivalDateTime: "" }),
+          [field]: value,
+        },
+      }));
+      setTransferFieldErrors((prev) => {
+        if (!prev[id]) return prev;
+        return {
+          ...prev,
+          [id]: {
+            ...prev[id],
+            [field]: undefined,
+          },
+        };
+      });
+    },
+    []
+  );
+
+  const updateExcursionCount = useCallback(
+    (id: string, field: keyof ExcursionSelectionState, delta: number) => {
+      setExcursionSelections((prev) => {
+        const current = prev[id] ?? { adults: 0, children: 0 };
+        const max = field === "adults" ? adultGuests : childGuests;
+        const nextValue = Math.max(0, Math.min(max, current[field] + delta));
+        return {
+          ...prev,
+          [id]: {
+            ...current,
+            [field]: nextValue,
+          },
+        };
+      });
+    },
+    [adultGuests, childGuests]
+  );
+
+  const applyExcursionToAll = useCallback(
+    (id: string) => {
+      setExcursionSelections((prev) => ({
+        ...prev,
+        [id]: {
+          adults: adultGuests,
+          children: childGuests,
+        },
+      }));
+    },
+    [adultGuests, childGuests]
+  );
+
+  const selectInsurancePlan = useCallback((plan: InsurancePlan) => {
+    setInsuranceSelection((prev) => ({
+      planId: plan.id,
+      planName: plan.title,
+      note: prev?.note ?? "",
+      price: prev?.price ?? null,
+      currency: prev?.currency ?? null,
+    }));
+  }, []);
+
+  const updateInsuranceNote = useCallback((note: string) => {
+    setInsuranceSelection((prev) => (prev ? { ...prev, note } : prev));
+  }, []);
+
+  const updateFlightRequest = useCallback(
+    (field: keyof BookingAirTicketRequest, value: string) => {
+      setFlightRequest((prev) => ({ ...prev, [field]: value }));
     },
     []
   );
@@ -926,6 +1420,32 @@ export default function HotelClient({
     setConfirmPriceChange(false);
     setBookingLoading(false);
     setBookingPreparing(false);
+    setShowTransfers(false);
+    setShowExcursions(false);
+    setShowInsurance(false);
+    setShowFlights(false);
+    setTransferOptions([]);
+    setTransferLoading(false);
+    setTransferError(null);
+    setSelectedTransferId(null);
+    setIncludeReturnTransfer(false);
+    setTransferFlightDetails({});
+    setTransferVehicleQuantity({});
+    setTransferFieldErrors({});
+    setExcursionOptions([]);
+    setExcursionLoading(false);
+    setExcursionError(null);
+    setExcursionSelections({});
+    setExcursionFee(0);
+    setInsuranceSelection(null);
+    setFlightRequest({
+      origin: "",
+      destination: "",
+      departureDate: "",
+      returnDate: "",
+      cabinClass: "",
+      notes: "",
+    });
   }, []);
 
   const handleBook = useCallback(async () => {
@@ -946,6 +1466,30 @@ export default function HotelClient({
     if (guestError) {
       setBookingError(guestError);
       return;
+    }
+
+    if (showTransfers) {
+      if (!transferSelectionPayload) {
+        setBookingError(t.hotel.addons.transfers.selectRequired);
+        return;
+      }
+      const transferId = transferSelectionPayload.id ?? "transfer";
+      const details = transferSelectionPayload.flightDetails ?? { flightNumber: "", arrivalDateTime: "" };
+      const currentErrors: TransferFieldErrors[string] = {};
+
+      if (!details.flightNumber.trim()) {
+        currentErrors.flightNumber = t.hotel.addons.transfers.flightNumberRequired;
+      }
+      if (!details.arrivalDateTime.trim()) {
+        currentErrors.arrivalDateTime = t.hotel.addons.transfers.arrivalRequired;
+      }
+
+      if (Object.keys(currentErrors).length > 0) {
+        setTransferFieldErrors({ [transferId]: currentErrors });
+        setBookingError(t.hotel.addons.transfers.detailsRequired);
+        return;
+      }
+      setTransferFieldErrors({});
     }
 
     if (activePrebook.isPriceChanged && !confirmPriceChange) {
@@ -1042,6 +1586,10 @@ export default function HotelClient({
       nationality: parsed.payload?.nationality ?? "AM",
       customerRefNumber: `MEGA-${Date.now()}`,
       rooms: roomsPayload,
+      transferSelection: transferSelectionPayload ?? undefined,
+      excursions: excursionSelectionsPayload ?? undefined,
+      insurance: insuranceSelectionPayload ?? undefined,
+      airTickets: flightRequestPayload ?? undefined,
       acknowledgePriceChange: Boolean(confirmPriceChange),
     };
 
@@ -1078,14 +1626,22 @@ export default function HotelClient({
     bookingGuests,
     confirmPriceChange,
     destinationCode,
+    excursionSelectionsPayload,
+    flightRequestPayload,
     hotelCode,
+    hotelInfo?.name,
+    insuranceSelectionPayload,
     isSignedIn,
     pathname,
+    parsed.payload?.checkInDate,
+    parsed.payload?.checkOutDate,
     parsed.payload?.countryCode,
     parsed.payload?.destinationCode,
     parsed.payload?.nationality,
     searchParams,
+    showTransfers,
     t,
+    transferSelectionPayload,
   ]);
 
   return (
@@ -1234,10 +1790,17 @@ export default function HotelClient({
                   <Loader text={t.hotel.roomOptions.loading} />
                 )}
                 {roomDetailsPayload && !roomsLoading && roomsError && (
-                  <p className="room-options-error">{roomsError}</p>
+                  <div className="error-container">
+                    <Image src="/images/icons/error.gif" alt={t.results.errorAlt} width={100} height={100} />
+                    <p>{roomsError}</p>
+                  </div>
                 )}
                 {roomDetailsPayload && !roomsLoading && !roomsError && groupedRoomOptions.length === 0 && (
-                  <p className="room-options-empty">{t.hotel.roomOptions.empty}</p>
+                  // <p className="room-options-empty">{t.hotel.roomOptions.empty}</p>
+                  <div className="results-empty">
+                    <Image src="/images/icons/sad.gif" alt={t.results.emptyAlt} width={100} height={100} />
+                    <p>{t.hotel.roomOptions.empty}</p>
+                  </div>
                 )}
                 {roomDetailsPayload && !roomsLoading && !roomsError && groupedRoomOptions.length > 0 && (
                   <>
@@ -1602,11 +2165,577 @@ export default function HotelClient({
                       </div>
                     </fieldset>
                   ))}
+                  <section className="booking-addons">
+                    <div className="booking-addons-header">
+                      <div>
+                        <h3>{t.hotel.addons.title}</h3>
+                        <p>{t.hotel.addons.subtitle}</p>
+                      </div>
+                      <span className="booking-addons-chip">{t.hotel.addons.badge}</span>
+                    </div>
+                    <div className="booking-addons-grid">
+                      <button
+                        type="button"
+                        className={`addon-card${showTransfers ? " active" : ""}`}
+                        onClick={() => setShowTransfers((prev) => !prev)}
+                        aria-pressed={showTransfers}
+                      >
+                        <div className="addon-card-main">
+                          <span className="material-symbols-rounded" aria-hidden="true">
+                            airport_shuttle
+                          </span>
+                          <div>
+                            <h4>{t.hotel.addons.transfers.title}</h4>
+                            <p>{t.hotel.addons.transfers.description}</p>
+                          </div>
+                        </div>
+                        <div className="addon-card-meta">
+                          {transferDisplayTotal ? (
+                            <strong>{transferDisplayTotal}</strong>
+                          ) : (
+                            <span>{t.hotel.addons.status.optional}</span>
+                          )}
+                          <span className="addon-card-action">
+                            {showTransfers ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
+                          </span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className={`addon-card${showExcursions ? " active" : ""}`}
+                        onClick={() => setShowExcursions((prev) => !prev)}
+                        aria-pressed={showExcursions}
+                      >
+                        <div className="addon-card-main">
+                          <span className="material-symbols-rounded" aria-hidden="true">
+                            attractions
+                          </span>
+                          <div>
+                            <h4>{t.hotel.addons.excursions.title}</h4>
+                            <p>{t.hotel.addons.excursions.description}</p>
+                          </div>
+                        </div>
+                        <div className="addon-card-meta">
+                          {excursionsDisplayTotal ? (
+                            <strong>{excursionsDisplayTotal}</strong>
+                          ) : (
+                            <span>{t.hotel.addons.status.optional}</span>
+                          )}
+                          <span className="addon-card-action">
+                            {showExcursions ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
+                          </span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className={`addon-card${showInsurance ? " active" : ""}`}
+                        onClick={() => setShowInsurance((prev) => !prev)}
+                        aria-pressed={showInsurance}
+                      >
+                        <div className="addon-card-main">
+                          <span className="material-symbols-rounded" aria-hidden="true">
+                            shield_with_heart
+                          </span>
+                          <div>
+                            <h4>{t.hotel.addons.insurance.title}</h4>
+                            <p>{t.hotel.addons.insurance.description}</p>
+                          </div>
+                        </div>
+                        <div className="addon-card-meta">
+                          {insuranceSelection?.planName ? (
+                            <strong>{insuranceSelection.planName}</strong>
+                          ) : (
+                            <span>{t.hotel.addons.status.optional}</span>
+                          )}
+                          <span className="addon-card-action">
+                            {showInsurance ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
+                          </span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className={`addon-card${showFlights ? " active" : ""}`}
+                        onClick={() => setShowFlights((prev) => !prev)}
+                        aria-pressed={showFlights}
+                      >
+                        <div className="addon-card-main">
+                          <span className="material-symbols-rounded" aria-hidden="true">
+                            flight
+                          </span>
+                          <div>
+                            <h4>{t.hotel.addons.flights.title}</h4>
+                            <p>{t.hotel.addons.flights.description}</p>
+                          </div>
+                        </div>
+                        <div className="addon-card-meta">
+                          {flightRequestPayload ? (
+                            <strong>{t.hotel.addons.status.requested}</strong>
+                          ) : (
+                            <span>{t.hotel.addons.status.optional}</span>
+                          )}
+                          <span className="addon-card-action">
+                            {showFlights ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+
+                    {showTransfers && (
+                      <div className="addon-panel transfer-panel">
+                        <div className="addon-panel-head">
+                          <h4>
+                            <span className="material-symbols-rounded" aria-hidden="true">
+                              airport_shuttle
+                            </span>
+                            {t.hotel.addons.transfers.panelTitle}
+                          </h4>
+                          <div className="addon-panel-meta">
+                            <span className="addon-pill">
+                              <span className="material-symbols-rounded" aria-hidden="true">
+                                group
+                              </span>
+                              {transferPaxCount ?? "—"} {t.hotel.addons.transfers.paxLabel}
+                            </span>
+                            <label className="addon-toggle">
+                              <input
+                                type="checkbox"
+                                checked={includeReturnTransfer}
+                                onChange={(event) => setIncludeReturnTransfer(event.target.checked)}
+                              />
+                              <span>{t.hotel.addons.transfers.includeReturn}</span>
+                            </label>
+                          </div>
+                        </div>
+                        {transferLoading && (
+                          <p className="addon-state">{t.hotel.addons.transfers.loading}</p>
+                        )}
+                        {!transferLoading && transferError && (
+                          <p className="addon-state error">{transferError}</p>
+                        )}
+                        {!transferLoading && !transferError && transferOptionsWithId.length === 0 && (
+                          <p className="addon-state">{t.hotel.addons.transfers.noOptions}</p>
+                        )}
+                        {!transferLoading && !transferError && transferOptionsWithId.length > 0 && (
+                          <div className="transfer-options">
+                            {transferOptionsWithId.map((transfer) => {
+                              const id = transfer.id;
+                              const isSelected = selectedTransferId === id;
+                              const chargeType = transfer.pricing?.chargeType ?? "PER_PAX";
+                              const minPax = transfer.paxRange?.minPax ?? 1;
+                              const paxForCalc =
+                                chargeType === "PER_PAX"
+                                  ? Math.max(transferPaxCount ?? minPax, minPax)
+                                  : 1;
+                              const vehicleQty = transferVehicleQuantity[id] ?? 1;
+                              const multiplier = chargeType === "PER_PAX" ? paxForCalc : vehicleQty;
+                              const oneWay = toNumberValue(transfer.pricing?.oneWay) ?? 0;
+                              const perDirection = oneWay * multiplier;
+                              const totalPrice = includeReturnTransfer ? perDirection * 2 : perDirection;
+                              const priceCurrency = transfer.pricing?.currency ?? bookingCurrency;
+                              const flightDetails = getFlightDetails(id);
+                              return (
+                                <div key={id} className={`transfer-option${isSelected ? " selected" : ""}`}>
+                                  <label className="transfer-option-card">
+                                    <input
+                                      type="radio"
+                                      name="transfer-option"
+                                      checked={isSelected}
+                                      onChange={() => setSelectedTransferId(id)}
+                                    />
+                                    <div>
+                                      <div className="transfer-badges">
+                                        <span className="primary">{transfer.transferType ?? "Transfer"}</span>
+                                        <span className="subtle">
+                                          {chargeType === "PER_PAX"
+                                            ? t.hotel.addons.transfers.perPax
+                                            : t.hotel.addons.transfers.perVehicle}
+                                        </span>
+                                        {transfer.bothDirections && (
+                                          <span className="subtle">{t.hotel.addons.transfers.bothWays}</span>
+                                        )}
+                                      </div>
+                                      <div className="transfer-route">
+                                        <b>{transfer.origin?.name ?? transfer.origin?.locationCode}</b>
+                                        <span className="material-symbols-rounded" aria-hidden="true">
+                                          arrow_forward
+                                        </span>
+                                        <b>{transfer.destination?.name ?? transfer.destination?.locationCode}</b>
+                                      </div>
+                                      <div className="transfer-price">
+                                        <strong>{formatDisplayPrice(totalPrice, priceCurrency) ?? t.common.contact}</strong>
+                                        <span>
+                                          {includeReturnTransfer
+                                            ? t.hotel.addons.transfers.returnTotal
+                                            : t.hotel.addons.transfers.oneWayTotal}
+                                        </span>
+                                      </div>
+                                      <div className="transfer-meta">
+                                        {transfer.vehicle?.name && (
+                                          <span>
+                                            <span className="material-symbols-rounded" aria-hidden="true">
+                                              directions_car
+                                            </span>
+                                            {transfer.vehicle.name}
+                                          </span>
+                                        )}
+                                        {transfer.paxRange?.minPax && transfer.paxRange?.maxPax && (
+                                          <span>
+                                            <span className="material-symbols-rounded" aria-hidden="true">
+                                              groups
+                                            </span>
+                                            {transfer.paxRange.minPax} - {transfer.paxRange.maxPax} {t.hotel.addons.transfers.paxLabel}
+                                          </span>
+                                        )}
+                                        {transfer.vehicle?.maxBags ? (
+                                          <span>
+                                            <span className="material-symbols-rounded" aria-hidden="true">
+                                              work
+                                            </span>
+                                            {transfer.vehicle.maxBags} {t.hotel.addons.transfers.bagsLabel}
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </label>
+                                  {isSelected && (
+                                    <div className="transfer-details">
+                                      <div className="addon-field">
+                                        <span>{t.hotel.addons.transfers.flightNumber}</span>
+                                        <input
+                                          type="text"
+                                          value={flightDetails.flightNumber}
+                                          onChange={(event) =>
+                                            updateFlightDetails(id, "flightNumber", event.target.value)
+                                          }
+                                          className={transferFieldErrors[id]?.flightNumber ? "error" : undefined}
+                                        />
+                                        {transferFieldErrors[id]?.flightNumber && (
+                                          <span className="field-error">
+                                            {transferFieldErrors[id]?.flightNumber}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="addon-field">
+                                        <span>{t.hotel.addons.transfers.arrivalDate}</span>
+                                        <input
+                                          type="datetime-local"
+                                          value={flightDetails.arrivalDateTime}
+                                          onChange={(event) =>
+                                            updateFlightDetails(id, "arrivalDateTime", event.target.value)
+                                          }
+                                          className={transferFieldErrors[id]?.arrivalDateTime ? "error" : undefined}
+                                        />
+                                        {transferFieldErrors[id]?.arrivalDateTime && (
+                                          <span className="field-error">
+                                            {transferFieldErrors[id]?.arrivalDateTime}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {chargeType !== "PER_PAX" && (
+                                        <div className="addon-field">
+                                          <span>{t.hotel.addons.transfers.vehicleQty}</span>
+                                          <input
+                                            type="number"
+                                            min={1}
+                                            max={10}
+                                            value={transferVehicleQuantity[id] ?? 1}
+                                            onChange={(event) => {
+                                              const next = parseInt(event.target.value, 10);
+                                              setTransferVehicleQuantity((prev) => ({
+                                                ...prev,
+                                                [id]: Number.isFinite(next) && next > 0 ? next : 1,
+                                              }));
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {showExcursions && (
+                      <div className="addon-panel excursions-panel">
+                        <div className="addon-panel-head">
+                          <h4>
+                            <span className="material-symbols-rounded" aria-hidden="true">
+                              attractions
+                            </span>
+                            {t.hotel.addons.excursions.panelTitle}
+                          </h4>
+                          <div className="addon-panel-meta">
+                            <span className="addon-pill">
+                              {t.hotel.addons.excursions.adultsLabel}: {adultGuests}
+                            </span>
+                            <span className="addon-pill">
+                              {t.hotel.addons.excursions.childrenLabel}: {childGuests}
+                            </span>
+                            {excursionFee > 0 && (
+                              <span className="addon-pill subtle">
+                                {t.hotel.addons.excursions.feeNote}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {excursionLoading && (
+                          <p className="addon-state">{t.hotel.addons.excursions.loading}</p>
+                        )}
+                        {!excursionLoading && excursionError && (
+                          <p className="addon-state error">{excursionError}</p>
+                        )}
+                        {!excursionLoading && !excursionError && excursionOptionsWithId.length === 0 && (
+                          <p className="addon-state">{t.hotel.addons.excursions.noOptions}</p>
+                        )}
+                        {!excursionLoading && !excursionError && excursionOptionsWithId.length > 0 && (
+                          <div className="excursion-options">
+                            {excursionOptionsWithId.map((excursion) => {
+                              const selection = excursionSelections[excursion.id] ?? { adults: 0, children: 0 };
+                              const adultPrice = toNumberValue(excursion.pricing?.adult);
+                              const childPrice = toNumberValue(excursion.pricing?.child) ?? adultPrice;
+                              const priceCurrency = excursion.pricing?.currency ?? bookingCurrency;
+                              const totalPrice =
+                                (adultPrice ?? 0) * selection.adults + (childPrice ?? 0) * selection.children;
+                              return (
+                                <div key={excursion.id} className="excursion-option">
+                                  <div className="excursion-info">
+                                    <div>
+                                      <h5>{excursion.name ?? t.hotel.addons.excursions.unnamed}</h5>
+                                      {excursion.description && (
+                                        <p>{excursion.description}</p>
+                                      )}
+                                    </div>
+                                    {excursion.childPolicy && (
+                                      <span className="excursion-policy">
+                                        {excursion.childPolicy}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="excursion-controls">
+                                    <div className="excursion-pricing">
+                                      <span>
+                                        {t.hotel.addons.excursions.adultPrice}:{" "}
+                                        {formatDisplayPrice(adultPrice, priceCurrency) ?? t.common.contact}
+                                      </span>
+                                      <span>
+                                        {t.hotel.addons.excursions.childPrice}:{" "}
+                                        {formatDisplayPrice(childPrice, priceCurrency) ?? t.common.contact}
+                                      </span>
+                                      {totalPrice > 0 && (
+                                        <strong>
+                                          {t.hotel.addons.excursions.totalLabel}:{" "}
+                                          {formatDisplayPrice(totalPrice, priceCurrency) ?? t.common.contact}
+                                        </strong>
+                                      )}
+                                    </div>
+                                    <div className="excursion-counter">
+                                      <span>{t.hotel.addons.excursions.adultsLabel}</span>
+                                      <div className="counter">
+                                        <button
+                                          type="button"
+                                          onClick={() => updateExcursionCount(excursion.id, "adults", -1)}
+                                          disabled={selection.adults === 0}
+                                        >
+                                          -
+                                        </button>
+                                        <span>{selection.adults}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateExcursionCount(excursion.id, "adults", 1)}
+                                          disabled={selection.adults >= adultGuests}
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="excursion-counter">
+                                      <span>{t.hotel.addons.excursions.childrenLabel}</span>
+                                      <div className="counter">
+                                        <button
+                                          type="button"
+                                          onClick={() => updateExcursionCount(excursion.id, "children", -1)}
+                                          disabled={selection.children === 0}
+                                        >
+                                          -
+                                        </button>
+                                        <span>{selection.children}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateExcursionCount(excursion.id, "children", 1)}
+                                          disabled={selection.children >= childGuests}
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </div>
+                                    {(adultGuests > 0 || childGuests > 0) && (
+                                      <button
+                                        type="button"
+                                        className="apply-all"
+                                        onClick={() => applyExcursionToAll(excursion.id)}
+                                      >
+                                        {t.hotel.addons.excursions.applyAll}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {showInsurance && (
+                      <div className="addon-panel insurance-panel">
+                        <div className="addon-panel-head">
+                          <h4>
+                            <span className="material-symbols-rounded" aria-hidden="true">
+                              shield_with_heart
+                            </span>
+                            {t.hotel.addons.insurance.panelTitle}
+                          </h4>
+                        </div>
+                        <div className="insurance-options">
+                          {insurancePlans.map((plan) => {
+                            const isSelected = insuranceSelection?.planId === plan.id;
+                            return (
+                              <button
+                                key={plan.id}
+                                type="button"
+                                className={`insurance-card${isSelected ? " selected" : ""}`}
+                                onClick={() => selectInsurancePlan(plan)}
+                              >
+                                {plan.highlight && <span className="pill">{plan.highlight}</span>}
+                                <h5>{plan.title}</h5>
+                                <p>{plan.description}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="addon-field">
+                          <span>{t.hotel.addons.insurance.noteLabel}</span>
+                          <textarea
+                            value={insuranceSelection?.note ?? ""}
+                            placeholder={t.hotel.addons.insurance.notePlaceholder}
+                            onChange={(event) => updateInsuranceNote(event.target.value)}
+                            disabled={!insuranceSelection}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {showFlights && (
+                      <div className="addon-panel flights-panel">
+                        <div className="addon-panel-head">
+                          <h4>
+                            <span className="material-symbols-rounded" aria-hidden="true">
+                              flight
+                            </span>
+                            {t.hotel.addons.flights.panelTitle}
+                          </h4>
+                        </div>
+                        <div className="addon-form-grid">
+                          <label className="addon-field">
+                            <span>{t.hotel.addons.flights.originLabel}</span>
+                            <input
+                              type="text"
+                              value={flightRequest.origin ?? ""}
+                              onChange={(event) => updateFlightRequest("origin", event.target.value)}
+                            />
+                          </label>
+                          <label className="addon-field">
+                            <span>{t.hotel.addons.flights.destinationLabel}</span>
+                            <input
+                              type="text"
+                              value={flightRequest.destination ?? ""}
+                              onChange={(event) => updateFlightRequest("destination", event.target.value)}
+                            />
+                          </label>
+                          <label className="addon-field">
+                            <span>{t.hotel.addons.flights.departureLabel}</span>
+                            <input
+                              type="date"
+                              value={flightRequest.departureDate ?? ""}
+                              onChange={(event) => updateFlightRequest("departureDate", event.target.value)}
+                            />
+                          </label>
+                          <label className="addon-field">
+                            <span>{t.hotel.addons.flights.returnLabel}</span>
+                            <input
+                              type="date"
+                              value={flightRequest.returnDate ?? ""}
+                              onChange={(event) => updateFlightRequest("returnDate", event.target.value)}
+                            />
+                          </label>
+                          <label className="addon-field">
+                            <span>{t.hotel.addons.flights.cabinLabel}</span>
+                            <select
+                              value={flightRequest.cabinClass ?? ""}
+                              onChange={(event) => updateFlightRequest("cabinClass", event.target.value)}
+                            >
+                              <option value="">{t.hotel.addons.flights.cabinPlaceholder}</option>
+                              {cabinClasses.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="addon-field full">
+                            <span>{t.hotel.addons.flights.notesLabel}</span>
+                            <textarea
+                              value={flightRequest.notes ?? ""}
+                              placeholder={t.hotel.addons.flights.notesPlaceholder}
+                              onChange={(event) => updateFlightRequest("notes", event.target.value)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
                   <div className="booking-summary">
-                    <span>{t.common.total}:</span>
-                    <strong>
-                      {formatDisplayPrice(bookingTotal, bookingCurrency) ?? t.common.contact}
-                    </strong>
+                    <div className="booking-summary-lines">
+                      <div>
+                        <span>{t.hotel.addons.summary.rooms}</span>
+                        <strong>{formatDisplayPrice(roomsTotal, bookingCurrency) ?? t.common.contact}</strong>
+                      </div>
+                      {transferSelectionPayload && (
+                        <div>
+                          <span>{t.hotel.addons.summary.transfers}</span>
+                          <strong>{transferDisplayTotal ?? t.common.contact}</strong>
+                        </div>
+                      )}
+                      {excursionSelectionsPayload && (
+                        <div>
+                          <span>{t.hotel.addons.summary.excursions}</span>
+                          <strong>{excursionsDisplayTotal ?? t.common.contact}</strong>
+                        </div>
+                      )}
+                      {insuranceSelectionPayload && (
+                        <div>
+                          <span>{t.hotel.addons.summary.insurance}</span>
+                          <strong>{insuranceSelectionPayload.planName ?? t.hotel.addons.summary.requested}</strong>
+                        </div>
+                      )}
+                      {flightRequestPayload && (
+                        <div>
+                          <span>{t.hotel.addons.summary.flights}</span>
+                          <strong>{t.hotel.addons.summary.requested}</strong>
+                        </div>
+                      )}
+                    </div>
+                    <div className="booking-summary-total">
+                      <span>{t.common.total}:</span>
+                      <strong>
+                        {formatDisplayPrice(packageTotal, bookingCurrency) ?? t.common.contact}
+                      </strong>
+                    </div>
                   </div>
                   {/* <p className="booking-note">
                     {t.hotel.booking.paymentNote}

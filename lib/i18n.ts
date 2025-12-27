@@ -288,6 +288,98 @@ export type Translation = {
       saving: string;
       signIn: string;
     };
+    addons: {
+      title: string;
+      subtitle: string;
+      badge: string;
+      actions: {
+        add: string;
+        remove: string;
+      };
+      status: {
+        optional: string;
+        requested: string;
+      };
+      summary: {
+        rooms: string;
+        transfers: string;
+        excursions: string;
+        insurance: string;
+        flights: string;
+        requested: string;
+      };
+      transfers: {
+        title: string;
+        description: string;
+        panelTitle: string;
+        paxLabel: string;
+        bagsLabel: string;
+        includeReturn: string;
+        returnTotal: string;
+        oneWayTotal: string;
+        perPax: string;
+        perVehicle: string;
+        bothWays: string;
+        flightNumber: string;
+        arrivalDate: string;
+        vehicleQty: string;
+        loading: string;
+        noOptions: string;
+        missingDestination: string;
+        loadFailed: string;
+        selectRequired: string;
+        detailsRequired: string;
+        flightNumberRequired: string;
+        arrivalRequired: string;
+      };
+      excursions: {
+        title: string;
+        description: string;
+        panelTitle: string;
+        adultsLabel: string;
+        childrenLabel: string;
+        feeNote: string;
+        loading: string;
+        noOptions: string;
+        loadFailed: string;
+        unnamed: string;
+        adultPrice: string;
+        childPrice: string;
+        totalLabel: string;
+        applyAll: string;
+      };
+      insurance: {
+        title: string;
+        description: string;
+        panelTitle: string;
+        noteLabel: string;
+        notePlaceholder: string;
+        plans: {
+          essential: { title: string; description: string };
+          complete: { title: string; description: string; highlight: string };
+          premium: { title: string; description: string };
+        };
+      };
+      flights: {
+        title: string;
+        description: string;
+        panelTitle: string;
+        originLabel: string;
+        destinationLabel: string;
+        departureLabel: string;
+        returnLabel: string;
+        cabinLabel: string;
+        cabinPlaceholder: string;
+        notesLabel: string;
+        notesPlaceholder: string;
+        cabin: {
+          economy: string;
+          premium: string;
+          business: string;
+          first: string;
+        };
+      };
+    };
     map: {
       viewAria: string;
       showButton: string;
@@ -875,6 +967,108 @@ const translations: Record<Locale, Translation> = {
         saving: "Պահպանվում է...",
         signIn: "Մուտք գործեք՝ պահելու համար",
       },
+      addons: {
+        title: "Փաթեթի կառուցում",
+        subtitle: "Ավելացրեք փոխանցում, էքսկուրսիաներ, ապահովագրություն և ավիատոմսեր մի քանի քայլով։",
+        badge: "Լրացուցիչ ընտրանքներ",
+        actions: {
+          add: "Ավելացնել",
+          remove: "Հանել",
+        },
+        status: {
+          optional: "Ընտրովի",
+          requested: "Պահանջված",
+        },
+        summary: {
+          rooms: "Սենյակներ",
+          transfers: "Փոխանցումներ",
+          excursions: "Էքսկուրսիաներ",
+          insurance: "Ապահովագրություն",
+          flights: "Ավիատոմսեր",
+          requested: "Պահանջված",
+        },
+        transfers: {
+          title: "Փոխանցումներ",
+          description: "Օդանավակայանային և քաղաքային փոխանցումներ՝ ձեր հանգստի համար։",
+          panelTitle: "Փոխանցման տարբերակներ",
+          paxLabel: "ուղևոր",
+          bagsLabel: "պայուսակ",
+          includeReturn: "Ներառել վերադարձի փոխանցումը",
+          returnTotal: "Վերադարձի ընդհանուր",
+          oneWayTotal: "Միակողմանի ընդհանուր",
+          perPax: "Մեկ ուղևոր",
+          perVehicle: "Մեկ մեքենա",
+          bothWays: "Երկու ուղղություն",
+          flightNumber: "Թռիչքի համարը",
+          arrivalDate: "Ժամանման ամսաթիվ և ժամ",
+          vehicleQty: "Մեքենաների քանակ",
+          loading: "Բեռնվում են փոխանցման տարբերակները...",
+          noOptions: "Տվյալ ուղղության համար փոխանցում չկա։",
+          missingDestination: "Ընտրեք ուղղություն՝ փոխանցումները տեսնելու համար։",
+          loadFailed: "Չհաջողվեց բեռնել փոխանցումները։",
+          selectRequired: "Խնդրում ենք ընտրել փոխանցում կամ անջատել փոխանցումները։",
+          detailsRequired: "Խնդրում ենք լրացնել թռիչքի տվյալները։",
+          flightNumberRequired: "Պետք է նշել թռիչքի համարը։",
+          arrivalRequired: "Պետք է նշել ժամանման ամսաթիվն ու ժամը։",
+        },
+        excursions: {
+          title: "Էքսկուրսիաներ",
+          description: "Ընտրված փորձառություններ ձեր ճանապարհորդության համար։",
+          panelTitle: "Էքսկուրսիոն տարբերակներ",
+          adultsLabel: "Մեծահասակներ",
+          childrenLabel: "Երեխաներ",
+          feeNote: "Գները ներառում են սպասարկման վճարը։",
+          loading: "Բեռնվում են էքսկուրսիաները...",
+          noOptions: "Էքսկուրսիաներ այժմ հասանելի չեն։",
+          loadFailed: "Չհաջողվեց բեռնել էքսկուրսիաները։",
+          unnamed: "Էքսկուրսիա",
+          adultPrice: "Մեծահասակ",
+          childPrice: "Երեխա",
+          totalLabel: "Ընդհանուր",
+          applyAll: "Կիրառել բոլոր հյուրերի համար",
+        },
+        insurance: {
+          title: "Ապահովագրություն",
+          description: "Ճանապարհորդական ապահովագրություն՝ ձեր հանգստի համար։",
+          panelTitle: "Ընտրեք ապահովագրության տարբերակ",
+          noteLabel: "Հատուկ նշումներ (ըստ ցանկության)",
+          notePlaceholder: "Նշեք ցանկալի ծածկույթները։",
+          plans: {
+            essential: {
+              title: "Հիմնական",
+              description: "Բժշկական և չեղարկման հիմնական ծածկույթ։",
+            },
+            complete: {
+              title: "Լիարժեք",
+              description: "Լրացուցիչ ծածկույթներ՝ ուշացումներ, ուղեբեռ և այլն։",
+              highlight: "Առաջարկվող",
+            },
+            premium: {
+              title: "Պրեմիում",
+              description: "Լիարժեք պաշտպանություն՝ ավելի բարձր սահմաններով։",
+            },
+          },
+        },
+        flights: {
+          title: "Ավիատոմսեր",
+          description: "Նշեք ձեր երթուղին, մենք կառաջարկենք լավագույն գները։",
+          panelTitle: "Թռիչքի հարցում",
+          originLabel: "Որտեղից",
+          destinationLabel: "Ուր",
+          departureLabel: "Մեկնելու ամսաթիվ",
+          returnLabel: "Վերադարձի ամսաթիվ",
+          cabinLabel: "Սրահի դաս",
+          cabinPlaceholder: "Ընտրել սրահը",
+          notesLabel: "Նշումներ",
+          notesPlaceholder: "Նախընտրելի ավիաընկերություններ, ճկունություն և այլն։",
+          cabin: {
+            economy: "Էկոնոմ",
+            premium: "Պրեմիում էկոնոմ",
+            business: "Բիզնես",
+            first: "Առաջին",
+          },
+        },
+      },
       map: {
         viewAria: "Դիտել հյուրանոցը քարտեզում",
         showButton: "Ցուցադրել քարտեզում",
@@ -1008,16 +1202,21 @@ const translations: Record<Locale, Translation> = {
     nav: [
       { href: "#featured", label: "Premier Stays" },
       { href: "#offers", label: "Exclusive Offers" },
-      { href: "#perks", label: "Member Benefits" },
+      { href: "#perks", label: "Why Megatours" },
     ],
-    labels: { exclusive: "Exclusive" },
+
+    labels: {
+      exclusive: "Exclusive",
+    },
+
     hero: {
-      title: "Exclusive UAE Hotel Deals, Direct from Your Tour Operator",
+      title: "Exclusive UAE Hotel Rates — Direct from a Tour Operator",
       subtitle:
-        "Book your hotels, transfers, excursions, and theme park tickets in one seamless experience—no middlemen, no hidden fees.",
+        "Discover the UAE through a refined travel platform built on direct partnerships, negotiated hotel rates, and concierge-level service.",
       purpose:
-        "Megatours is the premier UAE travel platform where you can search, compare, and book hotels, transfers, and experiences—all in one place.",
-      marquee: " HOTELS  ✦  TRANSFERS  ✦  THEME PARK TICKETS  ✦  EXCURSIONS  ✦  FLIGHTS  ✦  INSURANCE  ✦ ",
+        "Plan and book hotels, transfers, excursions, theme parks, flights, and insurance in one elegant journey — without intermediaries and without hidden costs.",
+      marquee:
+        " HOTELS  ✦  TRANSFERS  ✦  EXCURSIONS  ✦  THEME PARKS  ✦  FLIGHTS  ✦  INSURANCE  ✦ ",
     },
     search: {
       wherePlaceholder: "City, landmark, or hotel",
@@ -1038,69 +1237,78 @@ const translations: Record<Locale, Translation> = {
       },
     },
     services: {
-      title: "Everything You Need for the Perfect Trip",
+      title: "Curated Travel Services for a Refined Experience",
       items: [
-        {
-          icon: "directions_car",
-          title: "Transfers",
-          description: "Premium airport and city transfers for a seamless journey",
-        },
         {
           icon: "hotel",
           title: "Hotels",
-          description: "Over 480 premium UAE properties with exclusive, member-only rates",
-        },
-        {
-          icon: "tour",
-          title: "Excursions",
-          description: "Handpicked tours and unforgettable local experiences",
-        },
-        {
-          icon: "attractions",
-          title: "Theme Parks",
-          description: "Priority access tickets to the UAE’s world-class attractions",
+          description:
+            "A hand-selected portfolio of premium hotels across the UAE, offered at exclusive tour-operator rates.",
         },
         {
           icon: "flight",
           title: "Flights",
-          description: "Competitive global airfares tailored to your travel plans",
+          description:
+            "Competitive airfare options selected to complement your travel plans with flexibility and reliability.",
+        },
+        {
+          icon: "directions_car",
+          title: "Transfers",
+          description:
+            "Private and shared transfers tailored to your itinerary — from luxury airport pickups to comfortable group transportation.",
+        },
+        {
+          icon: "tour",
+          title: "Excursions",
+          description:
+            "Carefully curated experiences, from iconic landmarks to immersive and private journeys.",
+        },
+        {
+          icon: "attractions",
+          title: "Theme Parks",
+          description:
+            "Priority access tickets to the UAE’s most sought-after attractions and world-class theme parks.",
         },
         {
           icon: "shield_with_heart",
           title: "Insurance",
-          description: "Comprehensive travel insurance for complete peace of mind",
+          description:
+            "Comprehensive travel insurance designed to protect every stage of your journey.",
         },
       ],
     },
     bundleSave: {
-      title: "Bundle Your Services and Save Up to 30%",
-      savings: "Save Up to 30%",
+      title: "A Thoughtfully Assembled Journey — With Preferred Value",
+      savings: "Save up to 30%",
       features: [
         {
           icon: "savings",
-          title: "Best Price Guarantee",
-          description: "We match or beat any comparable offer",
+          title: "Preferred, Negotiated Rates",
+          description:
+            "Direct supplier agreements allow us to offer value unavailable through traditional booking platforms.",
         },
         {
           icon: "schedule",
-          title: "All-in-One Booking",
-          description: "Save time with a single, streamlined reservation",
+          title: "One Booking, Fully Managed",
+          description:
+            "Hotels, transfers, experiences, and extras — seamlessly coordinated in a single reservation.",
         },
         {
           icon: "support_agent",
-          title: "24/7 Personal Concierge",
-          description: "Dedicated support throughout your entire journey",
+          title: "Personal Support, 24/7",
+          description:
+            "Dedicated assistance before departure, during your stay, and beyond.",
         },
       ],
-      cta: "Build Your Package",
+      cta: "Build Your Bespoke Package",
     },
     trustStats: {
-      title: "Trusted by Thousands of Travelers",
+      title: "Chosen by Thousands of Discerning Travelers",
       stats: [
-        { value: "50,000+", label: "Happy Guests", icon: "people" },
+        { value: "50,000+", label: "Satisfied Guests", icon: "people" },
         { value: "4.9/5", label: "Average Rating", icon: "star" },
-        { value: "24/7", label: "Online Support", icon: "support_agent" },
-        { value: "100%", label: "Secure Booking", icon: "security" },
+        { value: "24/7", label: "Dedicated Support", icon: "support_agent" },
+        { value: "100%", label: "Secure Payments", icon: "security" },
       ],
     },
     exclusives: {
@@ -1126,28 +1334,33 @@ const translations: Record<Locale, Translation> = {
       ],
     },
     featured: {
-      title: "Premier Stays with Exclusive Benefits",
-      subtitle: "Enjoy pre-negotiated extras, flexible cancellation, and instant confirmation on every booking.",
-      cta: "Explore All Emirates",
+      title: "Distinguished Hotels with Exclusive Privileges",
+      subtitle:
+        "Flexible cancellation, added benefits, and instant confirmation — secured through direct agreements.",
+      cta: "Explore Hotels Across the Emirates",
     },
     perks: {
-      title: "The Direct Guest Experience—Without the Fine Print",
+      title: "The Direct Guest Experience — Elevated",
       items: [
         {
-          title: "Beach, City, or Desert",
-          body: "A curated selection of the finest properties in Dubai, Abu Dhabi, and the Northern Emirates.",
+          title: "Iconic Destinations",
+          body:
+            "Dubai, Abu Dhabi, and the Northern Emirates — thoughtfully curated for every travel style.",
         },
         {
-          title: "Transparent Pricing",
-          body: "Honest, tax-inclusive rates paired with flexible cancellation policies.",
+          title: "Transparent, All-Inclusive Pricing",
+          body:
+            "Clear rates with full visibility before payment and no hidden fees.",
         },
         {
-          title: "Multilingual Concierge",
-          body: "Dedicated assistance in English and Arabic for transfers, dining, and more.",
+          title: "Multilingual Concierge Support",
+          body:
+            "Assistance in Armenian, English, and Russian — from transfers to special requests.",
         },
         {
-          title: "Seamless Rebooking",
-          body: "Save your preferences and rebook in seconds with your Google profile.",
+          title: "Effortless Rebooking",
+          body:
+            "Save your preferences and return to your journey with ease.",
         },
       ],
     },
@@ -1470,6 +1683,108 @@ const translations: Record<Locale, Translation> = {
         saving: "Saving...",
         signIn: "Sign in to save",
       },
+      addons: {
+        title: "Package Builder",
+        subtitle: "Add transfers, excursions, insurance, and flights in a few taps.",
+        badge: "Optional Add-ons",
+        actions: {
+          add: "Add",
+          remove: "Remove",
+        },
+        status: {
+          optional: "Optional",
+          requested: "Requested",
+        },
+        summary: {
+          rooms: "Rooms",
+          transfers: "Transfers",
+          excursions: "Excursions",
+          insurance: "Insurance",
+          flights: "Flights",
+          requested: "Requested",
+        },
+        transfers: {
+          title: "Transfers",
+          description: "Airport pick-ups and city rides tailored to your stay.",
+          panelTitle: "Transfer Options",
+          paxLabel: "pax",
+          bagsLabel: "bags",
+          includeReturn: "Include return transfer",
+          returnTotal: "Return total",
+          oneWayTotal: "One-way total",
+          perPax: "Per pax",
+          perVehicle: "Per vehicle",
+          bothWays: "Both directions",
+          flightNumber: "Flight number",
+          arrivalDate: "Arrival date & time",
+          vehicleQty: "Vehicle quantity",
+          loading: "Loading transfer options...",
+          noOptions: "No transfer options available for this destination.",
+          missingDestination: "Select a destination to see transfer options.",
+          loadFailed: "Unable to load transfer options.",
+          selectRequired: "Please select a transfer option or turn off transfers.",
+          detailsRequired: "Please add flight details for your transfer.",
+          flightNumberRequired: "Flight number is required.",
+          arrivalRequired: "Arrival date and time are required.",
+        },
+        excursions: {
+          title: "Excursions",
+          description: "Handpicked experiences to personalize your trip.",
+          panelTitle: "Excursion Options",
+          adultsLabel: "Adults",
+          childrenLabel: "Children",
+          feeNote: "Prices include service fees.",
+          loading: "Loading excursion options...",
+          noOptions: "No excursion options available right now.",
+          loadFailed: "Unable to load excursion options.",
+          unnamed: "Excursion",
+          adultPrice: "Adult",
+          childPrice: "Child",
+          totalLabel: "Total",
+          applyAll: "Apply to all guests",
+        },
+        insurance: {
+          title: "Insurance",
+          description: "Stay protected with travel insurance add-ons.",
+          panelTitle: "Choose an insurance plan",
+          noteLabel: "Special requests (optional)",
+          notePlaceholder: "Let us know any coverage preferences.",
+          plans: {
+            essential: {
+              title: "Essential",
+              description: "Medical coverage and trip cancellation basics.",
+            },
+            complete: {
+              title: "Complete",
+              description: "Extended coverage for delays, baggage, and more.",
+              highlight: "Recommended",
+            },
+            premium: {
+              title: "Premium",
+              description: "Comprehensive protection with higher limits.",
+            },
+          },
+        },
+        flights: {
+          title: "Flights",
+          description: "Share your route and we will source the best fares.",
+          panelTitle: "Flight request",
+          originLabel: "From",
+          destinationLabel: "To",
+          departureLabel: "Departure date",
+          returnLabel: "Return date",
+          cabinLabel: "Cabin class",
+          cabinPlaceholder: "Select cabin",
+          notesLabel: "Notes",
+          notesPlaceholder: "Preferred airlines, flexibility, or other requests.",
+          cabin: {
+            economy: "Economy",
+            premium: "Premium Economy",
+            business: "Business",
+            first: "First",
+          },
+        },
+      },
       map: {
         viewAria: "View hotel location on map",
         showButton: "Show Location on Map",
@@ -1607,12 +1922,13 @@ const translations: Record<Locale, Translation> = {
     ],
     labels: { exclusive: "Эксклюзив" },
     hero: {
-      title: "Эксклюзивные цены на отели в ОАЭ напрямую от туроператора",
+      title: "Эксклюзивные цены на отели ОАЭ — напрямую от туроператора",
       subtitle:
-        "Отель, трансфер, экскурсии и билеты в тематические парки — в одном бронировании, без посредников и скрытых платежей.",
+        "Премиальная платформа для путешествий по ОАЭ, основанная на прямых контрактах, согласованных тарифах и сервисе уровня консьерж.",
       purpose:
-        "Megatours — платформа бронирования поездок по ОАЭ, где можно искать, сравнивать и бронировать отели, трансферы и впечатления в одном месте.",
-      marquee: " ОТЕЛИ  ✦  ТРАНСФЕРЫ  ✦  БИЛЕТЫ В ТЕМАТИЧЕСКИЕ ПАРКИ  ✦  ЭКСКУРСИИ  ✦  АВИАБИЛЕТЫ  ✦  СТРАХОВКА  ✦ ",
+        "Отели, трансферы, экскурсии, тематические парки, авиабилеты и страховка — в одном продуманном бронировании, без посредников и скрытых условий.",
+      marquee:
+        " ОТЕЛИ  ✦  ТРАНСФЕРЫ  ✦  ЭКСКУРСИИ  ✦  ТЕМАТИЧЕСКИЕ ПАРКИ  ✦  АВИАБИЛЕТЫ  ✦  СТРАХОВКА  ✦ ",
     },
     search: {
       wherePlaceholder: "Город, место или отель",
@@ -1633,69 +1949,78 @@ const translations: Record<Locale, Translation> = {
       },
     },
     services: {
-      title: "Все для идеальной поездки",
+      title: "Продуманные сервисы для безупречного путешествия",
       items: [
-        {
-          icon: "directions_car",
-          title: "Трансферы",
-          description: "Комфортные трансферы из аэропорта и по городу",
-        },
         {
           icon: "hotel",
           title: "Отели",
-          description: "480+ премиальных отелей в ОАЭ с эксклюзивными ценами",
-        },
-        {
-          icon: "tour",
-          title: "Экскурсии",
-          description: "Подборка туров и ярких впечатлений",
-        },
-        {
-          icon: "attractions",
-          title: "Парки развлечений",
-          description: "Билеты без очередей в лучшие парки",
+          description:
+            "Тщательно отобранные отели по всему ОАЭ с эксклюзивными тарифами туроператора.",
         },
         {
           icon: "flight",
           title: "Авиабилеты",
-          description: "Выгодные тарифы на перелеты по всему миру",
+          description:
+            "Гибкие и надежные варианты перелетов, подобранные под ваш маршрут.",
+        },
+        {
+          icon: "directions_car",
+          title: "Трансферы",
+          description:
+            "Индивидуальные и групповые трансферы — от премиальных встреч в аэропорту до комфортных поездок по городу.",
+        },
+        {
+          icon: "tour",
+          title: "Экскурсии",
+          description:
+            "Кураторская подборка впечатлений — от знаковых достопримечательностей до приватных маршрутов.",
+        },
+        {
+          icon: "attractions",
+          title: "Тематические парки",
+          description:
+            "Приоритетный доступ к самым востребованным паркам и аттракционам ОАЭ.",
         },
         {
           icon: "shield_with_heart",
-          title: "Страховка",
-          description: "Страхование, чтобы отдых был спокойным",
+          title: "Страхование",
+          description:
+            "Комплексные страховые решения для спокойного и защищенного путешествия.",
         },
       ],
     },
     bundleSave: {
-      title: "Соберите пакет и экономьте до 30%",
+      title: "Единое путешествие — с привилегированной выгодой",
       savings: "Экономия до 30%",
       features: [
         {
           icon: "savings",
-          title: "Гарантия лучшей цены",
-          description: "Подбираем и фиксируем лучший вариант",
+          title: "Согласованные привилегированные тарифы",
+          description:
+            "Прямые договоренности с поставщиками позволяют предложить условия, недоступные на обычных платформах.",
         },
         {
           icon: "schedule",
-          title: "Одно бронирование",
-          description: "Экономьте время: всё в одной заявке",
+          title: "Одно бронирование — полный контроль",
+          description:
+            "Отели, трансферы и впечатления объединены в одной, профессионально управляемой заявке.",
         },
         {
           icon: "support_agent",
-          title: "Поддержка 24/7",
-          description: "Персональный консьерж на всей дистанции поездки",
+          title: "Персональная поддержка 24/7",
+          description:
+            "Сопровождение до поездки, во время отдыха и после возвращения.",
         },
       ],
-      cta: "Собрать пакет",
+      cta: "Собрать индивидуальный пакет",
     },
     trustStats: {
-      title: "Нам доверяют тысячи путешественников",
+      title: "Выбор взыскательных путешественников",
       stats: [
         { value: "50,000+", label: "Довольных гостей", icon: "people" },
         { value: "4.9/5", label: "Средняя оценка", icon: "star" },
-        { value: "24/7", label: "Поддержка онлайн", icon: "support_agent" },
-        { value: "100%", label: "Безопасное бронирование", icon: "security" },
+        { value: "24/7", label: "Поддержка", icon: "support_agent" },
+        { value: "100%", label: "Безопасные платежи", icon: "security" },
       ],
     },
     exclusives: {
@@ -1721,28 +2046,33 @@ const translations: Record<Locale, Translation> = {
       ],
     },
     featured: {
-      title: "Отели с включенными привилегиями",
-      subtitle: "Согласованные привилегии, гибкая отмена и мгновенные подтверждения",
-      cta: "Смотреть все эмираты",
+      title: "Отели с эксклюзивными привилегиями",
+      subtitle:
+        "Гибкая отмена, дополнительные преимущества и мгновенное подтверждение — благодаря прямым контрактам.",
+      cta: "Открыть отели по всем эмиратам",
     },
     perks: {
-      title: "Все, что ждут прямые гости — без скрытых условий",
+      title: "Прямой гостевой опыт — на новом уровне",
       items: [
         {
-          title: "Пляж, город, пустыня",
-          body: "Подборка Дубай, Абу-Даби и северные эмираты",
+          title: "Иконические направления",
+          body:
+            "Дубай, Абу-Даби и Северные Эмираты — продуманная подборка для любого формата отдыха.",
         },
         {
-          title: "Прозрачные цены",
-          body: "Все налоги включены, гибкие условия",
+          title: "Прозрачное ценообразование",
+          body:
+            "Четкие тарифы, полная видимость условий и никаких скрытых платежей.",
         },
         {
-          title: "Консьерж на русском/английском",
-          body: "Трансферы, поздний выезд и бронирование ресторанов",
+          title: "Многоязычная поддержка",
+          body:
+            "Помощь на русском, английском и армянском — от трансферов до особых запросов.",
         },
         {
-          title: "Профили для повторных бронирований",
-          body: "Сохраняйте поиски и бронируйте быстрее через Google",
+          title: "Быстрое повторное бронирование",
+          body:
+            "Сохраняйте предпочтения и возвращайтесь к поездке без лишних шагов.",
         },
       ],
     },
@@ -2068,6 +2398,108 @@ const translations: Record<Locale, Translation> = {
         saved: "Сохранено",
         saving: "Сохраняем...",
         signIn: "Войдите, чтобы сохранить",
+      },
+      addons: {
+        title: "Конструктор пакета",
+        subtitle: "Добавьте трансфер, экскурсии, страховку и авиабилеты за пару шагов.",
+        badge: "Дополнительные услуги",
+        actions: {
+          add: "Добавить",
+          remove: "Убрать",
+        },
+        status: {
+          optional: "Опционально",
+          requested: "Запрошено",
+        },
+        summary: {
+          rooms: "Номера",
+          transfers: "Трансферы",
+          excursions: "Экскурсии",
+          insurance: "Страховка",
+          flights: "Авиабилеты",
+          requested: "Запрошено",
+        },
+        transfers: {
+          title: "Трансферы",
+          description: "Трансферы из аэропорта и по городу под ваш маршрут.",
+          panelTitle: "Варианты трансфера",
+          paxLabel: "пасс.",
+          bagsLabel: "багаж",
+          includeReturn: "Добавить обратный трансфер",
+          returnTotal: "Итого туда-обратно",
+          oneWayTotal: "Итого в одну сторону",
+          perPax: "За пассажира",
+          perVehicle: "За автомобиль",
+          bothWays: "В обе стороны",
+          flightNumber: "Номер рейса",
+          arrivalDate: "Дата и время прилета",
+          vehicleQty: "Количество авто",
+          loading: "Загружаем варианты трансфера...",
+          noOptions: "Нет доступных вариантов трансфера.",
+          missingDestination: "Выберите направление, чтобы увидеть трансферы.",
+          loadFailed: "Не удалось загрузить трансферы.",
+          selectRequired: "Выберите трансфер или отключите эту опцию.",
+          detailsRequired: "Заполните данные рейса для трансфера.",
+          flightNumberRequired: "Номер рейса обязателен.",
+          arrivalRequired: "Дата и время прилета обязательны.",
+        },
+        excursions: {
+          title: "Экскурсии",
+          description: "Лучшие впечатления, собранные для вашей поездки.",
+          panelTitle: "Варианты экскурсий",
+          adultsLabel: "Взрослые",
+          childrenLabel: "Дети",
+          feeNote: "Цены включают сервисный сбор.",
+          loading: "Загружаем экскурсии...",
+          noOptions: "Экскурсии сейчас недоступны.",
+          loadFailed: "Не удалось загрузить экскурсии.",
+          unnamed: "Экскурсия",
+          adultPrice: "Взрослый",
+          childPrice: "Ребенок",
+          totalLabel: "Итого",
+          applyAll: "Применить ко всем гостям",
+        },
+        insurance: {
+          title: "Страховка",
+          description: "Добавьте туристическую страховку для спокойного отдыха.",
+          panelTitle: "Выберите страховой план",
+          noteLabel: "Особые пожелания (опционально)",
+          notePlaceholder: "Укажите предпочтения по покрытию.",
+          plans: {
+            essential: {
+              title: "Базовый",
+              description: "Медицинское покрытие и базовая отмена поездки.",
+            },
+            complete: {
+              title: "Полный",
+              description: "Расширенное покрытие: задержки, багаж и другое.",
+              highlight: "Рекомендуем",
+            },
+            premium: {
+              title: "Премиум",
+              description: "Максимальная защита и повышенные лимиты.",
+            },
+          },
+        },
+        flights: {
+          title: "Авиабилеты",
+          description: "Опишите маршрут — мы подберем лучшие тарифы.",
+          panelTitle: "Запрос на перелет",
+          originLabel: "Откуда",
+          destinationLabel: "Куда",
+          departureLabel: "Дата вылета",
+          returnLabel: "Дата возвращения",
+          cabinLabel: "Класс",
+          cabinPlaceholder: "Выберите класс",
+          notesLabel: "Комментарий",
+          notesPlaceholder: "Предпочтения по авиакомпаниям и др.",
+          cabin: {
+            economy: "Эконом",
+            premium: "Премиум эконом",
+            business: "Бизнес",
+            first: "Первый",
+          },
+        },
       },
       map: {
         viewAria: "Показать отель на карте",

@@ -400,6 +400,104 @@ export interface AoryxPreBookResult {
   rooms: AoryxRoomOption[];
 }
 
+export type AoryxTransferType = "INDIVIDUAL" | "GROUP";
+export type AoryxTransferChargeType = "PER_PAX" | "PER_VEHICLE";
+
+export interface AoryxTransferLocation {
+  locationCode?: string | null;
+  locationType?: string | null;
+  countryCode?: string | null;
+  cityCode?: string | null;
+  zoneCode?: string | null;
+  airportCode?: string | null;
+  name?: string | null;
+}
+
+export interface AoryxTransferVehicle {
+  code?: string | null;
+  category?: string | null;
+  name?: string | null;
+  maxPax?: number | null;
+  maxBags?: number | null;
+}
+
+export interface AoryxTransferPricing {
+  currency?: string | null;
+  chargeType?: AoryxTransferChargeType | null;
+  oneWay?: number | null;
+  return?: number | null;
+}
+
+export interface AoryxTransferRate {
+  _id?: string | null;
+  transferType?: AoryxTransferType | null;
+  origin?: AoryxTransferLocation | null;
+  destination?: AoryxTransferLocation | null;
+  bothDirections?: boolean | null;
+  vehicle?: AoryxTransferVehicle | null;
+  paxRange?: { minPax?: number | null; maxPax?: number | null } | null;
+  pricing?: AoryxTransferPricing | null;
+  validity?: { from?: string | null; to?: string | null } | null;
+}
+
+export interface AoryxTransferSelection extends AoryxTransferRate {
+  id?: string | null;
+  includeReturn?: boolean;
+  quantity?: number | null;
+  flightDetails?: { flightNumber?: string | null; arrivalDateTime?: string | null } | null;
+  totalPrice?: number | null;
+  paxCount?: number | null;
+}
+
+export interface AoryxExcursionTicket {
+  _id?: string | null;
+  activityCode?: string | null;
+  name?: string | null;
+  description?: string | null;
+  productType?: string | null;
+  cityCode?: string | null;
+  countryCode?: string | null;
+  pricing?: { currency?: string | null; adult?: number | null; child?: number | null; feeApplied?: boolean | null } | null;
+  childPolicy?: string | null;
+  validity?: { from?: string | null; to?: string | null } | null;
+}
+
+export interface AoryxExcursionSelection {
+  id: string;
+  name?: string | null;
+  quantityAdult?: number | null;
+  quantityChild?: number | null;
+  priceAdult?: number | null;
+  priceChild?: number | null;
+  currency?: string | null;
+  childPolicy?: string | null;
+  totalPrice?: number | null;
+}
+
+export interface AoryxExcursionsPayload {
+  totalAmount: number;
+  selections: AoryxExcursionSelection[];
+}
+
+export interface BookingInsuranceSelection {
+  planId: string;
+  planName?: string | null;
+  note?: string | null;
+  price?: number | null;
+  currency?: string | null;
+}
+
+export interface BookingAirTicketRequest {
+  origin?: string | null;
+  destination?: string | null;
+  departureDate?: string | null;
+  returnDate?: string | null;
+  cabinClass?: string | null;
+  notes?: string | null;
+  price?: number | null;
+  currency?: string | null;
+}
+
 export interface AoryxBookingGuestPayload {
   title?: string | null;
   titleCode?: string | null;
@@ -432,6 +530,10 @@ export interface AoryxBookingPayload {
   customerRefNumber: string;
   groupCode: number;
   rooms: AoryxBookingRoomPayload[];
+  transferSelection?: AoryxTransferSelection | null;
+  excursions?: AoryxExcursionsPayload | null;
+  insurance?: BookingInsuranceSelection | null;
+  airTickets?: BookingAirTicketRequest | null;
   acknowledgePriceChange?: boolean;
 }
 

@@ -225,7 +225,7 @@ export default function Home() {
         </div>
         <div className="section-divider" role="separator" aria-hidden="true"></div>
         <div className="container">
-          <div id="offers" className="grid" aria-labelledby="offers-title">
+          <div id="offers" aria-labelledby="offers-title">
               {t.exclusives.offers.map((offer) => (
                 <div key={offer.title} className="card">
                   <div className="inner">
