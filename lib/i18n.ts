@@ -534,7 +534,7 @@ const translations: Record<Locale, Translation> = {
       },
     },
     services: {
-      title: "Ծառայություններ՝ Անթերի Ուղևորության Համար",
+      title: "Ծառայություններ՝ անթերի ուղևորության համար",
       items: [
         {
           icon: "hotel",
