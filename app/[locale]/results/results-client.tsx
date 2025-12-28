@@ -42,22 +42,12 @@ type ResultsClientProps = {
 function formatPrice(value: number | null, currency: string | null, locale: string): string | null {
   if (value === null || value === undefined) return null;
   const safeCurrency = (currency ?? "USD").trim().toUpperCase();
-  const symbolOverrides: Record<string, string> = {
-    AMD: "֏",
-    USD: "$",
-  };
   try {
-    const formatter = new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: safeCurrency,
-      maximumFractionDigits: 0,
-    });
-    const override = symbolOverrides[safeCurrency];
-    if (!override) return formatter.format(value);
-    return formatter
-      .formatToParts(value)
-      .map((part) => (part.type === "currency" ? override : part.value))
-      .join("");
+    const formattedNumber = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
+    if (safeCurrency === "AMD") return `${formattedNumber} ֏`;
+    if (safeCurrency === "USD") return `$${formattedNumber}`;
+    if (safeCurrency === "EUR") return `€${formattedNumber}`;
+    return `${formattedNumber} ${safeCurrency}`;
   } catch {
     return `${safeCurrency} ${value}`;
   }

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import ProfileSignIn from "@/components/profile-signin";
 import ProfileView from "@/components/profile-view";
+import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import type { AoryxBookingPayload, AoryxBookingResult, AoryxSearchParams } from "@/types/aoryx";
 
 type BookingRecord = {
@@ -42,6 +43,16 @@ type UserProfile = {
   lastSearchAt?: Date | string | null;
   lastBookingAt?: Date | string | null;
 };
+
+const resolveLocale = (value: string | undefined) =>
+  locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+
+export async function generateMetadata({ params }: { params: { locale: string } }) {
+  const t = getTranslations(resolveLocale(params.locale));
+  return {
+    title: t.profile.title,
+  };
+}
 
 const serializeDate = (value?: Date | string | null) => {
   if (!value) return null;

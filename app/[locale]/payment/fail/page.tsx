@@ -13,6 +13,14 @@ const resolveLocale = async () => {
   return locales.includes(cookieLocale as Locale) ? (cookieLocale as Locale) : defaultLocale;
 };
 
+export async function generateMetadata() {
+  const locale = await resolveLocale();
+  const t = getTranslations(locale);
+  return {
+    title: t.payment.failure.title,
+  };
+}
+
 const formatDate = (dateStr: string | null | undefined, locale: string) => {
   if (!dateStr) return "—";
   try {

@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       if (converted === null) {
         throw new Error("Missing exchange rate");
       }
-      amountValue = Number(converted.toFixed(2));
+      amountValue = Math.round(converted);
       amountCurrency = "AMD";
     } catch (error) {
       console.error("[Idram][checkout] Failed to convert amount", error);

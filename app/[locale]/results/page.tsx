@@ -7,6 +7,7 @@ import { getEffectiveAmdRates } from "@/lib/pricing";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recordUserSearch } from "@/lib/user-data";
+import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import type { AoryxSearchResult } from "@/types/aoryx";
 
 const buildSearchParams = (input: Record<string, string | string[] | undefined>) => {
@@ -23,12 +24,22 @@ const buildSearchParams = (input: Record<string, string | string[] | undefined>)
   return params;
 };
 
+const resolveLocale = (value: string | undefined) =>
+  locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+
 type SafeSearchResult = Omit<AoryxSearchResult, "sessionId">;
 
 type PageProps = {
   params: { locale: string };
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({ params }: { params: { locale: string } }) {
+  const t = getTranslations(resolveLocale(params.locale));
+  return {
+    title: t.results.fallbackTitle,
+  };
+}
 
 export default async function ResultsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;

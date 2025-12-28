@@ -851,6 +851,11 @@ main {
         }
       }
     }
+
+    .error{
+      color: #fff;
+      text-align: center;
+    }
   }
 
   /* ==================== */

@@ -108,22 +108,12 @@ const formatDateRange = (start?: string | null, end?: string | null, locale?: st
 
 const formatPrice = (amount: number, currency: string, locale: string) => {
   const safeCurrency = currency.trim().toUpperCase();
-  const symbolOverrides: Record<string, string> = {
-    AMD: "֏",
-    USD: "$",
-  };
   try {
-    const formatter = new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: safeCurrency,
-      maximumFractionDigits: 0,
-    });
-    const override = symbolOverrides[safeCurrency];
-    if (!override) return formatter.format(amount);
-    return formatter
-      .formatToParts(amount)
-      .map((part) => (part.type === "currency" ? override : part.value))
-      .join("");
+    const formattedNumber = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount);
+    if (safeCurrency === "AMD") return `${formattedNumber} ֏`;
+    if (safeCurrency === "USD") return `$${formattedNumber}`;
+    if (safeCurrency === "EUR") return `€${formattedNumber}`;
+    return `${formattedNumber} ${safeCurrency}`;
   } catch {
     return `${safeCurrency} ${amount}`;
   }

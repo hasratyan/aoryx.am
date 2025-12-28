@@ -1,9 +1,11 @@
+import { cache } from "react";
 import HotelClient from "./hotel-client";
 import { hotelInfo, hotelsInfoByDestinationId, roomDetails, AoryxClientError, AoryxServiceError } from "@/lib/aoryx-client";
 import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
 import { parseSearchParams } from "@/lib/search-query";
 import { obfuscateRoomOptions } from "@/lib/aoryx-rate-tokens";
 import { getEffectiveAmdRates } from "@/lib/pricing";
+import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import type { AoryxHotelInfoResult, AoryxRoomOption, AoryxSearchParams } from "@/types/aoryx";
 
 const toFinite = (value: number | null | undefined): number | null =>
@@ -23,6 +25,11 @@ const buildSearchParams = (input: Record<string, string | string[] | undefined>)
   return params;
 };
 
+const resolveLocale = (value: string | undefined) =>
+  locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+
+const getHotelInfoCached = cache(async (code: string) => hotelInfo(code));
+
 type SafeRoomDetails = {
   currency: string | null;
   rooms: AoryxRoomOption[];
@@ -32,6 +39,28 @@ type PageProps = {
   params: Promise<{ locale: string; code?: string | string[] }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; code?: string | string[] }> }) {
+  const resolvedParams = await params;
+  const locale = resolveLocale(resolvedParams.locale);
+  const t = getTranslations(locale);
+  const hotelCode = Array.isArray(resolvedParams.code) ? resolvedParams.code[0] : resolvedParams.code;
+
+  if (!hotelCode) {
+    return { title: t.results.hotel.fallbackName };
+  }
+
+  try {
+    const info = await getHotelInfoCached(hotelCode);
+    if (info?.name) {
+      return { title: info.name };
+    }
+  } catch (error) {
+    console.error("[Metadata] Failed to load hotel name", error);
+  }
+
+  return { title: `${t.results.hotel.fallbackName} ${hotelCode}` };
+}
 
 export default async function HotelPage({ params, searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
@@ -63,7 +92,7 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
 
   if (hotelCode) {
     try {
-      hotelInfoResult = await hotelInfo(hotelCode);
+      hotelInfoResult = await getHotelInfoCached(hotelCode);
     } catch (error) {
       if (error instanceof AoryxServiceError) {
         hotelError = error.message;

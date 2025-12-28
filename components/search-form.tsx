@@ -822,13 +822,6 @@ export default function SearchForm({
         </div>
       )}
 
-      {/* Error Message */}
-      {searchError && (
-        <div className="search-error">
-          <p>⚠️ {searchError}</p>
-        </div>
-      )}
-
       {/* Submit */}
       <button
         type="submit"
@@ -839,6 +832,14 @@ export default function SearchForm({
         <span className="material-symbols-rounded">search</span>
         <b>{isSubmitting ? copy.submitLoading : copy.submitIdle}</b>
       </button>
+
+      {/* Error Message */}
+      {searchError && (
+        <div className="error">
+          <p>⚠️ {searchError}</p>
+        </div>
+      )}
+
       <StarBorder
         as="div"
         color="#34d399"
