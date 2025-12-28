@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { buildSearchQuery, parseSearchParams } from "@/lib/search-query";
-import type { AoryxSearchResult } from "@/types/aoryx";
+import type { AoryxSearchParams, AoryxSearchResult } from "@/types/aoryx";
 import Image from "next/image";
 import SearchForm from "@/components/search-form";
+import Loader from "@/components/loader";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 import { convertToAmd, useAmdRates } from "@/lib/use-amd-rates";
@@ -76,13 +77,17 @@ export default function ResultsClient({
     return template.replace("{count}", count.toString());
   };
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const searchKey = searchParams.toString();
   const parsed = useMemo(
-    () => parseSearchParams(new URLSearchParams(searchParams.toString())),
-    [searchParams]
+    () => parseSearchParams(new URLSearchParams(searchKey)),
+    [searchKey]
   );
 
   const [result, setResult] = useState<SafeSearchResult | null>(initialResult);
   const [error, setError] = useState<string | null>(initialError);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [sortBy, setSortBy] = useState<
     "price-asc" | "price-desc" | "rating-desc" | "rating-asc"
   >("rating-desc");
@@ -94,8 +99,9 @@ export default function ResultsClient({
   } | null>(null);
   const [destinations, setDestinations] = useState<DestinationInfo[]>(initialDestinations);
   const { rates: amdRates } = useAmdRates(initialAmdRates);
+  const isSearching = searchLoading || isPending;
   const missingError = parsed.payload ? null : (parsed.error ?? t.results.errors.missingSearchDetails);
-  const finalError = missingError ?? error;
+  const finalError = isSearching ? null : (missingError ?? error);
 
   useEffect(() => {
     setPriceRangeOverride(null);
@@ -109,8 +115,31 @@ export default function ResultsClient({
     setPriceRangeOverride(null);
   }, [initialDestinations, initialError, initialResult]);
 
-  const checkIn = formatDate(parsed.payload?.checkInDate, intlLocale);
-  const checkOut = formatDate(parsed.payload?.checkOutDate, intlLocale);
+  useEffect(() => {
+    if (!searchLoading) return;
+    setSearchLoading(false);
+  }, [initialError, initialResult, searchKey, searchLoading]);
+
+  const handleSearchSubmit = useCallback(
+    (_payload: AoryxSearchParams, params: URLSearchParams) => {
+      const nextQuery = params.toString();
+      if (nextQuery === searchKey) {
+        setSearchLoading(false);
+        return;
+      }
+      setSearchLoading(true);
+      setError(null);
+      setResult(null);
+      setFiltersOpen(false);
+      const resultsPath = `/${locale}/results`;
+      const nextHref = nextQuery ? `${resultsPath}?${nextQuery}` : resultsPath;
+      startTransition(() => {
+        router.push(nextHref);
+      });
+    },
+    [locale, router, searchKey, startTransition]
+  );
+
   const nightsCount = useMemo(() => {
     if (!parsed.payload?.checkInDate || !parsed.payload?.checkOutDate) return null;
     const checkInDate = new Date(`${parsed.payload.checkInDate}T00:00:00`);
@@ -120,11 +149,6 @@ export default function ResultsClient({
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : null;
   }, [parsed.payload?.checkInDate, parsed.payload?.checkOutDate]);
-  const totalAdults = parsed.payload?.rooms.reduce((sum, room) => sum + room.adults, 0) ?? 0;
-  const totalChildren =
-    parsed.payload?.rooms.reduce((sum, room) => sum + room.childrenAges.length, 0) ?? 0;
-  const totalGuests = totalAdults + totalChildren;
-  const roomsCount = parsed.payload?.rooms.length ?? 0;
   const filtersToggleLabel = filtersOpen ? t.results.filters.closeLabel : t.results.filters.openLabel;
   const placesFoundCount = result?.propertyCount ?? result?.hotels.length ?? 0;
   const placesFoundLabel =
@@ -304,7 +328,7 @@ export default function ResultsClient({
 
   return (
     <main className="results">
-      {result?.hotels.length ? (
+      {!isSearching && result?.hotels.length ? (
         <aside
           id="results-filters"
           className={`results-filters${filtersOpen ? " is-open" : ""}`}
@@ -425,9 +449,13 @@ export default function ResultsClient({
               presetHotel={presetHotel}
               initialDateRange={initialDateRange}
               initialRooms={initialRooms}
+              isSearchPending={isSearching}
+              onSubmitSearch={handleSearchSubmit}
             />
           </div>
-          {result && result.hotels.length === 0 ? (
+          {isSearching ? (
+            <Loader text={t.results.loading} />
+          ) : result && result.hotels.length === 0 ? (
             <div className="results-empty">
               <Image src="/images/icons/sad.gif" alt={t.results.emptyAlt} width={100} height={100} />
               <p>{t.results.emptyMessage}</p>
@@ -471,82 +499,84 @@ export default function ResultsClient({
             </>
           )}
 
-          <div id="hotels" className="grid">
-            {sortedHotels.map((hotel, idx) => {
-              const formattedPrice = formatPrice(hotel.displayPrice, hotel.displayCurrency, intlLocale);
-              const detailQuery =
-                parsed.payload && hotel.code
-                  ? buildSearchQuery({
-                      ...parsed.payload,
-                      hotelCode: hotel.code ?? undefined,
-                      destinationCode:
-                        parsed.payload.destinationCode ?? result?.destination?.code ?? undefined,
-                    })
-                  : null;
-              const detailHref = detailQuery && hotel.code ? `/hotels/${hotel.code}?${detailQuery}` : null;
+          {!isSearching && (
+            <div id="hotels" className="grid">
+              {sortedHotels.map((hotel, idx) => {
+                const formattedPrice = formatPrice(hotel.displayPrice, hotel.displayCurrency, intlLocale);
+                const detailQuery =
+                  parsed.payload && hotel.code
+                    ? buildSearchQuery({
+                        ...parsed.payload,
+                        hotelCode: hotel.code ?? undefined,
+                        destinationCode:
+                          parsed.payload.destinationCode ?? result?.destination?.code ?? undefined,
+                      })
+                    : null;
+                const detailHref = detailQuery && hotel.code ? `/hotels/${hotel.code}?${detailQuery}` : null;
 
-              return (
-                <div className="hotel-card" key={hotel.code ?? hotel.name ?? idx}>
-                  <div className="image">
-                    {hotel.imageUrl ? (
-                      <Image
-                        fill
-                        sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
-                        src={hotel.imageUrl}
-                        alt={hotel.name ?? t.results.hotel.fallbackName}
-                      />
-                    ) : (
-                      <span>{(hotel.name ?? t.results.hotel.fallbackName).charAt(0)}</span>
-                    )}
-                  </div>
-                  <div className="content">
-                    <div className="header">
-                      <div>
-                        <h3>{hotel.name ?? t.results.hotel.unnamed}</h3>
-                        <p className="location">
-                          <span className="material-symbols-rounded">location_on</span>
-                          {resolveCityName(hotel.city) ??
-                            destinationFromList?.name ??
-                            result?.destination?.name ??
-                            t.results.hotel.locationFallback}
-                        </p>
-                      </div>
-                      {typeof hotel.rating === "number" && hotel.rating > 0 && (
-                        <span className="rating">
-                          {Number.isInteger(hotel.rating)
-                            ? hotel.rating
-                            : hotel.rating.toFixed(1)} ★
-                        </span>
+                return (
+                  <div className="hotel-card" key={hotel.code ?? hotel.name ?? idx}>
+                    <div className="image">
+                      {hotel.imageUrl ? (
+                        <Image
+                          fill
+                          sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
+                          src={hotel.imageUrl}
+                          alt={hotel.name ?? t.results.hotel.fallbackName}
+                        />
+                      ) : (
+                        <span>{(hotel.name ?? t.results.hotel.fallbackName).charAt(0)}</span>
                       )}
                     </div>
-                    <div className="footer">
-                      <div>
-                        <div className="price">
-                          {formattedPrice ? (
-                            <>
-                              {formattedPrice}
-                              {nightsLabel && <small> • {nightsLabel}</small>}
-                            </>
-                          ) : (
-                            <span className="result-price-muted">{t.common.contactForRates}</span>
-                          )}
+                    <div className="content">
+                      <div className="header">
+                        <div>
+                          <h3>{hotel.name ?? t.results.hotel.unnamed}</h3>
+                          <p className="location">
+                            <span className="material-symbols-rounded">location_on</span>
+                            {resolveCityName(hotel.city) ??
+                              destinationFromList?.name ??
+                              result?.destination?.name ??
+                              t.results.hotel.locationFallback}
+                          </p>
                         </div>
+                        {typeof hotel.rating === "number" && hotel.rating > 0 && (
+                          <span className="rating">
+                            {Number.isInteger(hotel.rating)
+                              ? hotel.rating
+                              : hotel.rating.toFixed(1)} ★
+                          </span>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        disabled={!detailHref}
-                        onClick={() =>
-                          detailHref && window.open(detailHref, "_blank", "noopener,noreferrer")
-                        }
-                      >
-                        {t.results.viewOptions}
-                      </button>
+                      <div className="footer">
+                        <div>
+                          <div className="price">
+                            {formattedPrice ? (
+                              <>
+                                {formattedPrice}
+                                {nightsLabel && <small> • {nightsLabel}</small>}
+                              </>
+                            ) : (
+                              <span className="result-price-muted">{t.common.contactForRates}</span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={!detailHref}
+                          onClick={() =>
+                            detailHref && window.open(detailHref, "_blank", "noopener,noreferrer")
+                          }
+                        >
+                          {t.results.viewOptions}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </main>

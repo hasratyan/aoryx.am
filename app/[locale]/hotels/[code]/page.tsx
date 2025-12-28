@@ -4,9 +4,17 @@ import { hotelInfo, hotelsInfoByDestinationId, roomDetails, AoryxClientError, Ao
 import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
 import { parseSearchParams } from "@/lib/search-query";
 import { obfuscateRoomOptions } from "@/lib/aoryx-rate-tokens";
-import { getEffectiveAmdRates } from "@/lib/pricing";
+import { buildLocalizedMetadata } from "@/lib/metadata";
+import { getAmdRates, getEffectiveAmdExcursionRates, getEffectiveAmdRates, type AmdRates } from "@/lib/pricing";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
-import type { AoryxHotelInfoResult, AoryxRoomOption, AoryxSearchParams } from "@/types/aoryx";
+import { fetchExcursions, fetchTransferRates } from "@/lib/aoryx-addons";
+import type {
+  AoryxExcursionTicket,
+  AoryxHotelInfoResult,
+  AoryxRoomOption,
+  AoryxSearchParams,
+  AoryxTransferRate,
+} from "@/types/aoryx";
 
 const toFinite = (value: number | null | undefined): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -42,24 +50,39 @@ type PageProps = {
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; code?: string | string[] }> }) {
   const resolvedParams = await params;
-  const locale = resolveLocale(resolvedParams.locale);
-  const t = getTranslations(locale);
+  const resolvedLocale = resolveLocale(resolvedParams.locale);
+  const t = getTranslations(resolvedLocale);
   const hotelCode = Array.isArray(resolvedParams.code) ? resolvedParams.code[0] : resolvedParams.code;
 
   if (!hotelCode) {
-    return { title: t.results.hotel.fallbackName };
+    return buildLocalizedMetadata({
+      locale: resolvedLocale,
+      title: t.results.hotel.fallbackName,
+      description: t.hero.subtitle,
+      path: "/hotels",
+    });
   }
 
   try {
     const info = await getHotelInfoCached(hotelCode);
     if (info?.name) {
-      return { title: info.name };
+      return buildLocalizedMetadata({
+        locale: resolvedLocale,
+        title: info.name,
+        description: t.hero.subtitle,
+        path: `/hotels/${hotelCode}`,
+      });
     }
   } catch (error) {
     console.error("[Metadata] Failed to load hotel name", error);
   }
 
-  return { title: `${t.results.hotel.fallbackName} ${hotelCode}` };
+  return buildLocalizedMetadata({
+    locale: resolvedLocale,
+    title: `${t.results.hotel.fallbackName} ${hotelCode}`,
+    description: t.hero.subtitle,
+    path: `/hotels/${hotelCode}`,
+  });
 }
 
 export default async function HotelPage({ params, searchParams }: PageProps) {
@@ -77,9 +100,21 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
   if (payload && hotelCode) {
     payload.hotelCode = hotelCode;
   }
-  const ratesPromise = hotelCode
+  const ratesPromise: Promise<AmdRates | null> = hotelCode
     ? getEffectiveAmdRates().catch((error) => {
         console.error("[ExchangeRates] Failed to load rates", error);
+        return null;
+      })
+    : Promise.resolve(null);
+  const excursionRatesPromise: Promise<AmdRates | null> = hotelCode
+    ? getEffectiveAmdExcursionRates().catch((error) => {
+        console.error("[ExchangeRates] Failed to load excursion rates", error);
+        return null;
+      })
+    : Promise.resolve(null);
+  const transferRatesPromise: Promise<AmdRates | null> = hotelCode
+    ? getAmdRates().catch((error) => {
+        console.error("[ExchangeRates] Failed to load transfer rates", error);
         return null;
       })
     : Promise.resolve(null);
@@ -89,6 +124,11 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
   let roomDetailsResult: SafeRoomDetails | null = null;
   let roomsError: string | null = null;
   let fallbackCoordinates: { lat: number; lon: number } | null = null;
+  let transferOptionsResult: AoryxTransferRate[] | null = null;
+  let transferError: string | null = null;
+  let excursionOptionsResult: AoryxExcursionTicket[] | null = null;
+  let excursionError: string | null = null;
+  let excursionFee: number | null = null;
 
   if (hotelCode) {
     try {
@@ -144,7 +184,49 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const initialAmdRates = await ratesPromise;
+  if (payload && hotelCode) {
+    const destinationLocationCode = payload.destinationCode ?? "";
+    const destinationName = hotelInfoResult?.address?.cityName ?? "";
+    const totalGuests = payload.rooms.reduce(
+      (sum, room) => sum + room.adults + room.childrenAges.length,
+      0
+    );
+    const paxCount = totalGuests > 0 ? totalGuests : undefined;
+    if (destinationLocationCode || destinationName) {
+      try {
+        transferOptionsResult = await fetchTransferRates({
+          destinationLocationCode,
+          destinationName,
+          paxCount,
+          travelDate: payload.checkInDate,
+        });
+      } catch (error) {
+        console.error("[Transfers] Failed to load transfer options", error);
+        transferError = "Failed to load transfer options.";
+        transferOptionsResult = [];
+      }
+    } else {
+      transferOptionsResult = [];
+    }
+  }
+
+  if (hotelCode) {
+    try {
+      const result = await fetchExcursions(200);
+      excursionOptionsResult = result.excursions;
+      excursionFee = result.excursionFee;
+    } catch (error) {
+      console.error("[Excursions] Failed to load excursion options", error);
+      excursionError = "Failed to load excursion options.";
+      excursionOptionsResult = [];
+    }
+  }
+
+  const [initialAmdRates, initialExcursionRates, initialTransferRates] = await Promise.all([
+    ratesPromise,
+    excursionRatesPromise,
+    transferRatesPromise,
+  ]);
 
   return (
     <HotelClient
@@ -154,6 +236,13 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
       initialRoomsError={roomsError}
       initialFallbackCoordinates={fallbackCoordinates}
       initialAmdRates={initialAmdRates}
+      initialTransferOptions={transferOptionsResult}
+      initialTransferError={transferError}
+      initialExcursionOptions={excursionOptionsResult}
+      initialExcursionError={excursionError}
+      initialExcursionFee={excursionFee}
+      initialExcursionRates={initialExcursionRates}
+      initialTransferRates={initialTransferRates}
     />
   );
 }

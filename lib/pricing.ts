@@ -118,6 +118,21 @@ export async function getAoryxExcursionFee(): Promise<number> {
   }
 }
 
+export async function getAoryxExcursionPlatformFee(): Promise<number> {
+  try {
+    const db = await getDb();
+    const doc = await db.collection("settings").findOne({});
+    const record = (doc as Record<string, unknown>) ?? {};
+    const rawExcursions =
+      toNumber(record.aoryxExcursionsB2CPlatformFee) ??
+      toNumber((record.aoryx as Record<string, unknown>)?.excursionsB2CPlatformFee);
+    return rawExcursions ?? 0;
+  } catch (error) {
+    console.error("[Pricing] Failed to fetch excursion platform fee", error);
+    return 0;
+  }
+}
+
 export async function getEffectiveAmdRates(): Promise<AmdRates> {
   const [rates, fee] = await Promise.all([getAmdRates(), getAoryxHotelPlatformFee()]);
   const multiplier = 1 + fee;
@@ -125,6 +140,10 @@ export async function getEffectiveAmdRates(): Promise<AmdRates> {
     USD: Number((rates.USD * multiplier).toFixed(1)),
     EUR: Number((rates.EUR * multiplier).toFixed(1)),
   };
+}
+
+export async function getEffectiveAmdExcursionRates(): Promise<AmdRates> {
+  return getAmdRates();
 }
 
 export function convertToAmd(

@@ -6,6 +6,7 @@ import 'material-symbols';
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Providers from "@/components/providers";
+import { metadataBase } from "@/lib/metadata";
 import "./globals.css";
 
 // const body = Google_Sans({
@@ -16,9 +17,7 @@ import "./globals.css";
 // });
 
 export const metadata: Metadata = {
-  title: "MEGATOURS | Հյուրանոցների Բացառիկ Գներ ԱՄԷ-ում",
-  description:
-    "Ամրագրեք հյուրանոցներ ԱՄԷ-ում լավագույն պայմաններով։ Դուբայ, Աբու Դաբի և այլ ուղղություններ՝ ուղիղ տուրօպերատորից։ Թափանցիկ գներ և ակնթարթային հաստատում։",
+  metadataBase,
 };
 
 export const viewport: Viewport = {

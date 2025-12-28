@@ -1,3 +1,4 @@
+import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 
 type PageProps = {
@@ -9,11 +10,14 @@ const resolveLocale = (value: string | undefined) =>
 
 export async function generateMetadata({ params }: PageProps) {
   const { locale } = await params;
-  const t = getTranslations(resolveLocale(locale));
-  return {
+  const resolvedLocale = resolveLocale(locale);
+  const t = getTranslations(resolvedLocale);
+  return buildLocalizedMetadata({
+    locale: resolvedLocale,
     title: t.policies.security.title,
     description: t.policies.security.intro,
-  };
+    path: "/privacy-policy",
+  });
 }
 
 export default async function PrivacyPolicyPage({ params }: PageProps) {

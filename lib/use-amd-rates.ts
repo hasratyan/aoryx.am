@@ -27,10 +27,15 @@ export const convertToAmd = (
   return null;
 };
 
-export function useAmdRates(initialRates?: AmdRates | null) {
+type UseAmdRatesOptions = {
+  endpoint?: string;
+};
+
+export function useAmdRates(initialRates?: AmdRates | null, options?: UseAmdRatesOptions) {
   const hasInitialRates = isValidRates(initialRates);
   const [rates, setRates] = useState<AmdRates | null>(hasInitialRates ? initialRates : null);
   const [loading, setLoading] = useState(!hasInitialRates);
+  const endpoint = options?.endpoint ?? "/api/utils/exchange-rates";
 
   useEffect(() => {
     let active = true;
@@ -41,8 +46,8 @@ export function useAmdRates(initialRates?: AmdRates | null) {
       };
     }
 
-    setLoading(true);
-    getJson<AmdRates>("/api/utils/exchange-rates")
+    queueMicrotask(() => setLoading(true));
+    getJson<AmdRates>(endpoint)
       .then((data) => {
         if (!active) return;
         if (data && Number.isFinite(data.USD) && Number.isFinite(data.EUR)) {
@@ -62,7 +67,7 @@ export function useAmdRates(initialRates?: AmdRates | null) {
     return () => {
       active = false;
     };
-  }, [hasInitialRates]);
+  }, [endpoint, hasInitialRates]);
 
   return { rates, loading };
 }

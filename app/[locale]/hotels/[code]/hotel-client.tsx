@@ -10,7 +10,7 @@ import { postJson } from "@/lib/api-helpers";
 import { parseSearchParams } from "@/lib/search-query";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
-import { convertToAmd, useAmdRates } from "@/lib/use-amd-rates";
+import { convertToAmd, useAmdRates, type AmdRates } from "@/lib/use-amd-rates";
 import Image from "next/image";
 import ImageGallery from "./ImageGallery";
 import type {
@@ -184,6 +184,13 @@ type HotelClientProps = {
   initialRoomsError?: string | null;
   initialFallbackCoordinates?: { lat: number; lon: number } | null;
   initialAmdRates?: { USD: number; EUR: number } | null;
+  initialTransferRates?: { USD: number; EUR: number } | null;
+  initialTransferOptions?: AoryxTransferRate[] | null;
+  initialTransferError?: string | null;
+  initialExcursionOptions?: AoryxExcursionTicket[] | null;
+  initialExcursionError?: string | null;
+  initialExcursionFee?: number | null;
+  initialExcursionRates?: { USD: number; EUR: number } | null;
 };
 
 type IdramCheckoutResponse = {
@@ -517,6 +524,13 @@ export default function HotelClient({
   initialRoomsError = null,
   initialFallbackCoordinates = null,
   initialAmdRates,
+  initialTransferRates,
+  initialTransferOptions = null,
+  initialTransferError = null,
+  initialExcursionOptions = null,
+  initialExcursionError = null,
+  initialExcursionFee = null,
+  initialExcursionRates = null,
 }: HotelClientProps) {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -534,15 +548,26 @@ export default function HotelClient({
   const { data: session, status: authStatus } = useSession();
   const isSignedIn = Boolean(session?.user);
   const { rates: amdRates } = useAmdRates(initialAmdRates);
+  const { rates: transferRates } = useAmdRates(initialTransferRates, {
+    endpoint: "/api/utils/exchange-rates?scope=transfers",
+  });
+  const { rates: excursionRates } = useAmdRates(initialExcursionRates, {
+    endpoint: "/api/utils/exchange-rates?scope=excursions",
+  });
 
   const formatDisplayPrice = useCallback(
-    (amount: number | null | undefined, currency: string | null | undefined) => {
+    (
+      amount: number | null | undefined,
+      currency: string | null | undefined,
+      ratesOverride?: AmdRates | null
+    ) => {
       if (amount === null || amount === undefined) return null;
       const baseCurrency = currency ?? "USD";
-      const converted = amdRates ? convertToAmd(amount, baseCurrency, amdRates) : null;
+      const activeRates = ratesOverride === undefined ? amdRates : ratesOverride;
+      const converted = activeRates ? convertToAmd(amount, baseCurrency, activeRates) : null;
       const displayAmount = converted ?? amount;
       if (displayAmount === null) return null;
-      const displayCurrency = amdRates && converted !== null ? "AMD" : baseCurrency;
+      const displayCurrency = activeRates && converted !== null ? "AMD" : baseCurrency;
       return formatPrice(displayAmount, displayCurrency, intlLocale);
     },
     [amdRates, intlLocale]
@@ -575,9 +600,14 @@ export default function HotelClient({
   const [showExcursions, setShowExcursions] = useState(false);
   const [showInsurance, setShowInsurance] = useState(false);
   const [showFlights, setShowFlights] = useState(false);
-  const [transferOptions, setTransferOptions] = useState<AoryxTransferRate[]>([]);
+  const [transferOptions, setTransferOptions] = useState<AoryxTransferRate[]>(
+    initialTransferOptions ?? []
+  );
   const [transferLoading, setTransferLoading] = useState(false);
-  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<string | null>(initialTransferError);
+  const [transferLoaded, setTransferLoaded] = useState(
+    initialTransferOptions !== null || initialTransferError !== null
+  );
   const [selectedTransferId, setSelectedTransferId] = useState<string | null>(null);
   const [includeReturnTransfer, setIncludeReturnTransfer] = useState(false);
   const [transferFlightDetails, setTransferFlightDetails] = useState<
@@ -585,13 +615,18 @@ export default function HotelClient({
   >({});
   const [transferVehicleQuantity, setTransferVehicleQuantity] = useState<Record<string, number>>({});
   const [transferFieldErrors, setTransferFieldErrors] = useState<TransferFieldErrors>({});
-  const [excursionOptions, setExcursionOptions] = useState<AoryxExcursionTicket[]>([]);
+  const [excursionOptions, setExcursionOptions] = useState<AoryxExcursionTicket[]>(
+    initialExcursionOptions ?? []
+  );
   const [excursionLoading, setExcursionLoading] = useState(false);
-  const [excursionError, setExcursionError] = useState<string | null>(null);
+  const [excursionError, setExcursionError] = useState<string | null>(initialExcursionError);
+  const [excursionLoaded, setExcursionLoaded] = useState(
+    initialExcursionOptions !== null || initialExcursionError !== null
+  );
   const [excursionSelections, setExcursionSelections] = useState<
     Record<string, ExcursionSelectionState>
   >({});
-  const [excursionFee, setExcursionFee] = useState(0);
+  const [excursionFee, setExcursionFee] = useState(initialExcursionFee ?? 0);
   const [insuranceSelection, setInsuranceSelection] = useState<BookingInsuranceSelection | null>(
     null
   );
@@ -643,19 +678,21 @@ export default function HotelClient({
     setShowExcursions(false);
     setShowInsurance(false);
     setShowFlights(false);
-    setTransferOptions([]);
+    setTransferOptions(initialTransferOptions ?? []);
     setTransferLoading(false);
-    setTransferError(null);
+    setTransferError(initialTransferError ?? null);
+    setTransferLoaded(initialTransferOptions !== null || initialTransferError !== null);
     setSelectedTransferId(null);
     setIncludeReturnTransfer(false);
     setTransferFlightDetails({});
     setTransferVehicleQuantity({});
     setTransferFieldErrors({});
-    setExcursionOptions([]);
+    setExcursionOptions(initialExcursionOptions ?? []);
     setExcursionLoading(false);
-    setExcursionError(null);
+    setExcursionError(initialExcursionError ?? null);
+    setExcursionLoaded(initialExcursionOptions !== null || initialExcursionError !== null);
     setExcursionSelections({});
-    setExcursionFee(0);
+    setExcursionFee(typeof initialExcursionFee === "number" ? initialExcursionFee : 0);
     setInsuranceSelection(null);
     setFlightRequest({
       origin: "",
@@ -665,7 +702,15 @@ export default function HotelClient({
       cabinClass: "",
       notes: "",
     });
-  }, [initialRoomDetails, initialRoomsError]);
+  }, [
+    initialExcursionError,
+    initialExcursionFee,
+    initialExcursionOptions,
+    initialRoomDetails,
+    initialRoomsError,
+    initialTransferError,
+    initialTransferOptions,
+  ]);
 
   useEffect(() => {
     queueMicrotask(() => setAmenitiesExpanded(false));
@@ -925,14 +970,17 @@ export default function HotelClient({
     transferTotalPrice > 0
       ? formatDisplayPrice(
           transferTotalPrice,
-          selectedTransfer?.pricing?.currency ?? bookingCurrency
+          selectedTransfer?.pricing?.currency ?? bookingCurrency,
+          transferRates ?? null
         )
       : null;
+  const excursionRatesForDisplay = excursionRates ?? amdRates;
   const excursionsDisplayTotal =
     excursionsTotal > 0
       ? formatDisplayPrice(
           excursionsTotal,
-          excursionSelectionsPayload?.selections[0]?.currency ?? bookingCurrency
+          excursionSelectionsPayload?.selections[0]?.currency ?? bookingCurrency,
+          excursionRatesForDisplay
         )
       : null;
 
@@ -1002,10 +1050,12 @@ export default function HotelClient({
 
   useEffect(() => {
     if (!bookingOpen || !showTransfers) return;
+    if (transferLoaded) return;
     const destinationLabel = hotelInfo?.address?.cityName ?? "";
     if (!destinationCode && !destinationLabel) {
       setTransferError(t.hotel.addons.transfers.missingDestination);
       setTransferOptions([]);
+      setTransferLoaded(true);
       return;
     }
 
@@ -1022,11 +1072,13 @@ export default function HotelClient({
       .then((data) => {
         if (!active) return;
         setTransferOptions(Array.isArray(data.transfers) ? data.transfers : []);
+        setTransferLoaded(true);
       })
       .catch((error) => {
         if (!active) return;
         const message = error instanceof Error ? error.message : t.hotel.addons.transfers.loadFailed;
         setTransferError(message);
+        setTransferLoaded(true);
       })
       .finally(() => {
         if (active) setTransferLoading(false);
@@ -1042,11 +1094,13 @@ export default function HotelClient({
     parsed.payload?.checkInDate,
     showTransfers,
     t.hotel.addons.transfers,
+    transferLoaded,
     transferPaxCount,
   ]);
 
   useEffect(() => {
     if (!bookingOpen || !showExcursions) return;
+    if (excursionLoaded) return;
 
     let active = true;
     setExcursionLoading(true);
@@ -1061,11 +1115,13 @@ export default function HotelClient({
         if (typeof data.excursionFee === "number") {
           setExcursionFee(data.excursionFee);
         }
+        setExcursionLoaded(true);
       })
       .catch((error) => {
         if (!active) return;
         const message = error instanceof Error ? error.message : t.hotel.addons.excursions.loadFailed;
         setExcursionError(message);
+        setExcursionLoaded(true);
       })
       .finally(() => {
         if (active) setExcursionLoading(false);
@@ -1074,7 +1130,7 @@ export default function HotelClient({
     return () => {
       active = false;
     };
-  }, [bookingOpen, showExcursions, t.hotel.addons.excursions]);
+  }, [bookingOpen, excursionLoaded, showExcursions, t.hotel.addons.excursions]);
 
   useEffect(() => {
     if (showTransfers) return;
@@ -2210,7 +2266,7 @@ export default function HotelClient({
                     <div className="booking-addons-grid">
                       <button
                         type="button"
-                        className={`addon-card${showTransfers ? " active" : ""}`}
+                        className={`transfers addon-card${showTransfers ? " active" : ""}`}
                         onClick={() => setShowTransfers((prev) => !prev)}
                         aria-pressed={showTransfers}
                       >
@@ -2224,11 +2280,7 @@ export default function HotelClient({
                           </div>
                         </div>
                         <div className="addon-card-meta">
-                          {transferDisplayTotal ? (
-                            <strong>{transferDisplayTotal}</strong>
-                          ) : (
-                            <span>{t.hotel.addons.status.optional}</span>
-                          )}
+                          {transferDisplayTotal && <strong>{transferDisplayTotal}</strong>}
                           <span className="addon-card-action">
                             {showTransfers ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
                           </span>
@@ -2236,7 +2288,7 @@ export default function HotelClient({
                       </button>
                       <button
                         type="button"
-                        className={`addon-card${showExcursions ? " active" : ""}`}
+                        className={`excursions addon-card${showExcursions ? " active" : ""}`}
                         onClick={() => setShowExcursions((prev) => !prev)}
                         aria-pressed={showExcursions}
                       >
@@ -2250,11 +2302,7 @@ export default function HotelClient({
                           </div>
                         </div>
                         <div className="addon-card-meta">
-                          {excursionsDisplayTotal ? (
-                            <strong>{excursionsDisplayTotal}</strong>
-                          ) : (
-                            <span>{t.hotel.addons.status.optional}</span>
-                          )}
+                          {excursionsDisplayTotal && <strong>{excursionsDisplayTotal}</strong>}
                           <span className="addon-card-action">
                             {showExcursions ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
                           </span>
@@ -2262,7 +2310,7 @@ export default function HotelClient({
                       </button>
                       <button
                         type="button"
-                        className={`addon-card${showInsurance ? " active" : ""}`}
+                        className={`insurance addon-card${showInsurance ? " active" : ""}`}
                         onClick={() => setShowInsurance((prev) => !prev)}
                         aria-pressed={showInsurance}
                       >
@@ -2276,11 +2324,7 @@ export default function HotelClient({
                           </div>
                         </div>
                         <div className="addon-card-meta">
-                          {insuranceSelection?.planName ? (
-                            <strong>{insuranceSelection.planName}</strong>
-                          ) : (
-                            <span>{t.hotel.addons.status.optional}</span>
-                          )}
+                          {insuranceSelection?.planName && <strong>{insuranceSelection.planName}</strong>}
                           <span className="addon-card-action">
                             {showInsurance ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
                           </span>
@@ -2288,7 +2332,7 @@ export default function HotelClient({
                       </button>
                       <button
                         type="button"
-                        className={`addon-card${showFlights ? " active" : ""}`}
+                        className={`flights addon-card${showFlights ? " active" : ""}`}
                         onClick={() => setShowFlights((prev) => !prev)}
                         aria-pressed={showFlights}
                       >
@@ -2302,11 +2346,7 @@ export default function HotelClient({
                           </div>
                         </div>
                         <div className="addon-card-meta">
-                          {flightRequestPayload ? (
-                            <strong>{t.hotel.addons.status.requested}</strong>
-                          ) : (
-                            <span>{t.hotel.addons.status.optional}</span>
-                          )}
+                          {flightRequestPayload && <strong>{t.hotel.addons.status.requested}</strong>}
                           <span className="addon-card-action">
                             {showFlights ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
                           </span>
@@ -2396,7 +2436,10 @@ export default function HotelClient({
                                         <b>{transfer.destination?.name ?? transfer.destination?.locationCode}</b>
                                       </div>
                                       <div className="transfer-price">
-                                        <strong>{formatDisplayPrice(totalPrice, priceCurrency) ?? t.common.contact}</strong>
+                                        <strong>
+                                          {formatDisplayPrice(totalPrice, priceCurrency, transferRates ?? null) ??
+                                            t.common.contact}
+                                        </strong>
                                         <span>
                                           {includeReturnTransfer
                                             ? t.hotel.addons.transfers.returnTotal
@@ -2553,16 +2596,28 @@ export default function HotelClient({
                                     <div className="excursion-pricing">
                                       <span>
                                         {t.hotel.addons.excursions.adultPrice}:{" "}
-                                        {formatDisplayPrice(adultPrice, priceCurrency) ?? t.common.contact}
+                                        {formatDisplayPrice(
+                                          adultPrice,
+                                          priceCurrency,
+                                          excursionRatesForDisplay
+                                        ) ?? t.common.contact}
                                       </span>
                                       <span>
                                         {t.hotel.addons.excursions.childPrice}:{" "}
-                                        {formatDisplayPrice(childPrice, priceCurrency) ?? t.common.contact}
+                                        {formatDisplayPrice(
+                                          childPrice,
+                                          priceCurrency,
+                                          excursionRatesForDisplay
+                                        ) ?? t.common.contact}
                                       </span>
                                       {totalPrice > 0 && (
                                         <strong>
                                           {t.hotel.addons.excursions.totalLabel}:{" "}
-                                          {formatDisplayPrice(totalPrice, priceCurrency) ?? t.common.contact}
+                                          {formatDisplayPrice(
+                                            totalPrice,
+                                            priceCurrency,
+                                            excursionRatesForDisplay
+                                          ) ?? t.common.contact}
                                         </strong>
                                       )}
                                     </div>

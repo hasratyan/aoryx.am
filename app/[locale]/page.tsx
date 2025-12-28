@@ -1,4 +1,5 @@
 import HomeClient from "./home-client";
+import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 
 type PageProps = {
@@ -10,11 +11,13 @@ const resolveLocale = (value: string | undefined) =>
 
 export async function generateMetadata({ params }: PageProps) {
   const { locale } = await params;
-  const t = getTranslations(resolveLocale(locale));
-  return {
+  const resolvedLocale = resolveLocale(locale);
+  const t = getTranslations(resolvedLocale);
+  return buildLocalizedMetadata({
+    locale: resolvedLocale,
     title: t.hero.title,
     description: t.hero.subtitle,
-  };
+  });
 }
 
 export default function HomePage() {

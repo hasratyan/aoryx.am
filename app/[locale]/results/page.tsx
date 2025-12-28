@@ -7,6 +7,7 @@ import { getEffectiveAmdRates } from "@/lib/pricing";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recordUserSearch } from "@/lib/user-data";
+import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import type { AoryxSearchResult } from "@/types/aoryx";
 
@@ -35,10 +36,14 @@ type PageProps = {
 };
 
 export async function generateMetadata({ params }: { params: { locale: string } }) {
-  const t = getTranslations(resolveLocale(params.locale));
-  return {
+  const resolvedLocale = resolveLocale(params.locale);
+  const t = getTranslations(resolvedLocale);
+  return buildLocalizedMetadata({
+    locale: resolvedLocale,
     title: t.results.fallbackTitle,
-  };
+    description: t.hero.subtitle,
+    path: "/results",
+  });
 }
 
 export default async function ResultsPage({ searchParams }: PageProps) {

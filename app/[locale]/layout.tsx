@@ -1,19 +1,9 @@
 import * as React from "react";
-import { locales, Locale, getTranslations } from "@/lib/i18n";
+import { locales, Locale } from "@/lib/i18n";
 
 // Generate static params for all locales
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
-}
-
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  const t = getTranslations(locale as Locale);
-
-  return {
-    title: t.hero.title,
-    description: t.hero.subtitle,
-  };
 }
 
 type LayoutProps = {

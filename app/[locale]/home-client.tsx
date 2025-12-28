@@ -167,7 +167,7 @@ export default function HomeClient() {
               </div>
             </div>
             <div className="container">
-              <Image src="/images/icons/mobile-payment.png" alt={t.home.idram.alt} width={230} height={200} />
+              <Image src="/images/icons/beach-chair.png" alt={t.home.idram.alt} width={230} height={200} />
               <h2>{t.home.idram.title}</h2>
               <p>{t.home.idram.body}</p>
             </div>

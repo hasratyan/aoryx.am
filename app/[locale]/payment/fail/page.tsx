@@ -2,23 +2,30 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import { getDb } from "@/lib/db";
 import { hotelInfo as getHotelInfo } from "@/lib/aoryx-client";
 import { calculateBookingTotal } from "@/lib/booking-total";
 
-const resolveLocale = async () => {
+const resolveLocaleFromParam = (value: string | undefined) =>
+  locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+
+const resolveLocaleFromCookie = async () => {
   const cookieStore = await cookies();
   const cookieLocale = cookieStore.get("megatours-locale")?.value;
   return locales.includes(cookieLocale as Locale) ? (cookieLocale as Locale) : defaultLocale;
 };
 
-export async function generateMetadata() {
-  const locale = await resolveLocale();
-  const t = getTranslations(locale);
-  return {
+export async function generateMetadata({ params }: { params: { locale: string } }) {
+  const resolvedLocale = resolveLocaleFromParam(params.locale);
+  const t = getTranslations(resolvedLocale);
+  return buildLocalizedMetadata({
+    locale: resolvedLocale,
     title: t.payment.failure.title,
-  };
+    description: t.payment.failure.body,
+    path: "/payment/fail",
+  });
 }
 
 const formatDate = (dateStr: string | null | undefined, locale: string) => {
@@ -41,7 +48,7 @@ export default async function PaymentFailPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { EDP_BILL_NO } = await searchParams;
-  const locale = await resolveLocale();
+  const locale = await resolveLocaleFromCookie();
   const t = getTranslations(locale);
   const session = await getServerSession(authOptions);
 

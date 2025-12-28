@@ -174,6 +174,7 @@ type Props = {
   initialDateRange?: { startDate: Date; endDate: Date };
   initialRooms?: RoomConfig[];
   showRoomCount?: boolean;
+  isSearchPending?: boolean;
   onSubmitSearch?: (
     payload: AoryxSearchParams,
     params: URLSearchParams
@@ -188,6 +189,7 @@ export default function SearchForm({
   initialDateRange,
   initialRooms,
   showRoomCount = false,
+  isSearchPending = false,
   onSubmitSearch,
 }: Props) {
   const defaults = useMemo(() => buildDefaultDates(), []);
@@ -266,6 +268,7 @@ export default function SearchForm({
     return [{ adults: 2, children: 0, childAges: [] }];
   });
   const [searchError, setSearchError] = useState<string | null>(null);
+  const isFormDisabled = isSubmitting || isSearchPending;
 
   // Load destinations from API on mount
   useEffect(() => {
@@ -520,6 +523,7 @@ export default function SearchForm({
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (isFormDisabled) return;
       setIsSubmitting(true);
       setSearchError(null);
 
@@ -578,7 +582,16 @@ export default function SearchForm({
         setIsSubmitting(false);
       }
     },
-    [selectedLocation, dateRange.startDate, dateRange.endDate, rooms, router, onSubmitSearch, appLocale]
+    [
+      selectedLocation,
+      dateRange.startDate,
+      dateRange.endDate,
+      rooms,
+      router,
+      onSubmitSearch,
+      appLocale,
+      isFormDisabled,
+    ]
   );
 
   useEffect(() => {
@@ -607,6 +620,12 @@ export default function SearchForm({
       queueMicrotask(() => setShowChildAges(false));
     }
   }, [rooms]);
+
+  useEffect(() => {
+    if (!isFormDisabled) return;
+    setShowDatePicker(false);
+    setShowChildAges(false);
+  }, [isFormDisabled]);
 
   const combinedOptions = useMemo(() => {
     const merged = [...destinations, ...hotels];
@@ -638,6 +657,7 @@ export default function SearchForm({
             isClearable
             isSearchable
             isLoading={destinationsLoading || hotelsLoading}
+            isDisabled={isFormDisabled}
             noOptionsMessage={() =>
               destinationsLoading || hotelsLoading
                 ? copy.loadingDestinations
@@ -701,6 +721,7 @@ export default function SearchForm({
             type="button"
             className="date-picker"
             onClick={() => setShowDatePicker((prev) => !prev)}
+            disabled={isFormDisabled}
           >
             <span className="material-symbols-rounded">
               date_range
@@ -717,7 +738,7 @@ export default function SearchForm({
                 : copy.datePlaceholder}
             </span>
           </button>
-          {showDatePicker && (
+          {showDatePicker && !isFormDisabled && (
             <div>
               <DateRange
                 ranges={[dateRange]}
@@ -757,6 +778,7 @@ export default function SearchForm({
               min={1}
               max={6}
               value={rooms[0].adults}
+              disabled={isFormDisabled}
               onChange={(e) =>
                 updateGuests("adults", parseInt(e.target.value) || 1)
               }
@@ -771,6 +793,7 @@ export default function SearchForm({
               min={0}
               max={4}
               value={rooms[0].children}
+              disabled={isFormDisabled}
               onChange={(e) => {
                 const value = parseInt(e.target.value) || 0;
                 updateGuests("children", value);
@@ -794,6 +817,7 @@ export default function SearchForm({
                   min={0}
                   max={17}
                   value={age}
+                  disabled={isFormDisabled}
                   onChange={(e) =>
                     updateChildAge(childIndex, parseInt(e.target.value) || 0)
                   }
@@ -815,6 +839,7 @@ export default function SearchForm({
                   min={1}
                   max={4}
                   value={rooms.length}
+                  disabled={isFormDisabled}
                   onChange={(e) => updateRoomCount(parseInt(e.target.value) || 1)}
                 />
               </label>
@@ -825,12 +850,12 @@ export default function SearchForm({
       {/* Submit */}
       <button
         type="submit"
-        disabled={isSubmitting}
-        aria-label={isSubmitting ? copy.submitLoading : copy.submitIdle}
-        title={isSubmitting ? copy.submitLoading : copy.submitIdle}
+        disabled={isFormDisabled}
+        aria-label={isFormDisabled ? copy.submitLoading : copy.submitIdle}
+        title={isFormDisabled ? copy.submitLoading : copy.submitIdle}
       >
         <span className="material-symbols-rounded">search</span>
-        <b>{isSubmitting ? copy.submitLoading : copy.submitIdle}</b>
+        <b>{isFormDisabled ? copy.submitLoading : copy.submitIdle}</b>
       </button>
 
       {/* Error Message */}
