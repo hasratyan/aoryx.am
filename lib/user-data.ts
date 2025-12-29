@@ -7,6 +7,8 @@ type UserIdInfo = {
   userIdString: string;
 };
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const normalizeUserId = (userId: string): UserIdInfo => {
   const normalized = userId.trim();
   const objectId = ObjectId.isValid(normalized) ? new ObjectId(normalized) : null;
@@ -28,14 +30,25 @@ export async function upsertUserProfile(input: {
   const db = await getDb();
   const now = new Date();
   const ids = normalizeUserId(userId);
+  const normalizedEmail = email?.trim().toLowerCase() ?? null;
+  const filter = normalizedEmail
+    ? {
+        $or: [
+          { userIdString: ids.userIdString },
+          { emailLower: normalizedEmail },
+          { email: { $regex: `^${escapeRegex(normalizedEmail)}$`, $options: "i" } },
+        ],
+      }
+    : { userIdString: ids.userIdString };
 
   await db.collection("user_profiles").updateOne(
-    { userIdString: ids.userIdString },
+    filter,
     {
       $set: {
         ...ids,
         name: name ?? null,
         email: email ?? null,
+        emailLower: normalizedEmail,
         image: image ?? null,
         provider: provider ?? null,
         providerAccountId: providerAccountId ?? null,

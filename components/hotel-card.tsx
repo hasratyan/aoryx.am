@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { Hotel } from "@/lib/hotels";
+import type { FeaturedHotelCard } from "@/lib/featured-hotels";
 
 export type HotelCardCopy = {
   from: string;
@@ -9,7 +9,7 @@ export type HotelCardCopy = {
 };
 
 type Props = {
-  hotel: Hotel;
+  hotel: FeaturedHotelCard;
   copy: HotelCardCopy;
 };
 
@@ -21,11 +21,13 @@ type Props = {
 //   }).format(amount);
 
 export default function HotelCard({ hotel, copy }: Props) {
+  const hasOldPrice = typeof hotel.oldPrice === "number" && hotel.oldPrice > 0;
+
   return (
     <div className="hotel-card">
       <div className="chip-row">
         {hotel.badge && <span className="badge">{hotel.badge}</span>}
-        <span className="availability">{hotel.availability}</span>
+        {hotel.availability && <span className="availability">{hotel.availability}</span>}
       </div>
       <div className="image">
         <Image src={hotel.image} alt={hotel.name} fill sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw" />
@@ -34,22 +36,30 @@ export default function HotelCard({ hotel, copy }: Props) {
         <div className="header">
           <div>
             <h3>{hotel.name}</h3>
-            <p className="location"><span className="material-symbols-rounded">location_on</span>{hotel.location}</p>
+            {hotel.location && (
+              <p className="location">
+                <span className="material-symbols-rounded">location_on</span>
+                {hotel.location}
+              </p>
+            )}
           </div>
           <span className="rating">{hotel.rating.toFixed(1)} ★</span>
         </div>
-        <div className="perks">
-          {hotel.perks.map((perk) => (
-            <span key={perk}>{perk}</span>
-          ))}
-        </div>
+        {hotel.perks.length > 0 && (
+          <div className="perks">
+            {hotel.perks.map((perk) => (
+              <span key={perk}>{perk}</span>
+            ))}
+          </div>
+        )}
         <div className="footer">
           <div>
             <p className="price">
-              {copy.from} {hotel.currency}{hotel.priceFrom} <span className="old-price">$120</span> <small>{copy.perNight}</small>
-            </p>
-            <p className="reviews">
-              {hotel.reviews.toLocaleString()} {copy.reviews}
+              {copy.from} {hotel.currency}{hotel.priceFrom}{" "}
+              {hasOldPrice && (
+                <span className="old-price">{hotel.currency}{hotel.oldPrice}</span>
+              )}{" "}
+              <small>{copy.perNight}</small>
             </p>
           </div>
           <button type="button">

@@ -224,6 +224,173 @@ export type Translation = {
       body: string;
     };
   };
+  admin: {
+    title: string;
+    subtitle: string;
+    dashboard: {
+      title: string;
+      subtitle: string;
+      navTitle: string;
+      navSubtitle: string;
+      open: string;
+      cards: {
+        bookings: string;
+        featured: string;
+        users: string;
+        searches: string;
+        favorites: string;
+      };
+    };
+    featured: {
+      title: string;
+      subtitle: string;
+      searchTitle: string;
+      searchSubtitle: string;
+      searchLabel: string;
+      searchPlaceholder: string;
+      loading: string;
+      noResults: string;
+      alreadySelected: string;
+      formTitle: string;
+      formSubtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+      fields: {
+        priceFrom: string;
+        oldPrice: string;
+        badge: string;
+        availability: string;
+        amenities: string;
+        selected: string;
+      };
+      previewLabel: string;
+      listTitle: string;
+      listSubtitle: string;
+      listEmptyTitle: string;
+      listEmptyBody: string;
+      actions: {
+        save: string;
+        saving: string;
+        edit: string;
+        remove: string;
+        removing: string;
+        clear: string;
+      };
+      validation: {
+        selectHotel: string;
+        priceFrom: string;
+        oldPrice: string;
+        amenities: string;
+        amenitiesLimit: string;
+        translations: string;
+      };
+      errors: {
+        saveFailed: string;
+        removeFailed: string;
+      };
+    };
+    users: {
+      title: string;
+      subtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+      stats: {
+        total: string;
+      };
+      columns: {
+        user: string;
+        email: string;
+        lastLogin: string;
+        lastSearch: string;
+        lastBooking: string;
+        createdAt: string;
+      };
+    };
+    searches: {
+      title: string;
+      subtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+      columns: {
+        user: string;
+        destination: string;
+        hotel: string;
+        dates: string;
+        rooms: string;
+        guests: string;
+        createdAt: string;
+      };
+    };
+    favorites: {
+      title: string;
+      subtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+      columns: {
+        user: string;
+        hotel: string;
+        location: string;
+        rating: string;
+        savedAt: string;
+      };
+    };
+    bookings: {
+      title: string;
+      subtitle: string;
+      emptyTitle: string;
+      emptyBody: string;
+    };
+    filters: {
+      searchPlaceholder: string;
+      statusLabel: string;
+      sourceLabel: string;
+      sortLabel: string;
+      reset: string;
+      all: string;
+      sortOptions: {
+        newest: string;
+        oldest: string;
+        totalHigh: string;
+        totalLow: string;
+      };
+    };
+    columns: {
+      bookingId: string;
+      hotel: string;
+      user: string;
+      dates: string;
+      guests: string;
+      total: string;
+      status: string;
+      createdAt: string;
+      source: string;
+      actions: string;
+    };
+    stats: {
+      totalBookings: string;
+      totalGuests: string;
+      confirmed: string;
+      pending: string;
+      failed: string;
+      unknown: string;
+    };
+    access: {
+      signInTitle: string;
+      signInBody: string;
+      signInCta: string;
+      deniedTitle: string;
+      deniedBody: string;
+      configTitle: string;
+      configBody: string;
+    };
+    actions: {
+      details: string;
+    };
+    details: {
+      payload: string;
+      booking: string;
+    };
+  };
   policies: {
     refund: {
       title: string;
@@ -906,12 +1073,179 @@ const translations: Record<Locale, Translation> = {
           },
         },
       },
-      errors: {
-        title: "Տվյալները բեռնել չհաջողվեց",
-        body: "Խնդրում ենք կրկին փորձել մի փոքր ուշ։",
+    errors: {
+      title: "Տվյալները բեռնել չհաջողվեց",
+      body: "Խնդրում ենք կրկին փորձել մի փոքր ուշ։",
+    },
+  },
+  admin: {
+    title: "Ադմին վահանակ",
+    subtitle: "Վերահսկեք բոլոր ամրագրումները և գործողությունները մեկ տեղից։",
+    dashboard: {
+      title: "Ադմին կառավարման վահանակ",
+      subtitle: "Արագ անցում դեպի բոլոր ադմին բաժինները։",
+      navTitle: "Բաժիններ",
+      navSubtitle: "Ընտրեք կառավարման բաժինը՝ շարունակելու համար։",
+      open: "Բացել",
+      cards: {
+        bookings: "Դիտեք և վերահսկեք բոլոր ամրագրումները։",
+        featured: "Կազմեք գլխավոր էջի հյուրանոցների շարքը։",
+        users: "Դիտեք օգտատերերի տվյալները և ակտիվությունը։",
+        searches: "Վերահսկեք օգտատերերի որոնումները։",
+        favorites: "Դիտեք պահպանված հյուրանոցները։",
       },
     },
-    results: {
+    featured: {
+      title: "Ընտրված հյուրանոցներ",
+      subtitle: "Կազմակերպեք գլխավոր էջի հյուրանոցների շարքակազմը։",
+      searchTitle: "Որոնել Aoryx հյուրանոցներ",
+      searchSubtitle: "Ընտրեք 4+ վարկանիշով հյուրանոց և լրացրեք քարտի տվյալները։",
+      searchLabel: "Գտնել հյուրանոց",
+      searchPlaceholder: "Որոնել ըստ անվան կամ ուղղության",
+      loading: "Բեռնվում են հյուրանոցները...",
+      noResults: "Հյուրանոցներ չեն գտնվել",
+      alreadySelected: "Արդեն ընտրված է",
+      formTitle: "Քարտի տվյալներ",
+      formSubtitle: "Ավելացրեք գներ և տեղայնացված պիտակ/առկայություն։",
+      emptyTitle: "Ընտրեք հյուրանոց",
+      emptyBody: "Ընտրեք հյուրանոցը որոնման արդյունքներից։",
+      fields: {
+        priceFrom: "Գին",
+        oldPrice: "Հին գին",
+        badge: "Պիտակի տեքստ",
+        availability: "Առկայություն",
+        amenities: "Հարմարություններ",
+        selected: "ընտրված",
+      },
+      previewLabel: "Նախադիտում",
+      listTitle: "Ընտրված հյուրանոցների ցանկ",
+      listSubtitle: "Կառավարեք գլխավոր էջում ցուցադրվող հյուրանոցները։",
+      listEmptyTitle: "Ընտրված հյուրանոցներ դեռ չկան",
+      listEmptyBody: "Ավելացրեք առաջին հյուրանոցը որոնման ցանկից։",
+      actions: {
+        save: "Պահպանել",
+        saving: "Պահպանվում է...",
+        edit: "Խմբագրել",
+        remove: "Հեռացնել",
+        removing: "Հեռացվում է...",
+        clear: "Մաքրել",
+      },
+      validation: {
+        selectHotel: "Նախ ընտրեք հյուրանոցը։",
+        priceFrom: "Նշեք գին՝ 0-ից բարձր։",
+        oldPrice: "Նշեք հին գին՝ 0-ից բարձր։",
+        amenities: "Ընտրեք ուղիղ 3 հարմարություն։",
+        amenitiesLimit: "Կարող եք ընտրել մինչև 3 հարմարություն։",
+        translations: "Լրացրեք պիտակը և առկայությունը բոլոր լեզուներով։",
+      },
+      errors: {
+        saveFailed: "Չհաջողվեց պահպանել հյուրանոցը։",
+        removeFailed: "Չհաջողվեց հեռացնել հյուրանոցը։",
+      },
+    },
+    users: {
+      title: "Օգտատերեր",
+      subtitle: "Վերջին օգտատերերը և նրանց ակտիվությունը։",
+      emptyTitle: "Օգտատերեր չեն գտնվել",
+      emptyBody: "Տվյալներ դեռ չկան։",
+      stats: {
+        total: "Ընդհանուր օգտատերեր",
+      },
+      columns: {
+        user: "Օգտատեր",
+        email: "Էլ. հասցե",
+        lastLogin: "Վերջին մուտք",
+        lastSearch: "Վերջին որոնում",
+        lastBooking: "Վերջին ամրագրում",
+        createdAt: "Ստեղծվել է",
+      },
+    },
+    searches: {
+      title: "Որոնումներ",
+      subtitle: "Վերջին որոնումների պատմություն։",
+      emptyTitle: "Որոնումներ չեն գտնվել",
+      emptyBody: "Տվյալներ դեռ չկան։",
+      columns: {
+        user: "Օգտատեր",
+        destination: "Ուղղություն",
+        hotel: "Հյուրանոց",
+        dates: "Ամսաթվեր",
+        rooms: "Սենյակներ",
+        guests: "Հյուրեր",
+        createdAt: "Ստեղծվել է",
+      },
+    },
+    favorites: {
+      title: "Պահպանված հյուրանոցներ",
+      subtitle: "Օգտատերերի պահված հյուրանոցները։",
+      emptyTitle: "Պահպանված հյուրանոցներ չկան",
+      emptyBody: "Տվյալներ դեռ չկան։",
+      columns: {
+        user: "Օգտատեր",
+        hotel: "Հյուրանոց",
+        location: "Լոկացիա",
+        rating: "Վարկանիշ",
+        savedAt: "Պահպանված է",
+      },
+    },
+    bookings: {
+      title: "Բոլոր ամրագրումները",
+      subtitle: "Ֆիլտրեք ըստ հյուրանոցի, օգտատիրոջ կամ կարգավիճակի։",
+      emptyTitle: "Ամրագրումներ չեն գտնվել",
+      emptyBody: "Փորձեք փոխել ֆիլտրերը կամ որոնումը։",
+    },
+    filters: {
+      searchPlaceholder: "Որոնել հյուրանոց, ամրագրման ID, էլ. հասցե...",
+      statusLabel: "Կարգավիճակ",
+      sourceLabel: "Աղբյուր",
+      sortLabel: "Դասավորել",
+      reset: "Մաքրել",
+      all: "Բոլորը",
+      sortOptions: {
+        newest: "Նորից հին",
+        oldest: "Հնից նոր",
+        totalHigh: "Գինը բարձրից ցածր",
+        totalLow: "Գինը ցածրից բարձր",
+      },
+    },
+    columns: {
+      bookingId: "Ամրագրման ID",
+      hotel: "Հյուրանոց",
+      user: "Օգտատեր",
+      dates: "Ամսաթվեր",
+      guests: "Հյուրեր",
+      total: "Ընդհանուր",
+      status: "Կարգավիճակ",
+      createdAt: "Ստեղծվել է",
+      source: "Աղբյուր",
+      actions: "Մանրամասներ",
+    },
+    stats: {
+      totalBookings: "Ընդհանուր ամրագրումներ",
+      totalGuests: "Ընդհանուր հյուրեր",
+      confirmed: "Հաստատված",
+      pending: "Մշակման մեջ",
+      failed: "Չհաջողված",
+      unknown: "Անհայտ",
+    },
+    access: {
+      signInTitle: "Մուտք գործեք՝ ադմին վահանակը բացելու համար",
+      signInBody: "Ադմինի մուտքը սահմանափակ է։ Խնդրում ենք մուտք գործել՝ շարունակելու համար։",
+      signInCta: "Մուտք գործել Google-ով",
+      deniedTitle: "Մուտքը սահմանափակ է",
+      deniedBody: "Այս էջը հասանելի է միայն ադմին օգտատերերին։",
+      configTitle: "Ադմինի մուտքը կազմաձևված չէ",
+      configBody: "Սահմանեք ADMIN_EMAILS (կամ ADMIN_USER_IDS/ADMIN_EMAIL_DOMAINS) փոփոխականը։",
+    },
+    actions: {
+      details: "Մանրամասներ",
+    },
+    details: {
+      payload: "Պատվերի տվյալներ",
+      booking: "Ամրագրման արդյունք",
+    },
+  },
+  results: {
       filters: {
         button: "Ֆիլտրեր",
         openLabel: "Բացել ֆիլտրերը",
@@ -1622,12 +1956,179 @@ const translations: Record<Locale, Translation> = {
           },
         },
       },
-      errors: {
-        title: "Unable to Load Your Data",
-        body: "We’re experiencing a temporary issue. Please try again in a few minutes.",
+    errors: {
+      title: "Unable to Load Your Data",
+      body: "We’re experiencing a temporary issue. Please try again in a few minutes.",
+    },
+  },
+  admin: {
+    title: "Admin Console",
+    subtitle: "Monitor every booking and activity in one place.",
+    dashboard: {
+      title: "Admin Dashboard",
+      subtitle: "Jump into every admin area in one click.",
+      navTitle: "Management Areas",
+      navSubtitle: "Choose the section you want to manage.",
+      open: "Open",
+      cards: {
+        bookings: "Review and manage every booking.",
+        featured: "Curate the featured hotels carousel.",
+        users: "See user profiles and recent activity.",
+        searches: "Monitor recent searches across the site.",
+        favorites: "Review saved hotels by users.",
       },
     },
-    results: {
+    featured: {
+      title: "Featured Hotels",
+      subtitle: "Curate the hotel carousel on the home page.",
+      searchTitle: "Search Aoryx hotels",
+      searchSubtitle: "Pick a 4+ rated hotel and configure its card details.",
+      searchLabel: "Find a hotel",
+      searchPlaceholder: "Search by hotel name or destination",
+      loading: "Loading hotels...",
+      noResults: "No hotels found",
+      alreadySelected: "Already featured",
+      formTitle: "Card details",
+      formSubtitle: "Add pricing and localized badge/availability.",
+      emptyTitle: "Select a hotel to start",
+      emptyBody: "Pick a hotel from the search results to edit its card.",
+      fields: {
+        priceFrom: "Rate",
+        oldPrice: "Old price",
+        badge: "Badge text",
+        availability: "Availability",
+        amenities: "Amenities",
+        selected: "selected",
+      },
+      previewLabel: "Live preview",
+      listTitle: "Featured hotels list",
+      listSubtitle: "Manage hotels shown in the home marquee.",
+      listEmptyTitle: "No featured hotels yet",
+      listEmptyBody: "Add your first hotel from the search list.",
+      actions: {
+        save: "Save hotel",
+        saving: "Saving...",
+        edit: "Edit",
+        remove: "Remove",
+        removing: "Removing...",
+        clear: "Clear",
+      },
+      validation: {
+        selectHotel: "Select a hotel first.",
+        priceFrom: "Enter a rate greater than 0.",
+        oldPrice: "Enter an old price greater than 0.",
+        amenities: "Select exactly 3 amenities.",
+        amenitiesLimit: "You can select up to 3 amenities.",
+        translations: "Provide badge and availability for all languages.",
+      },
+      errors: {
+        saveFailed: "Failed to save hotel.",
+        removeFailed: "Failed to remove hotel.",
+      },
+    },
+    users: {
+      title: "Users",
+      subtitle: "Latest user profiles and activity snapshots.",
+      emptyTitle: "No users found",
+      emptyBody: "There are no user records yet.",
+      stats: {
+        total: "Total users",
+      },
+      columns: {
+        user: "User",
+        email: "Email",
+        lastLogin: "Last login",
+        lastSearch: "Last search",
+        lastBooking: "Last booking",
+        createdAt: "Created",
+      },
+    },
+    searches: {
+      title: "Searches",
+      subtitle: "Recent search activity across the site.",
+      emptyTitle: "No searches found",
+      emptyBody: "There are no search records yet.",
+      columns: {
+        user: "User",
+        destination: "Destination",
+        hotel: "Hotel",
+        dates: "Dates",
+        rooms: "Rooms",
+        guests: "Guests",
+        createdAt: "Created",
+      },
+    },
+    favorites: {
+      title: "Favorites",
+      subtitle: "Saved hotels by users.",
+      emptyTitle: "No favorites found",
+      emptyBody: "There are no saved hotels yet.",
+      columns: {
+        user: "User",
+        hotel: "Hotel",
+        location: "Location",
+        rating: "Rating",
+        savedAt: "Saved on",
+      },
+    },
+    bookings: {
+      title: "All bookings",
+      subtitle: "Filter by hotel, user, status, or source.",
+      emptyTitle: "No bookings found",
+      emptyBody: "Try adjusting your filters or search terms.",
+    },
+    filters: {
+      searchPlaceholder: "Search hotel, booking ID, email...",
+      statusLabel: "Status",
+      sourceLabel: "Source",
+      sortLabel: "Sort by",
+      reset: "Reset",
+      all: "All",
+      sortOptions: {
+        newest: "Newest first",
+        oldest: "Oldest first",
+        totalHigh: "Total: High to Low",
+        totalLow: "Total: Low to High",
+      },
+    },
+    columns: {
+      bookingId: "Booking ID",
+      hotel: "Hotel",
+      user: "User",
+      dates: "Dates",
+      guests: "Guests",
+      total: "Total",
+      status: "Status",
+      createdAt: "Created",
+      source: "Source",
+      actions: "Details",
+    },
+    stats: {
+      totalBookings: "Total bookings",
+      totalGuests: "Total guests",
+      confirmed: "Confirmed",
+      pending: "Pending",
+      failed: "Failed",
+      unknown: "Unknown",
+    },
+    access: {
+      signInTitle: "Sign in to access the admin panel",
+      signInBody: "Admin access is restricted. Please sign in to continue.",
+      signInCta: "Sign in with Google",
+      deniedTitle: "Access restricted",
+      deniedBody: "This page is available to admin users only.",
+      configTitle: "Admin access not configured",
+      configBody: "Set ADMIN_EMAILS (or ADMIN_USER_IDS/ADMIN_EMAIL_DOMAINS) to enable access.",
+    },
+    actions: {
+      details: "Details",
+    },
+    details: {
+      payload: "Payload",
+      booking: "Booking result",
+    },
+  },
+  results: {
       filters: {
         button: "Filters",
         openLabel: "Open filters",
@@ -2334,12 +2835,179 @@ const translations: Record<Locale, Translation> = {
           },
         },
       },
-      errors: {
-        title: "Не удалось загрузить данные",
-        body: "Пожалуйста, попробуйте позже.",
+    errors: {
+      title: "Не удалось загрузить данные",
+      body: "Пожалуйста, попробуйте позже.",
+    },
+  },
+  admin: {
+    title: "Админ-панель",
+    subtitle: "Все бронирования и действия в одном месте.",
+    dashboard: {
+      title: "Панель управления",
+      subtitle: "Быстрый доступ ко всем разделам админки.",
+      navTitle: "Разделы управления",
+      navSubtitle: "Выберите нужный раздел.",
+      open: "Открыть",
+      cards: {
+        bookings: "Просматривайте и управляйте бронированиями.",
+        featured: "Настраивайте подборку отелей на главной.",
+        users: "Профили пользователей и их активность.",
+        searches: "Отслеживайте последние поиски.",
+        favorites: "Сохраненные отели пользователей.",
       },
     },
-    results: {
+    featured: {
+      title: "Избранные отели",
+      subtitle: "Настройте карусель отелей на главной странице.",
+      searchTitle: "Поиск отелей Aoryx",
+      searchSubtitle: "Выберите отель с рейтингом 4+ и заполните данные карточки.",
+      searchLabel: "Найти отель",
+      searchPlaceholder: "Поиск по названию или направлению",
+      loading: "Загрузка отелей...",
+      noResults: "Отели не найдены",
+      alreadySelected: "Уже добавлен",
+      formTitle: "Данные карточки",
+      formSubtitle: "Добавьте цену и локализованные бейдж/наличие.",
+      emptyTitle: "Выберите отель",
+      emptyBody: "Выберите отель из результатов поиска.",
+      fields: {
+        priceFrom: "Цена",
+        oldPrice: "Старая цена",
+        badge: "Текст бейджа",
+        availability: "Наличие",
+        amenities: "Удобства",
+        selected: "выбрано",
+      },
+      previewLabel: "Предпросмотр",
+      listTitle: "Список избранных отелей",
+      listSubtitle: "Управляйте отелями на главной странице.",
+      listEmptyTitle: "Избранных отелей пока нет",
+      listEmptyBody: "Добавьте первый отель из списка поиска.",
+      actions: {
+        save: "Сохранить",
+        saving: "Сохранение...",
+        edit: "Редактировать",
+        remove: "Удалить",
+        removing: "Удаление...",
+        clear: "Очистить",
+      },
+      validation: {
+        selectHotel: "Сначала выберите отель.",
+        priceFrom: "Введите цену больше 0.",
+        oldPrice: "Введите старую цену больше 0.",
+        amenities: "Выберите ровно 3 удобства.",
+        amenitiesLimit: "Можно выбрать не более 3 удобств.",
+        translations: "Заполните бейдж и наличие для всех языков.",
+      },
+      errors: {
+        saveFailed: "Не удалось сохранить отель.",
+        removeFailed: "Не удалось удалить отель.",
+      },
+    },
+    users: {
+      title: "Пользователи",
+      subtitle: "Последние пользователи и их активность.",
+      emptyTitle: "Пользователи не найдены",
+      emptyBody: "Пока нет записей пользователей.",
+      stats: {
+        total: "Всего пользователей",
+      },
+      columns: {
+        user: "Пользователь",
+        email: "Email",
+        lastLogin: "Последний вход",
+        lastSearch: "Последний поиск",
+        lastBooking: "Последнее бронирование",
+        createdAt: "Создано",
+      },
+    },
+    searches: {
+      title: "Поиски",
+      subtitle: "Последняя поисковая активность.",
+      emptyTitle: "Поиски не найдены",
+      emptyBody: "Пока нет записей поиска.",
+      columns: {
+        user: "Пользователь",
+        destination: "Направление",
+        hotel: "Отель",
+        dates: "Даты",
+        rooms: "Номера",
+        guests: "Гости",
+        createdAt: "Создано",
+      },
+    },
+    favorites: {
+      title: "Избранные отели",
+      subtitle: "Сохраненные отели пользователей.",
+      emptyTitle: "Избранных отелей нет",
+      emptyBody: "Пока нет сохраненных отелей.",
+      columns: {
+        user: "Пользователь",
+        hotel: "Отель",
+        location: "Локация",
+        rating: "Рейтинг",
+        savedAt: "Сохранено",
+      },
+    },
+    bookings: {
+      title: "Все бронирования",
+      subtitle: "Фильтруйте по отелю, пользователю, статусу или источнику.",
+      emptyTitle: "Бронирования не найдены",
+      emptyBody: "Попробуйте изменить фильтры или поисковый запрос.",
+    },
+    filters: {
+      searchPlaceholder: "Поиск отеля, ID бронирования, e-mail...",
+      statusLabel: "Статус",
+      sourceLabel: "Источник",
+      sortLabel: "Сортировка",
+      reset: "Сбросить",
+      all: "Все",
+      sortOptions: {
+        newest: "Сначала новые",
+        oldest: "Сначала старые",
+        totalHigh: "Сумма: по убыванию",
+        totalLow: "Сумма: по возрастанию",
+      },
+    },
+    columns: {
+      bookingId: "ID бронирования",
+      hotel: "Отель",
+      user: "Пользователь",
+      dates: "Даты",
+      guests: "Гости",
+      total: "Итого",
+      status: "Статус",
+      createdAt: "Создано",
+      source: "Источник",
+      actions: "Детали",
+    },
+    stats: {
+      totalBookings: "Всего бронирований",
+      totalGuests: "Всего гостей",
+      confirmed: "Подтверждено",
+      pending: "В обработке",
+      failed: "Ошибка",
+      unknown: "Неизвестно",
+    },
+    access: {
+      signInTitle: "Войдите, чтобы открыть админ-панель",
+      signInBody: "Доступ только для администраторов. Войдите, чтобы продолжить.",
+      signInCta: "Войти через Google",
+      deniedTitle: "Доступ ограничен",
+      deniedBody: "Эта страница доступна только администраторам.",
+      configTitle: "Доступ администратора не настроен",
+      configBody: "Укажите ADMIN_EMAILS (или ADMIN_USER_IDS/ADMIN_EMAIL_DOMAINS), чтобы включить доступ.",
+    },
+    actions: {
+      details: "Детали",
+    },
+    details: {
+      payload: "Данные запроса",
+      booking: "Результат бронирования",
+    },
+  },
+  results: {
       filters: {
         button: "Фильтры",
         openLabel: "Открыть фильтры",

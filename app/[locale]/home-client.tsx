@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import HotelCard from "@/components/hotel-card";
@@ -8,11 +9,31 @@ import CurvedLoop from "@/components/CurvedLoop";
 import ShinyText from "@/components/ShinyText";
 import { Marquee } from "@/components/ui/marquee";
 import { useLanguage } from "@/components/language-provider";
-import { hotels } from "@/lib/hotels";
 import PartnerCarousel from "@/components/partner-carousel";
+import type { FeaturedHotelCard } from "@/lib/featured-hotels";
 
-export default function HomeClient() {
+type HomeClientProps = {
+  featuredHotels: FeaturedHotelCard[];
+};
+
+export default function HomeClient({ featuredHotels }: HomeClientProps) {
   const { t } = useLanguage();
+  const [firstRow, secondRow] = useMemo(() => {
+    const uniqueHotels = new Map<string, FeaturedHotelCard>();
+    featuredHotels.forEach((hotel) => {
+      if (!uniqueHotels.has(hotel.hotelCode)) {
+        uniqueHotels.set(hotel.hotelCode, hotel);
+      }
+    });
+    const entries = Array.from(uniqueHotels.values());
+    const rowOne: FeaturedHotelCard[] = [];
+    const rowTwo: FeaturedHotelCard[] = [];
+    entries.forEach((hotel, index) => {
+      if (index % 2 === 0) rowOne.push(hotel);
+      else rowTwo.push(hotel);
+    });
+    return [rowOne, rowTwo];
+  }, [featuredHotels]);
 
   return (
     <>
@@ -60,18 +81,24 @@ export default function HomeClient() {
             <Link href={"#"}><span className="material-symbols-rounded">redeem</span>{t.featured.cta}</Link>
           </section>
         </div>
-        <div id="hotels">
-          <Marquee reverse pauseOnHover={true}>
-            {hotels.map((hotel) => (
-              <HotelCard key={hotel.id} hotel={hotel} copy={t.card} />
-            ))}
-          </Marquee>
-          <Marquee pauseOnHover={true}>
-            {hotels.map((hotel) => (
-              <HotelCard key={hotel.id} hotel={hotel} copy={t.card} />
-            ))}
-          </Marquee>
-        </div>
+        {(firstRow.length > 0 || secondRow.length > 0) && (
+          <div id="hotels">
+            {firstRow.length > 0 && (
+              <Marquee reverse pauseOnHover={true}>
+                {firstRow.map((hotel) => (
+                  <HotelCard key={hotel.hotelCode} hotel={hotel} copy={t.card} />
+                ))}
+              </Marquee>
+            )}
+            {secondRow.length > 0 && (
+              <Marquee pauseOnHover={true}>
+                {secondRow.map((hotel) => (
+                  <HotelCard key={hotel.hotelCode} hotel={hotel} copy={t.card} />
+                ))}
+              </Marquee>
+            )}
+          </div>
+        )}
         <div className="container">
           {/* Services Section */}
           <section id="services" aria-labelledby="services-title">

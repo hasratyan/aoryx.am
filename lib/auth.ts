@@ -4,7 +4,12 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 import { upsertUserProfile } from "@/lib/user-data";
 
-const adapter = clientPromise ? MongoDBAdapter(clientPromise) : undefined;
+const authDbName = typeof process.env.MONGODB_DB === "string"
+  ? process.env.MONGODB_DB.trim()
+  : undefined;
+const adapter = clientPromise
+  ? MongoDBAdapter(clientPromise, { databaseName: authDbName || "megatours_am" })
+  : undefined;
 
 
 export const authOptions: NextAuthOptions = {
