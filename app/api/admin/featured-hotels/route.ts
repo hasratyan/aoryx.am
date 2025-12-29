@@ -78,9 +78,12 @@ export async function POST(request: NextRequest) {
     const priceFrom = parseNumber(body.priceFrom);
     const oldPrice = parseNumber(body.oldPrice);
     const currency = normalizeText(body.currency) || "$";
-    const amenities = Array.isArray(body.amenities)
-      ? body.amenities.map(normalizeText).filter((item) => item.length > 0)
+    const amenitiesInput: unknown[] = Array.isArray(body.amenities)
+      ? (body.amenities as unknown[])
       : [];
+    const amenities = amenitiesInput
+      .map(normalizeText)
+      .filter((item) => item.length > 0);
     const translations = buildTranslations(body.translations ?? null);
 
     if (!hotelCode) {

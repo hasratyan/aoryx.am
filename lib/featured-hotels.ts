@@ -1,3 +1,4 @@
+import type { ObjectId } from "mongodb";
 import type { Locale } from "@/lib/i18n";
 import { getB2bDb, getDb } from "@/lib/db";
 
@@ -57,7 +58,7 @@ export type AoryxHotelOption = {
   masterHotelAmenities: string[];
 };
 
-type AoryxHotelDoc = Record<string, unknown>;
+type AoryxHotelDoc = Record<string, unknown> & { _id: string | number | ObjectId };
 
 type NormalizedAoryxHotel = {
   hotelCode: string;
@@ -162,7 +163,7 @@ const buildTranslationFallback = (): Record<Locale, FeaturedHotelTranslation> =>
 
 export async function searchAoryxHotels(query: string, limit = 40): Promise<AoryxHotelOption[]> {
   const db = await getB2bDb();
-  const docs = await db.collection("aoryx_hotels").find({}).toArray();
+  const docs = await db.collection<AoryxHotelDoc>("aoryx_hotels").find({}).toArray();
   const normalizedQuery = query.trim().toLowerCase();
 
   const options = docs
@@ -241,7 +242,7 @@ export async function getAoryxHotelsByCodes(hotelCodes: string[]): Promise<Map<s
   const searchValues: Array<string | number> = [...hotelCodes, ...numericCodes];
 
   const docs = await db
-    .collection("aoryx_hotels")
+    .collection<AoryxHotelDoc>("aoryx_hotels")
     .find({
       $or: [
         { systemId: { $in: searchValues } },
@@ -271,37 +272,37 @@ export async function getFeaturedHotelCards(locale: Locale): Promise<FeaturedHot
   const hotelMap = await getAoryxHotelsByCodes(selections.map((entry) => entry.hotelCode));
   const seen = new Set<string>();
 
-  return selections
-    .map((entry) => {
-      if (seen.has(entry.hotelCode)) return null;
-      const hotel = hotelMap.get(entry.hotelCode);
-      if (!hotel) return null;
-      const rating = hotel.rating ?? null;
-      if (rating === null || rating < 4) return null;
-      if (!hotel.imageUrl) return null;
-      seen.add(entry.hotelCode);
+  const cards: FeaturedHotelCard[] = [];
+  selections.forEach((entry) => {
+    if (seen.has(entry.hotelCode)) return;
+    const hotel = hotelMap.get(entry.hotelCode);
+    if (!hotel) return;
+    const rating = hotel.rating ?? null;
+    if (rating === null || rating < 4) return;
+    if (!hotel.imageUrl) return;
+    seen.add(entry.hotelCode);
 
-      const translation = entry.translations?.[locale] ?? entry.translations?.en ?? entry.translations?.hy ?? entry.translations?.ru ?? null;
-      const perks = entry.amenities.length > 0
-        ? entry.amenities.slice(0, 3)
-        : hotel.masterHotelAmenities.slice(0, 3);
+    const translation = entry.translations?.[locale] ?? entry.translations?.en ?? entry.translations?.hy ?? entry.translations?.ru ?? null;
+    const perks = entry.amenities.length > 0
+      ? entry.amenities.slice(0, 3)
+      : hotel.masterHotelAmenities.slice(0, 3);
 
-      return {
-        id: entry.hotelCode,
-        hotelCode: entry.hotelCode,
-        name: hotel.name ?? "",
-        location: hotel.destinationName ?? "",
-        rating,
-        image: hotel.imageUrl,
-        perks,
-        priceFrom: entry.priceFrom,
-        oldPrice: entry.oldPrice ?? null,
-        currency: entry.currency || "$",
-        badge: translation?.badge ?? null,
-        availability: translation?.availability ?? null,
-      };
-    })
-    .filter((item): item is FeaturedHotelCard => Boolean(item));
+    cards.push({
+      id: entry.hotelCode,
+      hotelCode: entry.hotelCode,
+      name: hotel.name ?? "",
+      location: hotel.destinationName ?? "",
+      rating,
+      image: hotel.imageUrl,
+      perks,
+      priceFrom: entry.priceFrom,
+      oldPrice: entry.oldPrice ?? null,
+      currency: entry.currency || "$",
+      badge: translation?.badge ?? null,
+      availability: translation?.availability ?? null,
+    });
+  });
+  return cards;
 }
 
 export async function getFeaturedHotelAdminItems(): Promise<FeaturedHotelAdminItem[]> {

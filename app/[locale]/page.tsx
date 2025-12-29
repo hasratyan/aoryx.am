@@ -1,7 +1,7 @@
 import HomeClient from "./home-client";
 import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
-import { getFeaturedHotelCards } from "@/lib/featured-hotels";
+import { getFeaturedHotelCards, type FeaturedHotelCard } from "@/lib/featured-hotels";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function HomePage({ params }: PageProps) {
   const { locale } = await params;
   const resolvedLocale = resolveLocale(locale);
-  let featuredHotels = [];
+  let featuredHotels: FeaturedHotelCard[] = [];
 
   try {
     featuredHotels = await getFeaturedHotelCards(resolvedLocale);
