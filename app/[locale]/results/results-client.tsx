@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buildSearchQuery, parseSearchParams } from "@/lib/search-query";
 import type { AoryxSearchParams, AoryxSearchResult } from "@/types/aoryx";
@@ -54,13 +54,6 @@ function formatPrice(value: number | null, currency: string | null, locale: stri
   }
 }
 
-function formatDate(value: string | null | undefined, locale: string): string | null {
-  if (!value) return null;
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(parsed);
-}
-
 export default function ResultsClient({
   initialResult,
   initialError,
@@ -85,51 +78,41 @@ export default function ResultsClient({
     [searchKey]
   );
 
-  const [result, setResult] = useState<SafeSearchResult | null>(initialResult);
-  const [error, setError] = useState<string | null>(initialError);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [sortBy, setSortBy] = useState<
     "price-asc" | "price-desc" | "rating-desc" | "rating-asc"
   >("rating-desc");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
-  const [priceRangeOverride, setPriceRangeOverride] = useState<{
-    min: number;
-    max: number;
-  } | null>(null);
-  const [destinations, setDestinations] = useState<DestinationInfo[]>(initialDestinations);
+  const [selectedRatingsState, setSelectedRatingsState] = useState<{
+    key: string;
+    values: number[];
+  }>(() => ({ key: searchKey, values: [] }));
+  const [priceRangeOverrideState, setPriceRangeOverrideState] = useState<{
+    key: string;
+    value: { min: number; max: number } | null;
+  }>(() => ({ key: searchKey, value: null }));
   const { rates: amdRates } = useAmdRates(initialAmdRates);
-  const isSearching = searchLoading || isPending;
+  const resultsKey = searchKey;
+  const ratesKey = amdRates ? `${amdRates.USD}-${amdRates.EUR}` : "BASE";
+  const priceOverrideKey = `${searchKey}|${ratesKey}`;
+  const selectedRatings = useMemo(
+    () => (selectedRatingsState.key === resultsKey ? selectedRatingsState.values : []),
+    [resultsKey, selectedRatingsState.key, selectedRatingsState.values]
+  );
+  const priceRangeOverride =
+    priceRangeOverrideState.key === priceOverrideKey ? priceRangeOverrideState.value : null;
+  const result = initialResult;
+  const error = initialError;
+  const destinations = initialDestinations;
+  const isSearching = isPending;
   const missingError = parsed.payload ? null : (parsed.error ?? t.results.errors.missingSearchDetails);
   const finalError = isSearching ? null : (missingError ?? error);
-
-  useEffect(() => {
-    setPriceRangeOverride(null);
-  }, [amdRates]);
-
-  useEffect(() => {
-    setResult(initialResult);
-    setError(initialError);
-    setDestinations(initialDestinations);
-    setSelectedRatings([]);
-    setPriceRangeOverride(null);
-  }, [initialDestinations, initialError, initialResult]);
-
-  useEffect(() => {
-    if (!searchLoading) return;
-    setSearchLoading(false);
-  }, [initialError, initialResult, searchKey, searchLoading]);
 
   const handleSearchSubmit = useCallback(
     (_payload: AoryxSearchParams, params: URLSearchParams) => {
       const nextQuery = params.toString();
       if (nextQuery === searchKey) {
-        setSearchLoading(false);
         return;
       }
-      setSearchLoading(true);
-      setError(null);
-      setResult(null);
       setFiltersOpen(false);
       const resultsPath = `/${locale}/results`;
       const nextHref = nextQuery ? `${resultsPath}?${nextQuery}` : resultsPath;
@@ -140,7 +123,7 @@ export default function ResultsClient({
     [locale, router, searchKey, startTransition]
   );
 
-  const nightsCount = useMemo(() => {
+  const nightsCount = (() => {
     if (!parsed.payload?.checkInDate || !parsed.payload?.checkOutDate) return null;
     const checkInDate = new Date(`${parsed.payload.checkInDate}T00:00:00`);
     const checkOutDate = new Date(`${parsed.payload.checkOutDate}T00:00:00`);
@@ -148,7 +131,7 @@ export default function ResultsClient({
     const diffTime = checkOutDate.getTime() - checkInDate.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : null;
-  }, [parsed.payload?.checkInDate, parsed.payload?.checkOutDate]);
+  })();
   const filtersToggleLabel = filtersOpen ? t.results.filters.closeLabel : t.results.filters.openLabel;
   const placesFoundCount = result?.propertyCount ?? result?.hotels.length ?? 0;
   const placesFoundLabel =
@@ -262,6 +245,17 @@ export default function ResultsClient({
       max: Math.max(clampedMin, clampedMax),
     };
   }, [priceBounds, priceRangeOverride]);
+  const priceMinValue = priceRange?.min ?? priceBounds?.min ?? 0;
+  const priceMaxValue = priceRange?.max ?? priceBounds?.max ?? 0;
+  const priceRangeSpan = priceBounds ? priceBounds.max - priceBounds.min : 0;
+  const priceMinPercent =
+    priceBounds && priceRangeSpan > 0
+      ? ((priceMinValue - priceBounds.min) / priceRangeSpan) * 100
+      : 0;
+  const priceMaxPercent =
+    priceBounds && priceRangeSpan > 0
+      ? ((priceMaxValue - priceBounds.min) / priceRangeSpan) * 100
+      : 100;
 
   const sortedHotels = useMemo(() => {
     const hotels = [...hotelsWithPricing];
@@ -357,33 +351,48 @@ export default function ResultsClient({
                 <div className="filter-range-values">
                   <span>
                     {formatPrice(
-                      priceRange?.min ?? priceBounds.min,
+                      priceMinValue,
                       amdRates ? "AMD" : result?.currency ?? "USD",
                       intlLocale
                     )}
                   </span>
                   <span>
                     {formatPrice(
-                      priceRange?.max ?? priceBounds.max,
+                      priceMaxValue,
                       amdRates ? "AMD" : result?.currency ?? "USD",
                       intlLocale
                     )}
                   </span>
                 </div>
-                <div className="filter-range-inputs">
+                <div className="range-slider">
+                  <div className="range-slider__track" />
+                  <div
+                    className="range-slider__range"
+                    style={{
+                      left: `${priceMinPercent}%`,
+                      right: `${100 - priceMaxPercent}%`,
+                    }}
+                  />
                   <input
                     type="range"
                     min={priceBounds.min}
                     max={priceBounds.max}
                     step={1}
-                    value={priceRange?.min ?? priceBounds.min}
+                    value={priceMinValue}
+                    aria-label="Minimum price"
+                    className="range-slider__input range-slider__input--min"
                     onChange={(event) => {
                       const nextMin = Number(event.target.value);
-                      setPriceRangeOverride((current) => {
-                        const currentMax = current?.max ?? priceBounds.max;
+                      setPriceRangeOverrideState((current) => {
+                        const key = priceOverrideKey;
+                        const value = current.key === key ? current.value : null;
+                        const currentMax = value?.max ?? priceBounds.max;
                         return {
-                          min: Math.min(nextMin, currentMax),
-                          max: currentMax,
+                          key,
+                          value: {
+                            min: Math.min(nextMin, currentMax),
+                            max: currentMax,
+                          },
                         };
                       });
                     }}
@@ -393,14 +402,21 @@ export default function ResultsClient({
                     min={priceBounds.min}
                     max={priceBounds.max}
                     step={1}
-                    value={priceRange?.max ?? priceBounds.max}
+                    value={priceMaxValue}
+                    aria-label="Maximum price"
+                    className="range-slider__input range-slider__input--max"
                     onChange={(event) => {
                       const nextMax = Number(event.target.value);
-                      setPriceRangeOverride((current) => {
-                        const currentMin = current?.min ?? priceBounds.min;
+                      setPriceRangeOverrideState((current) => {
+                        const key = priceOverrideKey;
+                        const value = current.key === key ? current.value : null;
+                        const currentMin = value?.min ?? priceBounds.min;
                         return {
-                          min: currentMin,
-                          max: Math.max(nextMax, currentMin),
+                          key,
+                          value: {
+                            min: currentMin,
+                            max: Math.max(nextMax, currentMin),
+                          },
                         };
                       });
                     }}
@@ -420,11 +436,14 @@ export default function ResultsClient({
                     type="checkbox"
                     checked={selectedRatings.includes(rating)}
                     onChange={() =>
-                      setSelectedRatings((current) =>
-                        current.includes(rating)
-                          ? current.filter((value) => value !== rating)
-                          : [...current, rating]
-                      )
+                      setSelectedRatingsState((current) => {
+                        const key = resultsKey;
+                        const values = current.key === key ? current.values : [];
+                        const nextValues = values.includes(rating)
+                          ? values.filter((value) => value !== rating)
+                          : [...values, rating];
+                        return { key, values: nextValues };
+                      })
                     }
                   />
                   {rating} ★
