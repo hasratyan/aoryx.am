@@ -88,8 +88,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function HotelPage({ params, searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const resolvedParams = await params;
+  const resolvedLocale = resolveLocale(resolvedParams.locale);
+  const t = getTranslations(resolvedLocale);
   const hotelCode = Array.isArray(resolvedParams.code) ? resolvedParams.code[0] : resolvedParams.code;
-  const parsed = parseSearchParams(buildSearchParams(resolvedSearchParams));
+  const parsed = parseSearchParams(buildSearchParams(resolvedSearchParams), {
+    missingDates: t.search.errors.missingDates,
+    missingLocation: t.search.errors.missingLocation,
+    invalidRooms: t.search.errors.invalidRooms,
+  });
   const payload = parsed.payload
     ? {
         ...parsed.payload,
@@ -139,7 +145,7 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
       } else if (error instanceof AoryxClientError) {
         hotelError = error.message;
       } else {
-        hotelError = "Failed to load hotel details.";
+        hotelError = t.hotel.errors.loadHotelFailed;
       }
     }
   }
@@ -162,7 +168,7 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
       } else if (error instanceof AoryxClientError) {
         roomsError = error.message;
       } else {
-        roomsError = "Failed to load room options.";
+        roomsError = t.hotel.errors.loadRoomOptionsFailed;
       }
     }
   }

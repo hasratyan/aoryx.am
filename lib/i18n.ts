@@ -47,6 +47,7 @@ export type Translation = {
     errors: {
       missingLocation: string;
       missingDates: string;
+      invalidRooms: string;
       submit: string;
     };
   };
@@ -59,6 +60,33 @@ export type Translation = {
     savings: string;
     features: { icon: string; title: string; description: string }[];
     cta: string;
+  };
+  packageBuilder: {
+    title: string;
+    subtitle: string;
+    toggleOpen: string;
+    toggleClose: string;
+    changeHotel: string;
+    removeTag: string;
+    helper: string;
+    warningSelectHotel: string;
+    requiredTag: string;
+    selectedTag: string;
+    addTag: string;
+    services: {
+      hotel: string;
+      flight: string;
+      transfer: string;
+      excursion: string;
+      insurance: string;
+    };
+    pages: {
+      hotel: { title: string; body: string; note: string; cta: string };
+      flight: { title: string; body: string; note: string; cta: string };
+      transfer: { title: string; body: string; note: string; cta: string };
+      excursion: { title: string; body: string; note: string; cta: string };
+      insurance: { title: string; body: string; note: string; cta: string };
+    };
   };
   trustStats: {
     title: string;
@@ -697,6 +725,7 @@ const translations: Record<Locale, Translation> = {
       errors: {
         missingLocation: "Խնդրում ենք ընտրել ուղղություն կամ հյուրանոց։",
         missingDates: "Խնդրում ենք ընտրել մուտքի և ելքի ամսաթվերը։",
+        invalidRooms: "Սխալ տվյալների պատճառով ձեր սենյակների ընտրությունը վերականգնվել է։ Խնդրում ենք կրկին ընտրել նախընտրությունները։",
         submit: "Չհաջողվեց կատարել որոնումը։",
       },
     },
@@ -756,6 +785,58 @@ const translations: Record<Locale, Translation> = {
         },
       ],
       cta: "Կազմել փաթեթ",
+    },
+    packageBuilder: {
+      title: "Կազմեք ձեր փաթեթը",
+      subtitle: "Ավելացրեք ծառայությունները",
+      toggleOpen: "Կազմել փաթեթ",
+      toggleClose: "Թաքցնել",
+      changeHotel: "Փոխել հյուրանոցը",
+      removeTag: "Հեռացնել",
+      helper: "Սկզբում ընտրեք հյուրանոց, որպեսզի բացվեն մնացած ծառայությունները։",
+      warningSelectHotel: "Սկզբում ընտրեք հյուրանոց։",
+      requiredTag: "Պարտադիր",
+      selectedTag: "Ընտրված",
+      addTag: "Ավելացնել",
+      services: {
+        hotel: "Հյուրանոցներ",
+        flight: "Ավիատոմսեր",
+        transfer: "Տրանսֆերներ",
+        excursion: "Էքսկուրսիաներ",
+        insurance: "Ապահովագրություն",
+      },
+      pages: {
+        hotel: {
+          title: "Ընտրեք հյուրանոցը",
+          body: "Որոնեք և ավելացրեք հյուրանոցը ձեր փաթեթին։",
+          note: "Հյուրանոց ընտրելուց հետո կարող եք ավելացնել այլ ծառայություններ։",
+          cta: "Որոնել հյուրանոցներ",
+        },
+        flight: {
+          title: "Ավելացրեք ավիատոմսեր",
+          body: "Ավիատոմսերը ավելացվում են հյուրանոցի ամրագրման ընթացքում։",
+          note: "Շարունակեք հյուրանոցի ընտրությամբ՝ ձեր փաթեթը սկսելու համար։",
+          cta: "Գտնել հյուրանոց",
+        },
+        transfer: {
+          title: "Ավելացրեք տրանսֆեր",
+          body: "Տրանսֆերները ընտրեք հյուրանոցի ամրագրման ընթացքում։",
+          note: "Սկզբում ընտրեք հյուրանոցը։",
+          cta: "Գտնել հյուրանոց",
+        },
+        excursion: {
+          title: "Ավելացրեք էքսկուրսիաներ",
+          body: "Էքսկուրսիաները հասանելի են հյուրանոցի ամրագրման փուլում։",
+          note: "Սկզբում ընտրեք հյուրանոցը։",
+          cta: "Գտնել հյուրանոց",
+        },
+        insurance: {
+          title: "Ավելացրեք ապահովագրություն",
+          body: "Ապահովագրությունը կարելի է ավելացնել ամրագրման ընթացքում։",
+          note: "Սկզբում ընտրեք հյուրանոցը։",
+          cta: "Գտնել հյուրանոց",
+        },
+      },
     },
     trustStats: {
       title: "Մեզ վստահում են հազարավոր ճանապարհորդներ",
@@ -1567,6 +1648,7 @@ const translations: Record<Locale, Translation> = {
       errors: {
         missingLocation: "Please select a destination or hotel.",
         missingDates: "Please choose your check-in and check-out dates.",
+        invalidRooms: "Your room selection has been reset due to invalid data. Please re-enter your preferences.",
         submit: "Unable to process your search at this time.",
       },
     },
@@ -1635,6 +1717,58 @@ const translations: Record<Locale, Translation> = {
         },
       ],
       cta: "Build Your Bespoke Package",
+    },
+    packageBuilder: {
+      title: "Build your package",
+      subtitle: "Add services to your trip",
+      toggleOpen: "Package builder",
+      toggleClose: "Hide builder",
+      changeHotel: "Change hotel",
+      removeTag: "Remove",
+      helper: "Select a hotel first to unlock the rest.",
+      warningSelectHotel: "Please select a hotel first.",
+      requiredTag: "Required",
+      selectedTag: "Selected",
+      addTag: "Add",
+      services: {
+        hotel: "Hotels",
+        flight: "Flights",
+        transfer: "Transfers",
+        excursion: "Excursions",
+        insurance: "Insurance",
+      },
+      pages: {
+        hotel: {
+          title: "Choose your hotel",
+          body: "Search and add the hotel for your package.",
+          note: "Once your hotel is set, you can add more services.",
+          cta: "Search hotels",
+        },
+        flight: {
+          title: "Add flights",
+          body: "Flights are added during the hotel booking flow.",
+          note: "Start with a hotel to continue your package.",
+          cta: "Find a hotel",
+        },
+        transfer: {
+          title: "Add transfers",
+          body: "Transfers are selected during the hotel booking flow.",
+          note: "Start with a hotel to continue your package.",
+          cta: "Find a hotel",
+        },
+        excursion: {
+          title: "Add excursions",
+          body: "Excursions are selected during the hotel booking flow.",
+          note: "Start with a hotel to continue your package.",
+          cta: "Find a hotel",
+        },
+        insurance: {
+          title: "Add insurance",
+          body: "Insurance is selected during the hotel booking flow.",
+          note: "Start with a hotel to continue your package.",
+          cta: "Find a hotel",
+        },
+      },
     },
     trustStats: {
       title: "Chosen by Thousands of Discerning Travelers",
@@ -2446,6 +2580,7 @@ const translations: Record<Locale, Translation> = {
       errors: {
         missingLocation: "Пожалуйста, выберите направление или отель.",
         missingDates: "Пожалуйста, выберите даты заезда и выезда.",
+        invalidRooms: "Ваш выбор номеров был сброшен из-за некорректных данных. Пожалуйста, укажите предпочтения заново.",
         submit: "Не удалось отправить поиск.",
       },
     },
@@ -2514,6 +2649,58 @@ const translations: Record<Locale, Translation> = {
         },
       ],
       cta: "Собрать индивидуальный пакет",
+    },
+    packageBuilder: {
+      title: "Соберите пакет",
+      subtitle: "Добавьте услуги к поездке",
+      toggleOpen: "Конструктор пакета",
+      toggleClose: "Скрыть",
+      changeHotel: "Сменить отель",
+      removeTag: "Удалить",
+      helper: "Сначала выберите отель, чтобы открыть остальные услуги.",
+      warningSelectHotel: "Сначала выберите отель.",
+      requiredTag: "Обязательно",
+      selectedTag: "Выбрано",
+      addTag: "Добавить",
+      services: {
+        hotel: "Отели",
+        flight: "Авиабилеты",
+        transfer: "Трансферы",
+        excursion: "Экскурсии",
+        insurance: "Страхование",
+      },
+      pages: {
+        hotel: {
+          title: "Выберите отель",
+          body: "Найдите и добавьте отель в ваш пакет.",
+          note: "После выбора отеля можно добавить другие услуги.",
+          cta: "Найти отель",
+        },
+        flight: {
+          title: "Добавьте авиабилеты",
+          body: "Авиабилеты добавляются во время бронирования отеля.",
+          note: "Начните с выбора отеля, чтобы продолжить.",
+          cta: "Найти отель",
+        },
+        transfer: {
+          title: "Добавьте трансферы",
+          body: "Трансферы выбираются во время бронирования отеля.",
+          note: "Начните с выбора отеля, чтобы продолжить.",
+          cta: "Найти отель",
+        },
+        excursion: {
+          title: "Добавьте экскурсии",
+          body: "Экскурсии выбираются во время бронирования отеля.",
+          note: "Начните с выбора отеля, чтобы продолжить.",
+          cta: "Найти отель",
+        },
+        insurance: {
+          title: "Добавьте страховку",
+          body: "Страхование выбирается во время бронирования отеля.",
+          note: "Начните с выбора отеля, чтобы продолжить.",
+          cta: "Найти отель",
+        },
+      },
     },
     trustStats: {
       title: "Выбор взыскательных путешественников",

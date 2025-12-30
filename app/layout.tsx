@@ -6,6 +6,7 @@ import 'material-symbols';
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Providers from "@/components/providers";
+import PackageBuilder from "@/components/package-builder";
 import { metadataBase } from "@/lib/metadata";
 import "./globals.css";
 
@@ -47,6 +48,7 @@ export default function RootLayout({children,}: Readonly<{
           <Header />
           {children}
           <Footer />
+          <PackageBuilder />
         </div>
       </Providers>
     </body>

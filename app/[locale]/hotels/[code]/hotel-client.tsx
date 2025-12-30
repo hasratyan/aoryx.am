@@ -13,6 +13,7 @@ import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 import { convertToAmd, useAmdRates, type AmdRates } from "@/lib/use-amd-rates";
 import Image from "next/image";
 import ImageGallery from "./ImageGallery";
+import { updatePackageBuilderState } from "@/lib/package-builder-state";
 import type {
   AoryxBookingPayload,
   AoryxBookingResult,
@@ -578,8 +579,12 @@ export default function HotelClient({
   const parsed = useMemo(() => {
     const merged = new URLSearchParams(searchParams.toString());
     if (hotelCode) merged.set("hotelCode", hotelCode);
-    return parseSearchParams(merged);
-  }, [searchParams, hotelCode]);
+    return parseSearchParams(merged, {
+      missingDates: t.search.errors.missingDates,
+      missingLocation: t.search.errors.missingLocation,
+      invalidRooms: t.search.errors.invalidRooms,
+    });
+  }, [searchParams, hotelCode, t]);
   const destinationCode = parsed.payload?.destinationCode ?? searchParams.get("destinationCode") ?? undefined;
 
   const [hotelInfo, setHotelInfo] = useState<AoryxHotelInfoResult | null>(initialHotelInfo);
@@ -1426,6 +1431,46 @@ export default function HotelClient({
 
   const handlePrebook = useCallback(
     async (group: { key: string; option: AoryxRoomOption; items: AoryxRoomOption[] }) => {
+      if (!hotelCode) return;
+
+      const rateKeys = group.items
+        .map((item) => item.rateKey)
+        .filter((key): key is string => typeof key === "string" && key.length > 0);
+      if (rateKeys.length === 0) {
+        setBookingError(t.hotel.errors.missingRateKeys);
+        return;
+      }
+
+      const selectionDestinationName = hotelInfo?.address?.cityName ?? null;
+      const selectionDestinationCode = destinationCode ?? null;
+      updatePackageBuilderState((prev) => {
+        const nextHotel = {
+          selected: true,
+          hotelCode,
+          hotelName: hotelInfo?.name ?? null,
+          destinationName: selectionDestinationName,
+          destinationCode: selectionDestinationCode,
+        };
+        const shouldClearTransferByName =
+          selectionDestinationName &&
+          prev.transfer?.destinationName &&
+          prev.transfer.destinationName !== selectionDestinationName;
+        const shouldClearTransferByCode =
+          !selectionDestinationName &&
+          selectionDestinationCode &&
+          prev.transfer?.destinationCode &&
+          prev.transfer.destinationCode !== selectionDestinationCode;
+        const shouldClearTransfer = Boolean(
+          shouldClearTransferByName || shouldClearTransferByCode
+        );
+        return {
+          ...prev,
+          hotel: nextHotel,
+          transfer: shouldClearTransfer ? undefined : prev.transfer,
+          updatedAt: Date.now(),
+        };
+      });
+
       if (authStatus === "loading") {
         setBookingError(t.hotel.errors.checkingSignIn);
         return;
@@ -1435,15 +1480,6 @@ export default function HotelClient({
         const callbackUrl = query ? `${pathname}?${query}` : pathname;
         setBookingError(t.hotel.errors.signInToBook);
         void signIn("google", { callbackUrl });
-        return;
-      }
-      if (!hotelCode) return;
-
-      const rateKeys = group.items
-        .map((item) => item.rateKey)
-        .filter((key): key is string => typeof key === "string" && key.length > 0);
-      if (rateKeys.length === 0) {
-        setBookingError(t.hotel.errors.missingRateKeys);
         return;
       }
 
@@ -1488,8 +1524,11 @@ export default function HotelClient({
     },
     [
       authStatus,
+      destinationCode,
       fallbackCurrency,
       hotelCode,
+      hotelInfo?.address?.cityName,
+      hotelInfo?.name,
       isSignedIn,
       parsed.payload?.currency,
       pathname,

@@ -46,9 +46,15 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   });
 }
 
-export default async function ResultsPage({ searchParams }: PageProps) {
+export default async function ResultsPage({ params, searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
-  const parsed = parseSearchParams(buildSearchParams(resolvedSearchParams));
+  const resolvedLocale = resolveLocale(params.locale);
+  const t = getTranslations(resolvedLocale);
+  const parsed = parseSearchParams(buildSearchParams(resolvedSearchParams), {
+    missingDates: t.search.errors.missingDates,
+    missingLocation: t.search.errors.missingLocation,
+    invalidRooms: t.search.errors.invalidRooms,
+  });
   let initialResult: SafeSearchResult | null = null;
   let initialError: string | null = null;
   let initialAmdRates: { USD: number; EUR: number } | null = null;
@@ -108,7 +114,7 @@ export default async function ResultsPage({ searchParams }: PageProps) {
       if (error instanceof AoryxServiceError || error instanceof AoryxClientError) {
         initialError = error.message;
       } else {
-        initialError = "Failed to perform search.";
+        initialError = t.search.errors.submit;
       }
     }
     initialAmdRates = await ratesPromise;

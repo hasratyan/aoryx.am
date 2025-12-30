@@ -74,8 +74,13 @@ export default function ResultsClient({
   const [isPending, startTransition] = useTransition();
   const searchKey = searchParams.toString();
   const parsed = useMemo(
-    () => parseSearchParams(new URLSearchParams(searchKey)),
-    [searchKey]
+    () =>
+      parseSearchParams(new URLSearchParams(searchKey), {
+        missingDates: t.search.errors.missingDates,
+        missingLocation: t.search.errors.missingLocation,
+        invalidRooms: t.search.errors.invalidRooms,
+      }),
+    [searchKey, t]
   );
 
   const [sortBy, setSortBy] = useState<
@@ -583,9 +588,10 @@ export default function ResultsClient({
                         <button
                           type="button"
                           disabled={!detailHref}
-                          onClick={() =>
-                            detailHref && window.open(detailHref, "_blank", "noopener,noreferrer")
-                          }
+                          onClick={() => {
+                            if (!detailHref) return;
+                            window.open(detailHref, "_blank", "noopener,noreferrer");
+                          }}
                         >
                           {t.results.viewOptions}
                         </button>

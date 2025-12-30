@@ -6,17 +6,32 @@ export type ParsedSearch = {
   notice?: string;
 };
 
+export type SearchQueryMessages = {
+  missingDates: string;
+  missingLocation: string;
+  invalidRooms: string;
+};
+
+const defaultSearchMessages: SearchQueryMessages = {
+  missingDates: "Please select your travel dates to begin your search.",
+  missingLocation: "Please select a destination or hotel to view available results.",
+  invalidRooms: "Your room selection has been reset due to invalid data. Please re-enter your preferences.",
+};
+
 const createDefaultRooms = (): AoryxSearchParams["rooms"] => [
   { roomIdentifier: 1, adults: 2, childrenAges: [] },
 ];
 
-function parseRooms(raw: string | null): { rooms: AoryxSearchParams["rooms"]; notice?: string } {
+function parseRooms(
+  raw: string | null,
+  messages: SearchQueryMessages
+): { rooms: AoryxSearchParams["rooms"]; notice?: string } {
   if (!raw) return { rooms: createDefaultRooms() };
 
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return { rooms: createDefaultRooms(), notice: "Your room selection has been reset due to invalid data. Please re-enter your preferences." };
+      return { rooms: createDefaultRooms(), notice: messages.invalidRooms };
     }
 
     const rooms = parsed.map((room: Record<string, unknown>, index: number) => ({
@@ -29,11 +44,14 @@ function parseRooms(raw: string | null): { rooms: AoryxSearchParams["rooms"]; no
 
     return { rooms };
   } catch {
-    return { rooms: createDefaultRooms(), notice: "Your room selection has been reset due to invalid data. Please re-enter your preferences." };
+    return { rooms: createDefaultRooms(), notice: messages.invalidRooms };
   }
 }
 
-export function parseSearchParams(searchParams: URLSearchParams): ParsedSearch {
+export function parseSearchParams(
+  searchParams: URLSearchParams,
+  messages: SearchQueryMessages = defaultSearchMessages
+): ParsedSearch {
   const destinationCode = searchParams.get("destinationCode") ?? undefined;
   const hotelCode = searchParams.get("hotelCode") ?? undefined;
   const countryCode = searchParams.get("countryCode") ?? "AE";
@@ -41,14 +59,14 @@ export function parseSearchParams(searchParams: URLSearchParams): ParsedSearch {
   const currency = searchParams.get("currency") ?? "USD";
   const checkInDate = searchParams.get("checkInDate") ?? undefined;
   const checkOutDate = searchParams.get("checkOutDate") ?? undefined;
-  const { rooms, notice } = parseRooms(searchParams.get("rooms"));
+  const { rooms, notice } = parseRooms(searchParams.get("rooms"), messages);
 
   if (!checkInDate || !checkOutDate) {
-    return { payload: null, error: "Please select your travel dates to begin your search." };
+    return { payload: null, error: messages.missingDates };
   }
 
   if (!destinationCode && !hotelCode) {
-    return { payload: null, error: "Please select a destination or hotel to view available results." };
+    return { payload: null, error: messages.missingLocation };
   }
 
   return {

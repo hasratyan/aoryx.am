@@ -47,6 +47,7 @@ export type SearchCopy = {
   errors: {
     missingLocation: string;
     missingDates: string;
+    invalidRooms: string;
     submit: string;
   };
 };
