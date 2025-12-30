@@ -1716,8 +1716,10 @@ footer{
         }
       }
     }
-    .payment{
-      margin: auto;
+    @media screen and (max-width:1330px) {
+      .payment{
+        margin: auto;
+      }
     }
   }
 }
