@@ -1699,8 +1699,9 @@ footer{
   .container {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 1em 2em ;
+    gap: 1em 2em;
 
     nav{
       display: flex;
@@ -1715,7 +1716,10 @@ footer{
         }
       }
     }
-}
+    .payment{
+      margin: auto;
+    }
+  }
 }
 
 .button {
