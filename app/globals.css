@@ -5349,14 +5349,22 @@ select:focus-visible {
   inset: 5px;
   padding: 1em;
   backdrop-filter: blur(5px);
+
+  button{
+    font-size: .8rem;
+    padding-inline: 1.25em;
+
+    @media screen and (max-width: 450px){
+      padding-block: 1em;
+    }
+  }
 }
 
 .package-builder__view{
   color: #bfdbfe;
   background: #10233aeb;
   border: 1px solid #60a5fa99;
-  font-size: .8rem;
-  padding-inline: 1.25em;
+
   &:hover{
     background: #2563ebc2;
     color: #fff;
@@ -5367,8 +5375,6 @@ select:focus-visible {
   color: #7cf2d4;
   background: #0c1c23eb;
   border: 1px solid #7cf2d499;
-  font-size: .8rem;
-  padding-inline: 1.25em;
   &:hover{
     background: #1f856bd1;
     color: #fff;
@@ -5379,8 +5385,6 @@ select:focus-visible {
   color: #fda4af;
   background: #1e0c12eb;
   border: 1px solid #f8717199;
-  font-size: .8rem;
-  padding-inline: 1.255em;
   &:hover{
     background: #f22b2bc2;
     color: #fff;
