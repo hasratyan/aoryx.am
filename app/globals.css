@@ -5099,7 +5099,7 @@ select:focus-visible {
 }
 
 .package-builder__shell{
-  width: min(1150, 100%);
+  width: min(1150px, 100%);
   display: flex;
   justify-content: center;
   pointer-events: auto;
@@ -5131,6 +5131,8 @@ select:focus-visible {
   backdrop-filter: blur(10px);
   box-shadow: 0 15px 100px 30px #0f172af5;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .package-builder__header{
@@ -5197,14 +5199,19 @@ select:focus-visible {
   color: #fff;
   flex-wrap: wrap;
   gap: 1em;
+  flex: 1;
+  align-content: flex-end;
+
+  @media screen and (max-width: 768px){
+    justify-content: center;
+    gap: 1em 2em;
+  }
 
   .package-builder__checkout{
     color: #7cf2d4;
     background: #0c1c23e6;
     border: 1px solid #7cf2d499;
     padding: .75rem 1.25rem;
-    display: inline-flex;
-    align-items: center;
     gap: .75rem;
     text-align: left;
 
@@ -5224,10 +5231,10 @@ select:focus-visible {
 }
 
 .package-builder__checkout-text{
+  gap: .5rem;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .package-builder__checkout-label{
@@ -5235,8 +5242,8 @@ select:focus-visible {
 }
 
 .package-builder__checkout-total{
-  font-size: 0.75rem;
-  color: rgba(124, 242, 212, 0.95);
+  font-size: 0.8rem;
+  color: #fff;
 }
 
 .package-builder__item{
@@ -5938,7 +5945,7 @@ select:focus-visible {
 
 @media (max-width: 720px){
   .package-builder__panel{
-    padding: 1.2rem;
+    padding: 1rem;
   }
 
   .checkout-field-grid{

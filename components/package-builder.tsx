@@ -554,9 +554,9 @@ export default function PackageBuilder() {
                       </span>
                       {checkoutTotal.label ? (
                         <span className="package-builder__checkout-total">
-                          {checkoutTotal.isExact
+                          ({checkoutTotal.isExact
                             ? `${t.common.total}: ${checkoutTotal.label}`
-                            : checkoutTotal.label}
+                            : checkoutTotal.label})
                         </span>
                       ) : null}
                     </span>
