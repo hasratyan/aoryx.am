@@ -5215,35 +5215,43 @@ select:focus-visible {
     gap: .75rem;
     text-align: left;
 
+    @media screen and (max-width: 450px){
+      width: 100%;
+    }
+
     &:hover{
       background: #1f856bd1;
       color: #fff;
     }
 
     &.is-disabled{
-      opacity: 0.55;
+      opacity: 0.5;
     }
 
     & > .material-symbols-rounded{
       font-size: 1.5em;
     }
+
+    .package-builder__checkout-text{
+      gap: .5rem;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+
+      @media screen and (max-width: 450px){
+        flex-direction: column;
+      }
+    }
+
+    .package-builder__checkout-label{
+      font-size: 0.95rem;
+    }
+
+    .package-builder__checkout-total{
+      font-size: 0.8rem;
+      color: #fff;
+    }
   }
-}
-
-.package-builder__checkout-text{
-  gap: .5rem;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.package-builder__checkout-label{
-  font-size: 0.95rem;
-}
-
-.package-builder__checkout-total{
-  font-size: 0.8rem;
-  color: #fff;
 }
 
 .package-builder__item{
