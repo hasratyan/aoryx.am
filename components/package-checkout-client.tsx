@@ -18,6 +18,19 @@ import type { AoryxBookingPayload, AoryxTransferType } from "@/types/aoryx";
 
 type PaymentMethod = "idram" | "card";
 
+type GuestForm = {
+  id: string;
+  type: "Adult" | "Child";
+  age: number;
+  firstName: string;
+  lastName: string;
+};
+
+type RoomGuestForm = {
+  roomIdentifier: number;
+  guests: GuestForm[];
+};
+
 type BookingPayloadInput = Omit<AoryxBookingPayload, "sessionId" | "groupCode"> & {
   sessionId?: string;
   groupCode?: number;
@@ -64,6 +77,62 @@ const normalizeTransferType = (
   return undefined;
 };
 
+const buildGuestDetails = (
+  hotelSelection: PackageBuilderState["hotel"],
+  contact: { firstName: string; lastName: string },
+  previous: RoomGuestForm[]
+) => {
+  const rooms = Array.isArray(hotelSelection?.rooms) ? hotelSelection.rooms : [];
+  if (rooms.length === 0) return [];
+
+  return rooms.map((room, roomIndex) => {
+    const roomIdentifier =
+      typeof room.roomIdentifier === "number" ? room.roomIdentifier : roomIndex + 1;
+    const existingRoom = previous.find((entry) => entry.roomIdentifier === roomIdentifier);
+    const existingGuests = new Map(existingRoom?.guests.map((guest) => [guest.id, guest]));
+    const guests: GuestForm[] = [];
+
+    const adultCount = typeof room.adults === "number" && room.adults > 0 ? room.adults : 1;
+    for (let i = 0; i < adultCount; i += 1) {
+      const id = `room-${roomIdentifier}-adult-${i + 1}`;
+      const existingGuest = existingGuests.get(id);
+      const existingAge = existingGuest?.age;
+      const defaultFirst =
+        roomIndex === 0 && i === 0 ? contact.firstName.trim() : "";
+      const defaultLast =
+        roomIndex === 0 && i === 0 ? contact.lastName.trim() : "";
+      const resolvedFirst =
+        existingGuest?.firstName?.trim().length
+          ? existingGuest.firstName
+          : defaultFirst;
+      const resolvedLast =
+        existingGuest?.lastName?.trim().length ? existingGuest.lastName : defaultLast;
+      guests.push({
+        id,
+        type: "Adult",
+        age: typeof existingAge === "number" && Number.isFinite(existingAge) ? existingAge : 30,
+        firstName: resolvedFirst,
+        lastName: resolvedLast,
+      });
+    }
+
+    const childAges = Array.isArray(room.childrenAges) ? room.childrenAges : [];
+    childAges.forEach((age, index) => {
+      const id = `room-${roomIdentifier}-child-${index + 1}`;
+      const existingGuest = existingGuests.get(id);
+      guests.push({
+        id,
+        type: "Child",
+        age: typeof age === "number" ? age : 8,
+        firstName: existingGuest?.firstName ?? "",
+        lastName: existingGuest?.lastName ?? "",
+      });
+    });
+
+    return { roomIdentifier, guests };
+  });
+};
+
 export default function PackageCheckoutClient() {
   const { locale, t } = useLanguage();
   const intlLocale = intlLocales[locale] ?? "en-GB";
@@ -72,9 +141,7 @@ export default function PackageCheckoutClient() {
   const { rates: baseRates } = useAmdRates(undefined, {
     endpoint: "/api/utils/exchange-rates?scope=transfers",
   });
-  const [builderState, setBuilderState] = useState<PackageBuilderState>(() =>
-    readPackageBuilderState()
-  );
+  const [builderState, setBuilderState] = useState<PackageBuilderState>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("idram");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [couponCode, setCouponCode] = useState("");
@@ -86,6 +153,7 @@ export default function PackageCheckoutClient() {
     email: "",
     phone: "",
   });
+  const [guestDetails, setGuestDetails] = useState<RoomGuestForm[]>([]);
   const [billing, setBilling] = useState({
     country: "",
     city: "",
@@ -112,15 +180,23 @@ export default function PackageCheckoutClient() {
   }, [session?.user]);
 
   useEffect(() => {
+    setBuilderState(readPackageBuilderState());
     const unsubscribe = subscribePackageBuilderState(() => {
       setBuilderState(readPackageBuilderState());
     });
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    setGuestDetails((prev) => buildGuestDetails(builderState.hotel, contact, prev));
+  }, [builderState.hotel?.rooms, builderState.hotel?.hotelCode, contact.firstName, contact.lastName]);
+
   const hotel = builderState.hotel;
   const transfer = builderState.transfer;
   const excursion = builderState.excursion;
+  const leadGuestId =
+    guestDetails.flatMap((room) => room.guests).find((guest) => guest.type === "Adult")?.id ??
+    null;
 
   const buildRoomsPayload = () => {
     const hotelSelection = builderState.hotel;
@@ -134,8 +210,6 @@ export default function PackageCheckoutClient() {
       throw new Error(t.packageBuilder.checkout.errors.missingDetails);
     }
 
-    const fallbackFirstName = contact.firstName.trim() || "Guest";
-    const fallbackLastName = contact.lastName.trim() || fallbackFirstName;
     const roomsSearch = Array.isArray(hotelSelection.rooms) ? hotelSelection.rooms : [];
     const selectionRooms = Array.isArray(hotelSelection.roomSelections)
       ? hotelSelection.roomSelections
@@ -171,16 +245,12 @@ export default function PackageCheckoutClient() {
         ? hotelSelection.price / roomsSource.length
         : null;
 
+    const guestDetailsByRoom = new Map(
+      guestDetails.map((room) => [room.roomIdentifier, room.guests])
+    );
     let leadAssigned = false;
     return roomsSource.map((room, index) => {
       const searchRoom = roomsSearch[index];
-      const adults =
-        typeof searchRoom?.adults === "number" && searchRoom.adults > 0
-          ? searchRoom.adults
-          : 1;
-      const childrenAges = Array.isArray(searchRoom?.childrenAges)
-        ? searchRoom.childrenAges
-        : [];
       const roomIdentifier =
         typeof room.roomIdentifier === "number"
           ? room.roomIdentifier
@@ -210,28 +280,44 @@ export default function PackageCheckoutClient() {
       }
 
       const guests: AoryxBookingPayload["rooms"][number]["guests"] = [];
-      for (let i = 0; i < adults; i += 1) {
-        const isLeadGuest = !leadAssigned;
+      const roomGuests = guestDetailsByRoom.get(roomIdentifier);
+      if (!roomGuests || roomGuests.length === 0) {
+        throw new Error(t.packageBuilder.checkout.errors.missingGuestDetails);
+      }
+
+      let guestError = false;
+      let adults = 0;
+      const childrenAges: number[] = [];
+      roomGuests.forEach((guest) => {
+        const firstName = guest.firstName.trim();
+        const lastName = guest.lastName.trim();
+        const age = Number.isFinite(guest.age) ? guest.age : Number.NaN;
+        if (!firstName || !lastName || !Number.isFinite(age)) {
+          guestError = true;
+          return;
+        }
+        if (guest.type === "Adult") {
+          adults += 1;
+        } else {
+          childrenAges.push(age);
+        }
+        const isLeadGuest = !leadAssigned && guest.type === "Adult";
         if (isLeadGuest) leadAssigned = true;
         guests.push({
-          firstName: fallbackFirstName,
-          lastName: fallbackLastName,
-          type: "Adult",
-          age: 30,
-          isLeadGuest,
-        });
-      }
-      childrenAges.forEach((age) => {
-        guests.push({
-          firstName: fallbackFirstName,
-          lastName: fallbackLastName,
-          type: "Child",
+          firstName,
+          lastName,
+          type: guest.type,
           age,
+          ...(isLeadGuest ? { isLeadGuest: true } : {}),
         });
       });
 
-      if (guests.length === 0) {
-        throw new Error(t.packageBuilder.checkout.errors.missingDetails);
+      if (guestError || guests.length === 0) {
+        throw new Error(t.packageBuilder.checkout.errors.missingGuestDetails);
+      }
+
+      if (adults === 0) {
+        throw new Error(t.packageBuilder.checkout.errors.missingGuestDetails);
       }
 
       return {
@@ -249,10 +335,33 @@ export default function PackageCheckoutClient() {
     });
   };
 
+  const updateGuestDetails = (
+    roomIdentifier: number,
+    guestId: string,
+    updates: Partial<GuestForm>
+  ) => {
+    setGuestDetails((prev) =>
+      prev.map((room) =>
+        room.roomIdentifier === roomIdentifier
+          ? {
+              ...room,
+              guests: room.guests.map((guest) =>
+                guest.id === guestId ? { ...guest, ...updates } : guest
+              ),
+            }
+          : room
+      )
+    );
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canPay || paymentLoading) return;
     setPaymentError(null);
+    if (!guestDetailsValid) {
+      setPaymentError(t.packageBuilder.checkout.errors.missingGuestDetails);
+      return;
+    }
 
     if (paymentMethod !== "idram") {
       setPaymentError(t.packageBuilder.checkout.errors.cardUnavailable);
@@ -529,10 +638,25 @@ export default function PackageCheckoutClient() {
     return formatCurrencyAmount(totalAmount, currency, intlLocale);
   })();
 
+  const guestDetailsValid =
+    guestDetails.length > 0 &&
+    guestDetails.every(
+      (room) =>
+        room.guests.length > 0 &&
+        room.guests.every(
+          (guest) =>
+            guest.firstName.trim().length > 0 &&
+            guest.lastName.trim().length > 0 &&
+            Number.isFinite(guest.age) &&
+            guest.age >= 0
+        )
+    );
+
   const canPay = Boolean(
     termsAccepted &&
       contact.firstName.trim().length > 0 &&
       contact.email.trim().length > 0 &&
+      guestDetailsValid &&
       (paymentMethod === "idram" ||
         (card.name.trim() &&
           card.number.trim() &&
@@ -631,6 +755,115 @@ export default function PackageCheckoutClient() {
                   />
                 </label>
               </div>
+            </div>
+
+            <div className="checkout-section">
+              <div className="checkout-section__heading">
+                <h2>{t.packageBuilder.checkout.guestTitle}</h2>
+                <p className="checkout-section__hint">{t.packageBuilder.checkout.guestHint}</p>
+              </div>
+              {guestDetails.length === 0 ? (
+                <p className="checkout-empty">{t.packageBuilder.checkout.guestEmpty}</p>
+              ) : (
+                <div className="checkout-guests">
+                  {guestDetails.map((room, roomIndex) => {
+                    let adultIndex = 0;
+                    let childIndex = 0;
+                    return (
+                      <fieldset key={room.roomIdentifier} className="checkout-guest-room">
+                        <legend className="checkout-guest-room__title">
+                          {t.packageBuilder.checkout.guestRoomLabel} {roomIndex + 1}
+                        </legend>
+                        <div className="checkout-guest-list">
+                          {room.guests.map((guest) => {
+                            const isAdult = guest.type === "Adult";
+                            const index = isAdult ? (adultIndex += 1) : (childIndex += 1);
+                            return (
+                              <div key={guest.id} className="checkout-guest-card">
+                                <div className="checkout-guest-card__heading">
+                                  <span>
+                                    {isAdult
+                                      ? t.packageBuilder.checkout.guestAdultLabel
+                                      : t.packageBuilder.checkout.guestChildLabel}{" "}
+                                    {index}
+                                  </span>
+                                  {leadGuestId === guest.id ? (
+                                    <span className="checkout-guest-card__lead">
+                                      {t.packageBuilder.checkout.guestLeadLabel}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="checkout-field-grid checkout-field-grid--guests">
+                                  <label className="checkout-field">
+                                    <span>{t.packageBuilder.checkout.firstName}</span>
+                                    <input
+                                      className="checkout-input"
+                                      type="text"
+                                      value={guest.firstName}
+                                      onChange={(event) =>
+                                        updateGuestDetails(room.roomIdentifier, guest.id, {
+                                          firstName: event.target.value,
+                                        })
+                                      }
+                                      required
+                                    />
+                                  </label>
+                                  <label className="checkout-field">
+                                    <span>{t.packageBuilder.checkout.lastName}</span>
+                                    <input
+                                      className="checkout-input"
+                                      type="text"
+                                      value={guest.lastName}
+                                      onChange={(event) =>
+                                        updateGuestDetails(room.roomIdentifier, guest.id, {
+                                          lastName: event.target.value,
+                                        })
+                                      }
+                                      required
+                                    />
+                                  </label>
+                                  <label className="checkout-field">
+                                    <span>{t.packageBuilder.checkout.ageLabel}</span>
+                                    {isAdult ? (
+                                      <input
+                                        className="checkout-input"
+                                        type="number"
+                                        min="0"
+                                        max="120"
+                                        step="1"
+                                        inputMode="numeric"
+                                        value={Number.isFinite(guest.age) ? guest.age : ""}
+                                        onChange={(event) => {
+                                          const value = event.target.value;
+                                          const nextAge =
+                                            value.trim().length === 0
+                                              ? Number.NaN
+                                              : Number(value);
+                                          updateGuestDetails(room.roomIdentifier, guest.id, {
+                                            age: nextAge,
+                                          });
+                                        }}
+                                        required
+                                      />
+                                    ) : (
+                                      <div
+                                        className="checkout-input checkout-input--static"
+                                        aria-readonly="true"
+                                      >
+                                        {Number.isFinite(guest.age) ? guest.age : "-"}
+                                      </div>
+                                    )}
+                                  </label>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </fieldset>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="checkout-section">

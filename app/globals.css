@@ -5810,10 +5810,61 @@ select:focus-visible {
   gap: 0.35rem;
 }
 
+.checkout-guests{
+  display: grid;
+  gap: 1rem;
+}
+
+.checkout-guest-room{
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.checkout-guest-room__title{
+  font-weight: 600;
+  color: #fff;
+  padding-inline: 1em;
+}
+
+.checkout-guest-list{
+  display: grid;
+  gap: 1rem;
+}
+
+.checkout-guest-card{
+  padding: 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 12, 22, 0.6);
+  display: grid;
+  gap: 0.9rem;
+}
+
+.checkout-guest-card__heading{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(226, 232, 240, 0.9);
+  font-weight: 600;
+}
+
+.checkout-guest-card__lead{
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7cf2d4;
+}
+
 .checkout-field-grid{
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem;
+}
+
+.checkout-field-grid--guests{
+  grid-template-columns: 1fr 1fr auto;
 }
 
 .checkout-field{
@@ -5834,6 +5885,11 @@ select:focus-visible {
   padding: 0.6rem 1rem;
   color: #f8fafc;
   width: 100%;
+}
+
+.checkout-input--static{
+  cursor: default;
+  user-select: text;
 }
 
 .checkout-input:focus{
@@ -5961,6 +6017,10 @@ select:focus-visible {
   }
 
   .checkout-field-grid{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .checkout-field-grid--guests{
     grid-template-columns: minmax(0, 1fr);
   }
 

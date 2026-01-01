@@ -3,7 +3,11 @@
 import { localeLabels, locales } from "@/lib/i18n";
 import { useLanguage } from "./language-provider";
 
-export default function LanguageSwitcher() {
+type LanguageSwitcherProps = {
+  onAction?: () => void;
+};
+
+export default function LanguageSwitcher({ onAction }: LanguageSwitcherProps) {
   const { locale, setLocale } = useLanguage();
 
   return (
@@ -11,7 +15,10 @@ export default function LanguageSwitcher() {
       {locales.map((code) => (
         <button
           key={code}
-          onClick={() => setLocale(code)}
+          onClick={() => {
+            setLocale(code);
+            onAction?.();
+          }}
           className={code === locale ? "active" : ""}
           aria-pressed={locale === code}
         >

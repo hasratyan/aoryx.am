@@ -13,7 +13,11 @@ const initials = (name?: string | null, fallback = "Guest") =>
     .join("")
     .toUpperCase();
 
-export default function AuthActions() {
+type AuthActionsProps = {
+  onAction?: () => void;
+};
+
+export default function AuthActions({ onAction }: AuthActionsProps) {
   const { data: session, status } = useSession();
   const { locale, t } = useLanguage();
   const loading = status === "loading";
@@ -30,7 +34,7 @@ export default function AuthActions() {
   if (session?.user) {
     return (
       <div className="auth-user">
-        <Link href={`/${locale}/profile`} className="auth-profile">
+        <Link href={`/${locale}/profile`} className="auth-profile" onClick={onAction}>
           <div className="avatar">
             {session.user.image ? (
               <Image src={session.user.image} alt={session.user.name || t.auth.signedIn} fill sizes="48px" />
@@ -41,7 +45,10 @@ export default function AuthActions() {
           <div className="auth-name">{session.user.name || t.auth.guestNameFallback}</div>
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: `/${locale}` })}
+          onClick={() => {
+            onAction?.();
+            void signOut({ callbackUrl: `/${locale}` });
+          }}
           type="button"
           aria-label={t.auth.signOut}
           title={t.auth.signOut}
@@ -54,7 +61,10 @@ export default function AuthActions() {
 
   return (
     <button
-      onClick={() => signIn("google")}
+      onClick={() => {
+        onAction?.();
+        void signIn("google");
+      }}
       type="button"
       className="login"
     >

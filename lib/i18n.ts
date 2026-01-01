@@ -116,6 +116,14 @@ export type Translation = {
       lastName: string;
       email: string;
       phone: string;
+      guestTitle: string;
+      guestHint: string;
+      guestEmpty: string;
+      guestRoomLabel: string;
+      guestAdultLabel: string;
+      guestChildLabel: string;
+      guestLeadLabel: string;
+      ageLabel: string;
       billingTitle: string;
       billingHint: string;
       country: string;
@@ -143,6 +151,7 @@ export type Translation = {
       errors: {
         missingHotel: string;
         missingDetails: string;
+        missingGuestDetails: string;
         cardUnavailable: string;
         paymentFailed: string;
       };
@@ -938,6 +947,14 @@ const translations: Record<Locale, Translation> = {
         lastName: "Ազգանուն",
         email: "Էլ․ հասցե",
         phone: "Հեռախոս",
+        guestTitle: "Հյուրերի տվյալներ",
+        guestHint: "Լրացրեք յուրաքանչյուր հյուրի անունը, ազգանունը և տարիքը։",
+        guestEmpty: "Հյուրերի տվյալները կհայտնվեն հյուրանոց ընտրելուց հետո։",
+        guestRoomLabel: "Սենյակ",
+        guestAdultLabel: "Մեծահասակ",
+        guestChildLabel: "Երեխա",
+        guestLeadLabel: "Գլխավոր հյուր",
+        ageLabel: "Տարիք",
         billingTitle: "Վճարման տվյալներ",
         billingHint: "Օգտագործվում է հաշիվների և հաստատման համար։",
         country: "Երկիր",
@@ -965,6 +982,7 @@ const translations: Record<Locale, Translation> = {
         errors: {
           missingHotel: "Խնդրում ենք ընտրել հյուրանոցը շարունակելու համար։",
           missingDetails: "Սենյակների տվյալները բացակայում են։ Խնդրում ենք կրկին ընտրել հյուրանոցը։",
+          missingGuestDetails: "Խնդրում ենք լրացնել բոլոր հյուրերի տվյալները։",
           cardUnavailable: "Քարտով վճարումը դեռ հասանելի չէ։",
           paymentFailed: "Չհաջողվեց սկսել վճարումը։ Խնդրում ենք կրկին փորձել։",
         },
@@ -1942,6 +1960,14 @@ const translations: Record<Locale, Translation> = {
         lastName: "Last name",
         email: "Email",
         phone: "Phone",
+        guestTitle: "Guest details",
+        guestHint: "Add the full name and age for each guest staying in the room.",
+        guestEmpty: "Guest details will appear after you select a hotel room.",
+        guestRoomLabel: "Room",
+        guestAdultLabel: "Adult",
+        guestChildLabel: "Child",
+        guestLeadLabel: "Lead guest",
+        ageLabel: "Age",
         billingTitle: "Billing details",
         billingHint: "Used for invoices and payment verification.",
         country: "Country",
@@ -1970,6 +1996,7 @@ const translations: Record<Locale, Translation> = {
         errors: {
           missingHotel: "Select a hotel to continue.",
           missingDetails: "Room details are missing. Please reselect the hotel.",
+          missingGuestDetails: "Please complete the guest details for all travelers.",
           cardUnavailable: "Card payments are not available yet.",
           paymentFailed: "Failed to start payment. Please try again.",
         },
@@ -2947,6 +2974,14 @@ const translations: Record<Locale, Translation> = {
         lastName: "Фамилия",
         email: "Эл. почта",
         phone: "Телефон",
+        guestTitle: "Данные гостей",
+        guestHint: "Укажите имя, фамилию и возраст каждого гостя.",
+        guestEmpty: "Данные гостей появятся после выбора номера.",
+        guestRoomLabel: "Номер",
+        guestAdultLabel: "Взрослый",
+        guestChildLabel: "Ребенок",
+        guestLeadLabel: "Главный гость",
+        ageLabel: "Возраст",
         billingTitle: "Платежные данные",
         billingHint: "Используется для счетов и проверки платежа.",
         country: "Страна",
@@ -2975,6 +3010,7 @@ const translations: Record<Locale, Translation> = {
         errors: {
           missingHotel: "Выберите отель, чтобы продолжить.",
           missingDetails: "Данные по номерам отсутствуют. Пожалуйста, выберите отель заново.",
+          missingGuestDetails: "Пожалуйста, заполните данные всех гостей.",
           cardUnavailable: "Оплата картой пока недоступна.",
           paymentFailed: "Не удалось начать оплату. Пожалуйста, попробуйте снова.",
         },

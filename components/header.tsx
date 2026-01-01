@@ -14,6 +14,7 @@ export default function Header() {
   const [mobileHeaderHidden, setMobileHeaderHidden] = useState(false);
   const lastScrollYRef = useRef(0);
   const scrollRafRef = useRef<number | null>(null);
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   useEffect(() => {
     const mql = window.matchMedia("(min-width: 768px)");
@@ -154,13 +155,13 @@ export default function Header() {
           <div id={`mobile-menu-${menuId}`} className="header-menu" data-open={mobileMenuOpen ? "true" : "false"}>
             <nav aria-label={t.header.primaryNav}>
               {t.nav.map((item) => (
-                <Link key={item.href} href={`/${locale}/${item.href}`} onClick={() => setMobileMenuOpen(false)}>
+                <Link key={item.href} href={`/${locale}/${item.href}`} onClick={closeMobileMenu}>
                   {item.label}
                 </Link>
               ))}
             </nav>
-            <LanguageSwitcher />
-            <AuthActions />
+            <LanguageSwitcher onAction={closeMobileMenu} />
+            <AuthActions onAction={closeMobileMenu} />
           </div>
         </div>
       </div>
