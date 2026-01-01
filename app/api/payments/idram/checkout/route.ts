@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 import { getPrebookState, getSessionFromCookie } from "@/app/api/aoryx/_shared";
 import { parseBookingPayload, validatePrebookState } from "@/lib/aoryx-booking";
 import { calculateBookingTotal } from "@/lib/booking-total";
-import { convertToAmd, getEffectiveAmdRates } from "@/lib/pricing";
+import { convertToAmd, getAmdRates, getEffectiveAmdRates } from "@/lib/pricing";
 import type { AoryxBookingPayload } from "@/types/aoryx";
 
 export const runtime = "nodejs";
@@ -73,16 +73,63 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid booking total." }, { status: 400 });
     }
 
+    const roomsTotal = payload.rooms.reduce((sum, room) => {
+      const net = room.price.net;
+      const gross = room.price.gross;
+      const price =
+        typeof net === "number" && Number.isFinite(net)
+          ? net
+          : typeof gross === "number" && Number.isFinite(gross)
+            ? gross
+            : 0;
+      return sum + price;
+    }, 0);
+    const transferTotal =
+      typeof payload.transferSelection?.totalPrice === "number" &&
+      Number.isFinite(payload.transferSelection.totalPrice)
+        ? payload.transferSelection.totalPrice
+        : 0;
+    const excursionsTotal =
+      typeof payload.excursions?.totalAmount === "number" &&
+      Number.isFinite(payload.excursions.totalAmount)
+        ? payload.excursions.totalAmount
+        : 0;
+    const insuranceTotal =
+      typeof payload.insurance?.price === "number" && Number.isFinite(payload.insurance.price)
+        ? payload.insurance.price
+        : 0;
+    const flightsTotal =
+      typeof payload.airTickets?.price === "number" && Number.isFinite(payload.airTickets.price)
+        ? payload.airTickets.price
+        : 0;
+
     let amountValue = baseAmount;
     let amountCurrency = payload.currency;
 
     try {
-      const rates = await getEffectiveAmdRates();
-      const converted = convertToAmd(baseAmount, payload.currency, rates);
-      if (converted === null) {
-        throw new Error("Missing exchange rate");
-      }
-      amountValue = Math.round(converted);
+      const [baseRates, hotelRates] = await Promise.all([
+        getAmdRates(),
+        getEffectiveAmdRates(),
+      ]);
+      const convertAmount = (amount: number, currency: string | null | undefined, rates: typeof baseRates) => {
+        if (!Number.isFinite(amount) || amount <= 0) return 0;
+        const converted = convertToAmd(amount, currency, rates);
+        if (converted === null) {
+          throw new Error("Missing exchange rate");
+        }
+        return converted;
+      };
+      const transferCurrency = payload.transferSelection?.pricing?.currency ?? payload.currency;
+      const excursionsCurrency = payload.excursions?.selections?.[0]?.currency ?? payload.currency;
+      const insuranceCurrency = payload.insurance?.currency ?? payload.currency;
+      const flightsCurrency = payload.airTickets?.currency ?? payload.currency;
+      const totalAmd =
+        convertAmount(roomsTotal, payload.currency, hotelRates) +
+        convertAmount(transferTotal, transferCurrency, baseRates) +
+        convertAmount(excursionsTotal, excursionsCurrency, baseRates) +
+        convertAmount(insuranceTotal, insuranceCurrency, baseRates) +
+        convertAmount(flightsTotal, flightsCurrency, baseRates);
+      amountValue = Math.round(totalAmd);
       amountCurrency = "AMD";
     } catch (error) {
       console.error("[Idram][checkout] Failed to convert amount", error);

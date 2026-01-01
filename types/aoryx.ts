@@ -300,6 +300,7 @@ export interface HotelInfo {
 }
 
 export interface AoryxHotelInfoResult {
+  destinationId: string | null;
   systemId: string | null;
   name: string | null;
   rating: number | null;

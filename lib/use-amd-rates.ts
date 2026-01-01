@@ -2,30 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { getJson } from "@/lib/api-helpers";
-
-type AmdRates = {
-  USD: number;
-  EUR: number;
-};
-
-const normalizeCurrency = (currency: string | null | undefined) =>
-  (currency ?? "USD").trim().toUpperCase();
+import { convertToAmd, type AmdRates } from "@/lib/currency";
 
 const isValidRates = (value: AmdRates | null | undefined): value is AmdRates =>
   Boolean(value && Number.isFinite(value.USD) && Number.isFinite(value.EUR));
 
-export const convertToAmd = (
-  amount: number,
-  currency: string | null | undefined,
-  rates: AmdRates
-): number | null => {
-  if (!Number.isFinite(amount)) return null;
-  const normalized = normalizeCurrency(currency);
-  if (normalized === "AMD") return amount;
-  if (normalized === "USD") return amount * rates.USD;
-  if (normalized === "EUR") return amount * rates.EUR;
-  return null;
-};
+export { convertToAmd };
 
 type UseAmdRatesOptions = {
   endpoint?: string;

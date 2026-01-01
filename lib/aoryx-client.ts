@@ -864,8 +864,10 @@ function buildBookingRequest(payload: AoryxBookingPayload): AoryxBookingRequest 
 }
 
 // Extract session ID from response
-function extractSessionId(generalInfo?: { SessionId?: string | null }): string {
-  const sessionId = toStringValue(generalInfo?.SessionId);
+function extractSessionId(generalInfo?: { SessionId?: string | null; [key: string]: unknown }): string {
+  const sessionId = toStringValue(
+    generalInfo?.SessionId ?? generalInfo?.SessionID ?? generalInfo?.sessionId ?? generalInfo?.sessionID
+  );
   if (!sessionId) {
     throw new AoryxServiceError("No session ID in search response", "MISSING_SESSION_ID");
   }
@@ -1151,7 +1153,23 @@ export async function hotelInfo(hotelCode: string): Promise<AoryxHotelInfoResult
   const info = response.HotelInformation ?? null;
   if (!info) return null;
 
+  const rawDestinationId = toStringValue(
+    (info as Record<string, unknown>).GiDestinationId ??
+      (info as Record<string, unknown>).GIDestinationId ??
+      (info as Record<string, unknown>).GiDestinationID ??
+      (info as Record<string, unknown>).DestinationId ??
+      (info as Record<string, unknown>).DestinationID ??
+      (info.Address as Record<string, unknown> | null | undefined)?.CityCode ??
+      (info.Address as Record<string, unknown> | null | undefined)?.CityId ??
+      (info.Address as Record<string, unknown> | null | undefined)?.CityID
+  );
+  const destinationId =
+    rawDestinationId && rawDestinationId !== "0" && rawDestinationId !== "0-0"
+      ? normalizeParentDestinationId(rawDestinationId)
+      : null;
+
   return {
+    destinationId,
     systemId: toStringValue(info.SystemId),
     name: toStringValue(info.Name),
     rating: toNumber(info.Rating),

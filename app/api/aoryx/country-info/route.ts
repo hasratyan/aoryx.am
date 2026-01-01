@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       typeof body.countryCode === "string" && body.countryCode.trim().length === 2
         ? body.countryCode.trim().toUpperCase()
         : "AE";
+    const includeAll = Boolean(body.includeAll);
 
     if (!AORYX_API_KEY) {
       throw new AoryxClientError("Missing AORYX_API_KEY configuration");
@@ -108,6 +109,20 @@ export async function POST(request: NextRequest) {
 
     const items = data.data ?? [];
 
+    const rawDestinations = items
+      .map((item) => {
+        const rawId = item.key;
+        if (!rawId) return null;
+        const normalizedId = normalizeParentDestinationId(rawId);
+        if (!normalizedId) return null;
+        return {
+          id: normalizedId,
+          name: item.value ?? normalizedId,
+          rawId,
+        };
+      })
+      .filter((dest): dest is { id: string; name: string; rawId: string } => Boolean(dest));
+
     // Dedupe by normalized parent ID, preferring trailing-zero entries (like "160-0" over "160")
     const destinationsByParent = new Map<
       string,
@@ -145,7 +160,11 @@ export async function POST(request: NextRequest) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    return NextResponse.json({ countryCode, destinations });
+    return NextResponse.json({
+      countryCode,
+      destinations,
+      ...(includeAll ? { rawDestinations } : {}),
+    });
   } catch (error) {
     console.error("Country info error:", error);
 

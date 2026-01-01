@@ -10,10 +10,15 @@ import { postJson } from "@/lib/api-helpers";
 import { parseSearchParams } from "@/lib/search-query";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
-import { convertToAmd, useAmdRates, type AmdRates } from "@/lib/use-amd-rates";
+import { formatCurrencyAmount, normalizeAmount, type AmdRates } from "@/lib/currency";
+import { useAmdRates } from "@/lib/use-amd-rates";
 import Image from "next/image";
 import ImageGallery from "./ImageGallery";
-import { updatePackageBuilderState } from "@/lib/package-builder-state";
+import {
+  PACKAGE_BUILDER_SESSION_MS,
+  updatePackageBuilderState,
+  type PackageBuilderHotelSelection,
+} from "@/lib/package-builder-state";
 import type {
   AoryxBookingPayload,
   AoryxBookingResult,
@@ -30,20 +35,6 @@ import type {
 
 function toFinite(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function formatPrice(value: number | null, currency: string | null, locale: string): string | null {
-  if (value === null || value === undefined) return null;
-  const safeCurrency = (currency ?? "USD").trim().toUpperCase();
-  try {
-    const formattedNumber = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
-    if (safeCurrency === "AMD") return `${formattedNumber} ֏`;
-    if (safeCurrency === "USD") return `$${formattedNumber}`;
-    if (safeCurrency === "EUR") return `€${formattedNumber}`;
-    return `${formattedNumber} ${safeCurrency}`;
-  } catch {
-    return `${value} ${safeCurrency} `;
-  }
 }
 
 const toNumberValue = (value: unknown): number | null => {
@@ -168,6 +159,19 @@ type PrebookSummary = {
   rooms?: PrebookRoomSnapshot[];
 };
 
+type DestinationApiResponse = {
+  destinations?: Array<{
+    id: string;
+    name: string;
+    rawId?: string;
+  }>;
+  rawDestinations?: Array<{
+    id: string;
+    name: string;
+    rawId?: string;
+  }>;
+};
+
 type BookingPayloadInput = Omit<AoryxBookingPayload, "groupCode" | "sessionId"> & {
   groupCode?: number;
   sessionId?: string;
@@ -184,14 +188,12 @@ type HotelClientProps = {
   initialHotelError?: string | null;
   initialRoomsError?: string | null;
   initialFallbackCoordinates?: { lat: number; lon: number } | null;
-  initialAmdRates?: { USD: number; EUR: number } | null;
-  initialTransferRates?: { USD: number; EUR: number } | null;
+  initialAmdRates?: AmdRates | null;
   initialTransferOptions?: AoryxTransferRate[] | null;
   initialTransferError?: string | null;
   initialExcursionOptions?: AoryxExcursionTicket[] | null;
   initialExcursionError?: string | null;
   initialExcursionFee?: number | null;
-  initialExcursionRates?: { USD: number; EUR: number } | null;
 };
 
 type IdramCheckoutResponse = {
@@ -525,13 +527,11 @@ export default function HotelClient({
   initialRoomsError = null,
   initialFallbackCoordinates = null,
   initialAmdRates,
-  initialTransferRates,
   initialTransferOptions = null,
   initialTransferError = null,
   initialExcursionOptions = null,
   initialExcursionError = null,
   initialExcursionFee = null,
-  initialExcursionRates = null,
 }: HotelClientProps) {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -548,30 +548,27 @@ export default function HotelClient({
   };
   const { data: session, status: authStatus } = useSession();
   const isSignedIn = Boolean(session?.user);
-  const { rates: amdRates } = useAmdRates(initialAmdRates);
-  const { rates: transferRates } = useAmdRates(initialTransferRates, {
+  const { rates: hotelRates } = useAmdRates(initialAmdRates);
+  const { rates: addonRates } = useAmdRates(undefined, {
     endpoint: "/api/utils/exchange-rates?scope=transfers",
-  });
-  const { rates: excursionRates } = useAmdRates(initialExcursionRates, {
-    endpoint: "/api/utils/exchange-rates?scope=excursions",
   });
 
   const formatDisplayPrice = useCallback(
-    (
-      amount: number | null | undefined,
-      currency: string | null | undefined,
-      ratesOverride?: AmdRates | null
-    ) => {
-      if (amount === null || amount === undefined) return null;
-      const baseCurrency = currency ?? "USD";
-      const activeRates = ratesOverride === undefined ? amdRates : ratesOverride;
-      const converted = activeRates ? convertToAmd(amount, baseCurrency, activeRates) : null;
-      const displayAmount = converted ?? amount;
-      if (displayAmount === null) return null;
-      const displayCurrency = activeRates && converted !== null ? "AMD" : baseCurrency;
-      return formatPrice(displayAmount, displayCurrency, intlLocale);
+    (amount: number | null | undefined, currency: string | null | undefined) => {
+      const normalized = normalizeAmount(amount, currency, hotelRates);
+      if (!normalized) return null;
+      return formatCurrencyAmount(normalized.amount, normalized.currency, intlLocale);
     },
-    [amdRates, intlLocale]
+    [hotelRates, intlLocale]
+  );
+
+  const formatAddonPrice = useCallback(
+    (amount: number | null | undefined, currency: string | null | undefined) => {
+      const normalized = normalizeAmount(amount, currency, addonRates);
+      if (!normalized) return null;
+      return formatCurrencyAmount(normalized.amount, normalized.currency, intlLocale);
+    },
+    [addonRates, intlLocale]
   );
 
   const hotelCode = Array.isArray(params.code) ? params.code[0] : params.code;
@@ -585,7 +582,8 @@ export default function HotelClient({
       invalidRooms: t.search.errors.invalidRooms,
     });
   }, [searchParams, hotelCode, t]);
-  const destinationCode = parsed.payload?.destinationCode ?? searchParams.get("destinationCode") ?? undefined;
+  const destinationCodeFromQuery =
+    parsed.payload?.destinationCode ?? searchParams.get("destinationCode") ?? undefined;
 
   const [hotelInfo, setHotelInfo] = useState<AoryxHotelInfoResult | null>(initialHotelInfo);
   const [fallbackCoordinates, setFallbackCoordinates] = useState<{ lat: number; lon: number } | null>(
@@ -600,6 +598,8 @@ export default function HotelClient({
   const [bookingPreparing, setBookingPreparing] = useState(false);
   const [bookingResult, setBookingResult] = useState<AoryxBookingResult | null>(null);
   const [confirmPriceChange, setConfirmPriceChange] = useState(false);
+  const [pendingHotelSelection, setPendingHotelSelection] =
+    useState<PackageBuilderHotelSelection | null>(null);
   const [prebookingKey, setPrebookingKey] = useState<string | null>(null);
   const [showTransfers, setShowTransfers] = useState(false);
   const [showExcursions, setShowExcursions] = useState(false);
@@ -651,8 +651,11 @@ export default function HotelClient({
   const [favoritePending, setFavoritePending] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [error, setError] = useState<string | null>(initialHotelError);
+  const [resolvedDestinationCode, setResolvedDestinationCode] = useState<string | null>(null);
   const amenitiesRef = useRef<HTMLDivElement | null>(null);
   const bookingPopoverRef = useRef<HTMLDivElement | null>(null);
+  const destinationCode =
+    destinationCodeFromQuery ?? hotelInfo?.destinationId ?? resolvedDestinationCode ?? undefined;
   const [amenitiesExpanded, setAmenitiesExpanded] = useState(false);
   const [amenitiesOverflow, setAmenitiesOverflow] = useState(false);
   const finalError = error;
@@ -678,6 +681,7 @@ export default function HotelClient({
     setBookingError(null);
     setBookingResult(null);
     setConfirmPriceChange(false);
+    setPendingHotelSelection(null);
     setPrebookingKey(null);
     setShowTransfers(false);
     setShowExcursions(false);
@@ -967,27 +971,58 @@ export default function HotelClient({
     typeof insuranceSelection?.price === "number" ? insuranceSelection.price : 0;
   const flightsTotal =
     typeof flightRequest.price === "number" ? flightRequest.price : 0;
-  const packageTotal =
-    roomsTotal !== null
-      ? roomsTotal + transferTotalPrice + excursionsTotal + insuranceTotal + flightsTotal
-      : null;
+  const transferCurrency = selectedTransfer?.pricing?.currency ?? bookingCurrency;
+  const excursionsCurrency = excursionSelectionsPayload?.selections[0]?.currency ?? bookingCurrency;
+  const insuranceCurrency = insuranceSelection?.currency ?? bookingCurrency;
+  const flightsCurrency = flightRequest.currency ?? bookingCurrency;
   const transferDisplayTotal =
     transferTotalPrice > 0
-      ? formatDisplayPrice(
-          transferTotalPrice,
-          selectedTransfer?.pricing?.currency ?? bookingCurrency,
-          transferRates ?? null
-        )
+      ? formatAddonPrice(transferTotalPrice, transferCurrency)
       : null;
-  const excursionRatesForDisplay = excursionRates ?? amdRates;
   const excursionsDisplayTotal =
     excursionsTotal > 0
-      ? formatDisplayPrice(
-          excursionsTotal,
-          excursionSelectionsPayload?.selections[0]?.currency ?? bookingCurrency,
-          excursionRatesForDisplay
-        )
+      ? formatAddonPrice(excursionsTotal, excursionsCurrency)
       : null;
+  const packageDisplayTotal = useMemo(() => {
+    if (roomsTotal === null) return null;
+    const totals: { amount: number; currency: string }[] = [];
+    const addAmount = (
+      amount: number | null | undefined,
+      currency: string | null | undefined,
+      rates: typeof hotelRates
+    ) => {
+      if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) return;
+      const normalized = normalizeAmount(amount, currency, rates);
+      if (!normalized) return;
+      totals.push({ amount: normalized.amount, currency: normalized.currency });
+    };
+
+    addAmount(roomsTotal, bookingCurrency, hotelRates);
+    addAmount(transferTotalPrice, transferCurrency, addonRates);
+    addAmount(excursionsTotal, excursionsCurrency, addonRates);
+    addAmount(insuranceTotal, insuranceCurrency, addonRates);
+    addAmount(flightsTotal, flightsCurrency, addonRates);
+
+    if (totals.length === 0) return null;
+    const currency = totals[0].currency;
+    if (totals.some((item) => item.currency !== currency)) return null;
+    const totalAmount = totals.reduce((sum, item) => sum + item.amount, 0);
+    return formatCurrencyAmount(totalAmount, currency, intlLocale);
+  }, [
+    roomsTotal,
+    bookingCurrency,
+    hotelRates,
+    transferTotalPrice,
+    transferCurrency,
+    addonRates,
+    excursionsTotal,
+    excursionsCurrency,
+    insuranceTotal,
+    insuranceCurrency,
+    flightsTotal,
+    flightsCurrency,
+    intlLocale,
+  ]);
 
   const transferSelectionPayload = useMemo<AoryxTransferSelection | null>(() => {
     if (!showTransfers || !selectedTransfer) return null;
@@ -1214,8 +1249,57 @@ export default function HotelClient({
     children: room.childrenAges.length,
     childAges: room.childrenAges,
   }));
+  const resolveDestinationCode = useCallback(async () => {
+    if (destinationCodeFromQuery) return destinationCodeFromQuery;
+    if (hotelInfo?.destinationId) return hotelInfo.destinationId;
+    if (resolvedDestinationCode) return resolvedDestinationCode;
+    const cityName = hotelInfo?.address?.cityName?.trim();
+    if (!cityName) return null;
+    const countryCode = hotelInfo?.address?.countryCode?.trim() || "AE";
+
+    try {
+      const data = await postJson<DestinationApiResponse>("/api/aoryx/country-info", {
+        countryCode,
+        includeAll: true,
+      });
+      const destinations = Array.isArray(data.rawDestinations) && data.rawDestinations.length > 0
+        ? data.rawDestinations
+        : Array.isArray(data.destinations)
+          ? data.destinations
+          : [];
+      if (destinations.length === 0) return null;
+      const normalize = (value: string) =>
+        value
+          .trim()
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s-]/gu, "")
+          .replace(/\s+/g, " ");
+      const normalizedCity = normalize(cityName);
+      const exact = destinations.find((dest) => normalize(dest.name) === normalizedCity);
+      const partial =
+        exact ??
+        destinations.find((dest) => {
+          const normalizedName = normalize(dest.name);
+          return normalizedCity.includes(normalizedName) || normalizedName.includes(normalizedCity);
+        });
+      const code = partial?.rawId ?? partial?.id ?? null;
+      if (code) {
+        setResolvedDestinationCode(code);
+      }
+      return code;
+    } catch (error) {
+      console.error("[Aoryx][destination] Failed to resolve destination code", error);
+      return null;
+    }
+  }, [
+    destinationCodeFromQuery,
+    hotelInfo?.address?.cityName,
+    hotelInfo?.address?.countryCode,
+    hotelInfo?.destinationId,
+    resolvedDestinationCode,
+  ]);
   const handleSearchSubmit = useCallback(
-    (payload: { hotelCode?: string }, params: URLSearchParams) => {
+    async (payload: { hotelCode?: string }, params: URLSearchParams) => {
       setRoomsLoading(true);
       setRoomsError(null);
       setRoomOptions([]);
@@ -1223,11 +1307,19 @@ export default function HotelClient({
       if (resolvedHotelCode) {
         params.set("hotelCode", resolvedHotelCode);
       }
+      if (!params.get("destinationCode")) {
+        const resolvedDestination = await resolveDestinationCode();
+        if (resolvedDestination) {
+          params.set("destinationCode", resolvedDestination);
+        }
+      } else if (destinationCode) {
+        params.set("destinationCode", destinationCode);
+      }
       const query = params.toString();
       const nextHref = query ? `${pathname}?${query}` : pathname;
       router.replace(nextHref);
     },
-    [hotelCode, pathname, router]
+    [destinationCode, hotelCode, pathname, resolveDestinationCode, router]
   );
 
   useEffect(() => {
@@ -1429,37 +1521,42 @@ export default function HotelClient({
     []
   );
 
-  const handlePrebook = useCallback(
-    async (group: { key: string; option: AoryxRoomOption; items: AoryxRoomOption[] }) => {
-      if (!hotelCode) return;
-
-      const rateKeys = group.items
-        .map((item) => item.rateKey)
-        .filter((key): key is string => typeof key === "string" && key.length > 0);
-      if (rateKeys.length === 0) {
-        setBookingError(t.hotel.errors.missingRateKeys);
-        return;
-      }
-
-      const selectionDestinationName = hotelInfo?.address?.cityName ?? null;
-      const selectionDestinationCode = destinationCode ?? null;
+  const applyHotelSelection = useCallback(
+    (nextHotel: PackageBuilderHotelSelection) => {
       updatePackageBuilderState((prev) => {
-        const nextHotel = {
-          selected: true,
-          hotelCode,
-          hotelName: hotelInfo?.name ?? null,
-          destinationName: selectionDestinationName,
-          destinationCode: selectionDestinationCode,
-        };
+        const now = Date.now();
+        const nextHotelKey = [
+          nextHotel.hotelCode ?? "",
+          nextHotel.destinationCode ?? "",
+          nextHotel.checkInDate ?? "",
+          nextHotel.checkOutDate ?? "",
+          nextHotel.roomCount ?? "",
+          nextHotel.guestCount ?? "",
+          nextHotel.selectionKey ?? "",
+        ].join("|");
+        const prevHotelKey = prev.hotel
+          ? [
+              prev.hotel.hotelCode ?? "",
+              prev.hotel.destinationCode ?? "",
+              prev.hotel.checkInDate ?? "",
+              prev.hotel.checkOutDate ?? "",
+              prev.hotel.roomCount ?? "",
+              prev.hotel.guestCount ?? "",
+              prev.hotel.selectionKey ?? "",
+            ].join("|")
+          : "";
+        const prevSessionActive =
+          typeof prev.sessionExpiresAt === "number" && prev.sessionExpiresAt > now;
+        const shouldStartSession = !prevSessionActive || prevHotelKey !== nextHotelKey;
         const shouldClearTransferByName =
-          selectionDestinationName &&
+          nextHotel.destinationName &&
           prev.transfer?.destinationName &&
-          prev.transfer.destinationName !== selectionDestinationName;
+          prev.transfer.destinationName !== nextHotel.destinationName;
         const shouldClearTransferByCode =
-          !selectionDestinationName &&
-          selectionDestinationCode &&
+          !nextHotel.destinationName &&
+          nextHotel.destinationCode &&
           prev.transfer?.destinationCode &&
-          prev.transfer.destinationCode !== selectionDestinationCode;
+          prev.transfer.destinationCode !== nextHotel.destinationCode;
         const shouldClearTransfer = Boolean(
           shouldClearTransferByName || shouldClearTransferByCode
         );
@@ -1467,9 +1564,105 @@ export default function HotelClient({
           ...prev,
           hotel: nextHotel,
           transfer: shouldClearTransfer ? undefined : prev.transfer,
-          updatedAt: Date.now(),
+          sessionExpiresAt: shouldStartSession
+            ? now + PACKAGE_BUILDER_SESSION_MS
+            : prev.sessionExpiresAt,
+          updatedAt: now,
         };
       });
+    },
+    [updatePackageBuilderState]
+  );
+
+  const handlePrebook = useCallback(
+    async (group: {
+      key: string;
+      option: AoryxRoomOption;
+      items: AoryxRoomOption[];
+      totalPrice: number | null;
+      currency: string | null;
+    }) => {
+      if (!hotelCode) return;
+
+      const rateKeys = group.items
+        .map((item) => item.rateKey)
+        .filter((key): key is string => typeof key === "string" && key.length > 0);
+      if (rateKeys.length === 0 || rateKeys.length !== group.items.length) {
+        setBookingError(t.hotel.errors.missingRateKeys);
+        return;
+      }
+
+      const selectionDestinationName = hotelInfo?.address?.cityName ?? null;
+      const selectionDestinationCode = destinationCode ?? null;
+      const selectionCountryCode = parsed.payload?.countryCode ?? null;
+      const selectionNationality = parsed.payload?.nationality ?? null;
+      const selectionRooms = parsed.payload?.rooms ?? null;
+      const selectionKey = rateKeys.join("|");
+      const selectionPrice =
+        typeof group.totalPrice === "number" && Number.isFinite(group.totalPrice)
+          ? group.totalPrice
+          : group.items.every((item) => typeof item.totalPrice === "number" && Number.isFinite(item.totalPrice))
+            ? group.items.reduce((sum, item) => sum + (item.totalPrice ?? 0), 0)
+            : null;
+      const selectionCurrency = group.currency ?? fallbackCurrency ?? parsed.payload?.currency ?? null;
+      const perRoomFallback =
+        typeof selectionPrice === "number" && Number.isFinite(selectionPrice) && group.items.length > 0
+          ? selectionPrice / group.items.length
+          : null;
+      const selectionRoomSelections = group.items.map((item, index) => {
+        const gross = isFiniteNumber(item.price?.gross)
+          ? item.price?.gross
+          : isFiniteNumber(item.totalPrice)
+            ? item.totalPrice
+            : perRoomFallback;
+        const net = isFiniteNumber(item.price?.net)
+          ? item.price?.net
+          : isFiniteNumber(item.totalPrice)
+            ? item.totalPrice
+            : perRoomFallback;
+        const tax = isFiniteNumber(item.price?.tax) ? item.price?.tax : 0;
+        const fallbackRoomIdentifier =
+          typeof selectionRooms?.[index]?.roomIdentifier === "number"
+            ? selectionRooms[index].roomIdentifier
+            : index + 1;
+        return {
+          roomIdentifier:
+            typeof item.roomIdentifier === "number" ? item.roomIdentifier : fallbackRoomIdentifier,
+          rateKey: item.rateKey ?? "",
+          price: {
+            gross: gross ?? null,
+            net: net ?? null,
+            tax,
+          },
+        };
+      });
+      const roomCount = parsed.payload?.rooms?.length ?? null;
+      const guestCount = parsed.payload?.rooms
+        ? parsed.payload.rooms.reduce(
+            (sum, room) => sum + room.adults + (Array.isArray(room.childrenAges) ? room.childrenAges.length : 0),
+            0
+          )
+        : null;
+      const checkInDate = parsed.payload?.checkInDate ?? null;
+      const checkOutDate = parsed.payload?.checkOutDate ?? null;
+      const nextHotel: PackageBuilderHotelSelection = {
+        selected: true,
+        hotelCode,
+        hotelName: hotelInfo?.name ?? null,
+        destinationName: selectionDestinationName,
+        destinationCode: selectionDestinationCode,
+        countryCode: selectionCountryCode,
+        nationality: selectionNationality,
+        checkInDate,
+        checkOutDate,
+        roomCount,
+        guestCount,
+        rooms: selectionRooms,
+        roomSelections: selectionRoomSelections,
+        price: selectionPrice,
+        currency: selectionCurrency,
+        selectionKey,
+      };
 
       if (authStatus === "loading") {
         setBookingError(t.hotel.errors.checkingSignIn);
@@ -1492,6 +1685,7 @@ export default function HotelClient({
       setBookingOpen(false);
       setBookingGuests([]);
       setActivePrebook(null);
+      setPendingHotelSelection(null);
 
       try {
         const result = await postJson<PrebookSummary>("/api/aoryx/prebook", {
@@ -1512,6 +1706,7 @@ export default function HotelClient({
           isPriceChanged: result.isPriceChanged ?? null,
           currency: result.currency ?? prebookCurrency ?? null,
         });
+        setPendingHotelSelection(nextHotel);
         setBookingGuests(guests);
         setBookingOpen(true);
       } catch (err) {
@@ -1530,7 +1725,12 @@ export default function HotelClient({
       hotelInfo?.address?.cityName,
       hotelInfo?.name,
       isSignedIn,
+      parsed.payload?.checkInDate,
+      parsed.payload?.checkOutDate,
+      parsed.payload?.countryCode,
+      parsed.payload?.nationality,
       parsed.payload?.currency,
+      parsed.payload?.rooms,
       pathname,
       roomDetailsPayload?.rooms,
       searchParams,
@@ -1545,6 +1745,7 @@ export default function HotelClient({
     setActivePrebook(null);
     setBookingGuests([]);
     setConfirmPriceChange(false);
+    setPendingHotelSelection(null);
     setBookingLoading(false);
     setBookingPreparing(false);
     setShowTransfers(false);
@@ -1574,6 +1775,13 @@ export default function HotelClient({
       notes: "",
     });
   }, []);
+
+  const handleSelectRoom = useCallback(() => {
+    if (!pendingHotelSelection) return;
+    applyHotelSelection(pendingHotelSelection);
+    setPendingHotelSelection(null);
+    handleCloseBooking();
+  }, [applyHotelSelection, handleCloseBooking, pendingHotelSelection]);
 
   const handleBook = useCallback(async () => {
     if (!activePrebook || !hotelCode) return;
@@ -1906,6 +2114,7 @@ export default function HotelClient({
                   initialDateRange={initialDateRange}
                   initialRooms={initialRooms}
                   showRoomCount
+                  isSearchPending={roomsLoading}
                   onSubmitSearch={handleSearchSubmit}
                 />
               </div>
@@ -1915,7 +2124,7 @@ export default function HotelClient({
           {!finalError && (
             <div className="room-options">
               <div className="container">
-                {roomDetailsPayload && roomsLoading && (
+                {roomsLoading && (
                   <Loader text={t.hotel.roomOptions.loading} />
                 )}
                 {roomDetailsPayload && !roomsLoading && roomsError && (
@@ -2114,65 +2323,12 @@ export default function HotelClient({
                       {t.hotel.booking.priceChangeWarning}
                     </p>
                   )}
-                  {activePrebook?.isPriceChanged && (
-                    <label className="booking-confirm">
-                      <input
-                        type="checkbox"
-                        checked={confirmPriceChange}
-                        onChange={(event) => setConfirmPriceChange(event.target.checked)}
-                      />
-                      {t.hotel.booking.priceChangeConfirm}
-                    </label>
-                  )}
                   {bookingGuests.map((room) => (
                     <fieldset key={room.roomIdentifier} className="booking-room">
                       <legend>
                         Room {room.roomIdentifier}
                         {room.roomName ? ` · ${room.roomName}` : ""}
                       </legend>
-                      {room.guests.map((guest) => (
-                        <div key={guest.id} className="booking-guest">
-                          <select
-                            value={guest.title}
-                            onChange={(event) =>
-                              updateGuestField(room.roomIdentifier, guest.id, "title", event.target.value)
-                            }
-                          >
-                            <option value="Mr.">{t.hotel.booking.titles.mr}</option>
-                            <option value="Ms.">{t.hotel.booking.titles.ms}</option>
-                            <option value="Mrs.">{t.hotel.booking.titles.mrs}</option>
-                            {guest.type === "Child" && (
-                              <option value="Master">{t.hotel.booking.titles.master}</option>
-                            )}
-                          </select>
-                          <input
-                            type="text"
-                            placeholder={t.hotel.booking.firstNamePlaceholder}
-                            value={guest.firstName}
-                            onChange={(event) =>
-                              updateGuestField(room.roomIdentifier, guest.id, "firstName", event.target.value)
-                            }
-                          />
-                          <input
-                            type="text"
-                            placeholder={t.hotel.booking.lastNamePlaceholder}
-                            value={guest.lastName}
-                            onChange={(event) =>
-                              updateGuestField(room.roomIdentifier, guest.id, "lastName", event.target.value)
-                            }
-                          />
-                          <input
-                            type="number"
-                            min={guest.type === "Adult" ? 18 : 0}
-                            max={guest.type === "Adult" ? 99 : 17}
-                            value={guest.age}
-                            readOnly={guest.type === "Child"}
-                            onChange={(event) =>
-                              updateGuestField(room.roomIdentifier, guest.id, "age", event.target.value)
-                            }
-                          />
-                        </div>
-                      ))}
                       <div className="booking-room-details">
                         <div className="booking-detail-grid">
                           {room.price && (
@@ -2294,538 +2450,7 @@ export default function HotelClient({
                       </div>
                     </fieldset>
                   ))}
-                  <section className="booking-addons">
-                    <div className="booking-addons-header">
-                      <div>
-                        <h3>{t.hotel.addons.title}</h3>
-                        <p>{t.hotel.addons.subtitle}</p>
-                      </div>
-                      <span className="booking-addons-chip">{t.hotel.addons.badge}</span>
-                    </div>
-                    <div className="booking-addons-grid">
-                      <button
-                        type="button"
-                        className={`transfers addon-card${showTransfers ? " active" : ""}`}
-                        onClick={() => setShowTransfers((prev) => !prev)}
-                        aria-pressed={showTransfers}
-                      >
-                        <div className="addon-card-main">
-                          <span className="material-symbols-rounded" aria-hidden="true">
-                            airport_shuttle
-                          </span>
-                          <div>
-                            <h4>{t.hotel.addons.transfers.title}</h4>
-                            <p>{t.hotel.addons.transfers.description}</p>
-                          </div>
-                        </div>
-                        <div className="addon-card-meta">
-                          {transferDisplayTotal && <strong>{transferDisplayTotal}</strong>}
-                          <span className="addon-card-action">
-                            {showTransfers ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
-                          </span>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        className={`excursions addon-card${showExcursions ? " active" : ""}`}
-                        onClick={() => setShowExcursions((prev) => !prev)}
-                        aria-pressed={showExcursions}
-                      >
-                        <div className="addon-card-main">
-                          <span className="material-symbols-rounded" aria-hidden="true">
-                            attractions
-                          </span>
-                          <div>
-                            <h4>{t.hotel.addons.excursions.title}</h4>
-                            <p>{t.hotel.addons.excursions.description}</p>
-                          </div>
-                        </div>
-                        <div className="addon-card-meta">
-                          {excursionsDisplayTotal && <strong>{excursionsDisplayTotal}</strong>}
-                          <span className="addon-card-action">
-                            {showExcursions ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
-                          </span>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        className={`insurance addon-card${showInsurance ? " active" : ""}`}
-                        onClick={() => setShowInsurance((prev) => !prev)}
-                        aria-pressed={showInsurance}
-                      >
-                        <div className="addon-card-main">
-                          <span className="material-symbols-rounded" aria-hidden="true">
-                            shield_with_heart
-                          </span>
-                          <div>
-                            <h4>{t.hotel.addons.insurance.title}</h4>
-                            <p>{t.hotel.addons.insurance.description}</p>
-                          </div>
-                        </div>
-                        <div className="addon-card-meta">
-                          {insuranceSelection?.planName && <strong>{insuranceSelection.planName}</strong>}
-                          <span className="addon-card-action">
-                            {showInsurance ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
-                          </span>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        className={`flights addon-card${showFlights ? " active" : ""}`}
-                        onClick={() => setShowFlights((prev) => !prev)}
-                        aria-pressed={showFlights}
-                      >
-                        <div className="addon-card-main">
-                          <span className="material-symbols-rounded" aria-hidden="true">
-                            flight
-                          </span>
-                          <div>
-                            <h4>{t.hotel.addons.flights.title}</h4>
-                            <p>{t.hotel.addons.flights.description}</p>
-                          </div>
-                        </div>
-                        <div className="addon-card-meta">
-                          {flightRequestPayload && <strong>{t.hotel.addons.status.requested}</strong>}
-                          <span className="addon-card-action">
-                            {showFlights ? t.hotel.addons.actions.remove : t.hotel.addons.actions.add}
-                          </span>
-                        </div>
-                      </button>
-                    </div>
-
-                    {showTransfers && (
-                      <div className="addon-panel transfer-panel">
-                        <div className="addon-panel-head">
-                          <h4>
-                            <span className="material-symbols-rounded" aria-hidden="true">
-                              airport_shuttle
-                            </span>
-                            {t.hotel.addons.transfers.panelTitle}
-                          </h4>
-                          <div className="addon-panel-meta">
-                            <span className="addon-pill">
-                              <span className="material-symbols-rounded" aria-hidden="true">
-                                group
-                              </span>
-                              {transferPaxCount ?? "—"} {t.hotel.addons.transfers.paxLabel}
-                            </span>
-                            <label className="addon-toggle">
-                              <input
-                                type="checkbox"
-                                checked={includeReturnTransfer}
-                                onChange={(event) => setIncludeReturnTransfer(event.target.checked)}
-                              />
-                              <span>{t.hotel.addons.transfers.includeReturn}</span>
-                            </label>
-                          </div>
-                        </div>
-                        {transferLoading && (
-                          <p className="addon-state">{t.hotel.addons.transfers.loading}</p>
-                        )}
-                        {!transferLoading && transferError && (
-                          <p className="addon-state error">{transferError}</p>
-                        )}
-                        {!transferLoading && !transferError && transferOptionsWithId.length === 0 && (
-                          <p className="addon-state">{t.hotel.addons.transfers.noOptions}</p>
-                        )}
-                        {!transferLoading && !transferError && transferOptionsWithId.length > 0 && (
-                          <div className="transfer-options">
-                            {transferOptionsWithId.map((transfer) => {
-                              const id = transfer.id;
-                              const isSelected = selectedTransferId === id;
-                              const chargeType = transfer.pricing?.chargeType ?? "PER_PAX";
-                              const minPax = transfer.paxRange?.minPax ?? 1;
-                              const paxForCalc =
-                                chargeType === "PER_PAX"
-                                  ? Math.max(transferPaxCount ?? minPax, minPax)
-                                  : 1;
-                              const vehicleQty = transferVehicleQuantity[id] ?? 1;
-                              const multiplier = chargeType === "PER_PAX" ? paxForCalc : vehicleQty;
-                              const oneWay = toNumberValue(transfer.pricing?.oneWay) ?? 0;
-                              const perDirection = oneWay * multiplier;
-                              const totalPrice = includeReturnTransfer ? perDirection * 2 : perDirection;
-                              const priceCurrency = transfer.pricing?.currency ?? bookingCurrency;
-                              const flightDetails = getFlightDetails(id);
-                              return (
-                                <div key={id} className={`transfer-option${isSelected ? " selected" : ""}`}>
-                                  <label className="transfer-option-card">
-                                    <input
-                                      type="radio"
-                                      name="transfer-option"
-                                      checked={isSelected}
-                                      onChange={() => setSelectedTransferId(id)}
-                                    />
-                                    <div>
-                                      <div className="transfer-badges">
-                                        <span className="primary">{transfer.transferType ?? "Transfer"}</span>
-                                        <span className="subtle">
-                                          {chargeType === "PER_PAX"
-                                            ? t.hotel.addons.transfers.perPax
-                                            : t.hotel.addons.transfers.perVehicle}
-                                        </span>
-                                        {transfer.bothDirections && (
-                                          <span className="subtle">{t.hotel.addons.transfers.bothWays}</span>
-                                        )}
-                                      </div>
-                                      <div className="transfer-route">
-                                        <b>{transfer.origin?.name ?? transfer.origin?.locationCode}</b>
-                                        <span className="material-symbols-rounded" aria-hidden="true">
-                                          arrow_forward
-                                        </span>
-                                        <b>{transfer.destination?.name ?? transfer.destination?.locationCode}</b>
-                                      </div>
-                                      <div className="transfer-price">
-                                        <strong>
-                                          {formatDisplayPrice(totalPrice, priceCurrency, transferRates ?? null) ??
-                                            t.common.contact}
-                                        </strong>
-                                        <span>
-                                          {includeReturnTransfer
-                                            ? t.hotel.addons.transfers.returnTotal
-                                            : t.hotel.addons.transfers.oneWayTotal}
-                                        </span>
-                                      </div>
-                                      <div className="transfer-meta">
-                                        {transfer.vehicle?.name && (
-                                          <span>
-                                            <span className="material-symbols-rounded" aria-hidden="true">
-                                              directions_car
-                                            </span>
-                                            {transfer.vehicle.name}
-                                          </span>
-                                        )}
-                                        {transfer.paxRange?.minPax && transfer.paxRange?.maxPax && (
-                                          <span>
-                                            <span className="material-symbols-rounded" aria-hidden="true">
-                                              groups
-                                            </span>
-                                            {transfer.paxRange.minPax} - {transfer.paxRange.maxPax} {t.hotel.addons.transfers.paxLabel}
-                                          </span>
-                                        )}
-                                        {transfer.vehicle?.maxBags ? (
-                                          <span>
-                                            <span className="material-symbols-rounded" aria-hidden="true">
-                                              work
-                                            </span>
-                                            {transfer.vehicle.maxBags} {t.hotel.addons.transfers.bagsLabel}
-                                          </span>
-                                        ) : null}
-                                      </div>
-                                    </div>
-                                  </label>
-                                  {isSelected && (
-                                    <div className="transfer-details">
-                                      <div className="addon-field">
-                                        <span>{t.hotel.addons.transfers.flightNumber}</span>
-                                        <input
-                                          type="text"
-                                          value={flightDetails.flightNumber}
-                                          onChange={(event) =>
-                                            updateFlightDetails(id, "flightNumber", event.target.value)
-                                          }
-                                          className={transferFieldErrors[id]?.flightNumber ? "error" : undefined}
-                                        />
-                                        {transferFieldErrors[id]?.flightNumber && (
-                                          <span className="field-error">
-                                            {transferFieldErrors[id]?.flightNumber}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="addon-field">
-                                        <span>{t.hotel.addons.transfers.arrivalDate}</span>
-                                        <input
-                                          type="datetime-local"
-                                          value={flightDetails.arrivalDateTime}
-                                          onChange={(event) =>
-                                            updateFlightDetails(id, "arrivalDateTime", event.target.value)
-                                          }
-                                          className={transferFieldErrors[id]?.arrivalDateTime ? "error" : undefined}
-                                        />
-                                        {transferFieldErrors[id]?.arrivalDateTime && (
-                                          <span className="field-error">
-                                            {transferFieldErrors[id]?.arrivalDateTime}
-                                          </span>
-                                        )}
-                                      </div>
-                                      {chargeType !== "PER_PAX" && (
-                                        <div className="addon-field">
-                                          <span>{t.hotel.addons.transfers.vehicleQty}</span>
-                                          <input
-                                            type="number"
-                                            min={1}
-                                            max={10}
-                                            value={transferVehicleQuantity[id] ?? 1}
-                                            onChange={(event) => {
-                                              const next = parseInt(event.target.value, 10);
-                                              setTransferVehicleQuantity((prev) => ({
-                                                ...prev,
-                                                [id]: Number.isFinite(next) && next > 0 ? next : 1,
-                                              }));
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {showExcursions && (
-                      <div className="addon-panel excursions-panel">
-                        <div className="addon-panel-head">
-                          <h4>
-                            <span className="material-symbols-rounded" aria-hidden="true">
-                              attractions
-                            </span>
-                            {t.hotel.addons.excursions.panelTitle}
-                          </h4>
-                          <div className="addon-panel-meta">
-                            <span className="addon-pill">
-                              {t.hotel.addons.excursions.adultsLabel}: {adultGuests}
-                            </span>
-                            <span className="addon-pill">
-                              {t.hotel.addons.excursions.childrenLabel}: {childGuests}
-                            </span>
-                            {excursionFee > 0 && (
-                              <span className="addon-pill subtle">
-                                {t.hotel.addons.excursions.feeNote}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {excursionLoading && (
-                          <p className="addon-state">{t.hotel.addons.excursions.loading}</p>
-                        )}
-                        {!excursionLoading && excursionError && (
-                          <p className="addon-state error">{excursionError}</p>
-                        )}
-                        {!excursionLoading && !excursionError && excursionOptionsWithId.length === 0 && (
-                          <p className="addon-state">{t.hotel.addons.excursions.noOptions}</p>
-                        )}
-                        {!excursionLoading && !excursionError && excursionOptionsWithId.length > 0 && (
-                          <div className="excursion-options">
-                            {excursionOptionsWithId.map((excursion) => {
-                              const selection = excursionSelections[excursion.id] ?? { adults: 0, children: 0 };
-                              const adultPrice = toNumberValue(excursion.pricing?.adult);
-                              const childPrice = toNumberValue(excursion.pricing?.child) ?? adultPrice;
-                              const priceCurrency = excursion.pricing?.currency ?? bookingCurrency;
-                              const totalPrice =
-                                (adultPrice ?? 0) * selection.adults + (childPrice ?? 0) * selection.children;
-                              return (
-                                <div key={excursion.id} className="excursion-option">
-                                  <div className="excursion-info">
-                                    <div>
-                                      <h5>{excursion.name ?? t.hotel.addons.excursions.unnamed}</h5>
-                                      {excursion.description && (
-                                        <p>{excursion.description}</p>
-                                      )}
-                                    </div>
-                                    {excursion.childPolicy && (
-                                      <span className="excursion-policy">
-                                        {excursion.childPolicy}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="excursion-controls">
-                                    <div className="excursion-pricing">
-                                      <span>
-                                        {t.hotel.addons.excursions.adultPrice}:{" "}
-                                        {formatDisplayPrice(
-                                          adultPrice,
-                                          priceCurrency,
-                                          excursionRatesForDisplay
-                                        ) ?? t.common.contact}
-                                      </span>
-                                      <span>
-                                        {t.hotel.addons.excursions.childPrice}:{" "}
-                                        {formatDisplayPrice(
-                                          childPrice,
-                                          priceCurrency,
-                                          excursionRatesForDisplay
-                                        ) ?? t.common.contact}
-                                      </span>
-                                      {totalPrice > 0 && (
-                                        <strong>
-                                          {t.hotel.addons.excursions.totalLabel}:{" "}
-                                          {formatDisplayPrice(
-                                            totalPrice,
-                                            priceCurrency,
-                                            excursionRatesForDisplay
-                                          ) ?? t.common.contact}
-                                        </strong>
-                                      )}
-                                    </div>
-                                    <div className="excursion-counter">
-                                      <span>{t.hotel.addons.excursions.adultsLabel}</span>
-                                      <div className="counter">
-                                        <button
-                                          type="button"
-                                          onClick={() => updateExcursionCount(excursion.id, "adults", -1)}
-                                          disabled={selection.adults === 0}
-                                        >
-                                          -
-                                        </button>
-                                        <span>{selection.adults}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => updateExcursionCount(excursion.id, "adults", 1)}
-                                          disabled={selection.adults >= adultGuests}
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    </div>
-                                    <div className="excursion-counter">
-                                      <span>{t.hotel.addons.excursions.childrenLabel}</span>
-                                      <div className="counter">
-                                        <button
-                                          type="button"
-                                          onClick={() => updateExcursionCount(excursion.id, "children", -1)}
-                                          disabled={selection.children === 0}
-                                        >
-                                          -
-                                        </button>
-                                        <span>{selection.children}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => updateExcursionCount(excursion.id, "children", 1)}
-                                          disabled={selection.children >= childGuests}
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    </div>
-                                    {(adultGuests > 0 || childGuests > 0) && (
-                                      <button
-                                        type="button"
-                                        className="apply-all"
-                                        onClick={() => applyExcursionToAll(excursion.id)}
-                                      >
-                                        {t.hotel.addons.excursions.applyAll}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {showInsurance && (
-                      <div className="addon-panel insurance-panel">
-                        <div className="addon-panel-head">
-                          <h4>
-                            <span className="material-symbols-rounded" aria-hidden="true">
-                              shield_with_heart
-                            </span>
-                            {t.hotel.addons.insurance.panelTitle}
-                          </h4>
-                        </div>
-                        <div className="insurance-options">
-                          {insurancePlans.map((plan) => {
-                            const isSelected = insuranceSelection?.planId === plan.id;
-                            return (
-                              <button
-                                key={plan.id}
-                                type="button"
-                                className={`insurance-card${isSelected ? " selected" : ""}`}
-                                onClick={() => selectInsurancePlan(plan)}
-                              >
-                                {plan.highlight && <span className="pill">{plan.highlight}</span>}
-                                <h5>{plan.title}</h5>
-                                <p>{plan.description}</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="addon-field">
-                          <span>{t.hotel.addons.insurance.noteLabel}</span>
-                          <textarea
-                            value={insuranceSelection?.note ?? ""}
-                            placeholder={t.hotel.addons.insurance.notePlaceholder}
-                            onChange={(event) => updateInsuranceNote(event.target.value)}
-                            disabled={!insuranceSelection}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {showFlights && (
-                      <div className="addon-panel flights-panel">
-                        <div className="addon-panel-head">
-                          <h4>
-                            <span className="material-symbols-rounded" aria-hidden="true">
-                              flight
-                            </span>
-                            {t.hotel.addons.flights.panelTitle}
-                          </h4>
-                        </div>
-                        <div className="addon-form-grid">
-                          <label className="addon-field">
-                            <span>{t.hotel.addons.flights.originLabel}</span>
-                            <input
-                              type="text"
-                              value={flightRequest.origin ?? ""}
-                              onChange={(event) => updateFlightRequest("origin", event.target.value)}
-                            />
-                          </label>
-                          <label className="addon-field">
-                            <span>{t.hotel.addons.flights.destinationLabel}</span>
-                            <input
-                              type="text"
-                              value={flightRequest.destination ?? ""}
-                              onChange={(event) => updateFlightRequest("destination", event.target.value)}
-                            />
-                          </label>
-                          <label className="addon-field">
-                            <span>{t.hotel.addons.flights.departureLabel}</span>
-                            <input
-                              type="date"
-                              value={flightRequest.departureDate ?? ""}
-                              onChange={(event) => updateFlightRequest("departureDate", event.target.value)}
-                            />
-                          </label>
-                          <label className="addon-field">
-                            <span>{t.hotel.addons.flights.returnLabel}</span>
-                            <input
-                              type="date"
-                              value={flightRequest.returnDate ?? ""}
-                              onChange={(event) => updateFlightRequest("returnDate", event.target.value)}
-                            />
-                          </label>
-                          <label className="addon-field">
-                            <span>{t.hotel.addons.flights.cabinLabel}</span>
-                            <select
-                              value={flightRequest.cabinClass ?? ""}
-                              onChange={(event) => updateFlightRequest("cabinClass", event.target.value)}
-                            >
-                              <option value="">{t.hotel.addons.flights.cabinPlaceholder}</option>
-                              {cabinClasses.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="addon-field full">
-                            <span>{t.hotel.addons.flights.notesLabel}</span>
-                            <textarea
-                              value={flightRequest.notes ?? ""}
-                              placeholder={t.hotel.addons.flights.notesPlaceholder}
-                              onChange={(event) => updateFlightRequest("notes", event.target.value)}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    )}
-                  </section>
+                  
 
                   <div className="booking-summary">
                     <div className="booking-summary-lines">
@@ -2833,35 +2458,11 @@ export default function HotelClient({
                         <span>{t.hotel.addons.summary.rooms}</span>
                         <strong>{formatDisplayPrice(roomsTotal, bookingCurrency) ?? t.common.contact}</strong>
                       </div>
-                      {transferSelectionPayload && (
-                        <div>
-                          <span>{t.hotel.addons.summary.transfers}</span>
-                          <strong>{transferDisplayTotal ?? t.common.contact}</strong>
-                        </div>
-                      )}
-                      {excursionSelectionsPayload && (
-                        <div>
-                          <span>{t.hotel.addons.summary.excursions}</span>
-                          <strong>{excursionsDisplayTotal ?? t.common.contact}</strong>
-                        </div>
-                      )}
-                      {insuranceSelectionPayload && (
-                        <div>
-                          <span>{t.hotel.addons.summary.insurance}</span>
-                          <strong>{insuranceSelectionPayload.planName ?? t.hotel.addons.summary.requested}</strong>
-                        </div>
-                      )}
-                      {flightRequestPayload && (
-                        <div>
-                          <span>{t.hotel.addons.summary.flights}</span>
-                          <strong>{t.hotel.addons.summary.requested}</strong>
-                        </div>
-                      )}
                     </div>
                     <div className="booking-summary-total">
                       <span>{t.common.total}:</span>
                       <strong>
-                        {formatDisplayPrice(packageTotal, bookingCurrency) ?? t.common.contact}
+                        {formatDisplayPrice(roomsTotal, bookingCurrency) ?? t.common.contact}
                       </strong>
                     </div>
                   </div>
@@ -2880,10 +2481,10 @@ export default function HotelClient({
                     <button
                       type="button"
                       className="booking-primary"
-                      onClick={handleBook}
-                      disabled={bookingLoading}
+                      onClick={handleSelectRoom}
+                      disabled={!pendingHotelSelection || bookingPreparing}
                     >
-                      {bookingLoading ? t.hotel.booking.redirectingToIdram : t.hotel.booking.payWithIdram}
+                      {t.hotel.booking.selectRoom}
                     </button>
                   </div>
                 </div>

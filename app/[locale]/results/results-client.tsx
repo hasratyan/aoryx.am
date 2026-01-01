@@ -10,7 +10,8 @@ import SearchForm from "@/components/search-form";
 import Loader from "@/components/loader";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
-import { convertToAmd, useAmdRates } from "@/lib/use-amd-rates";
+import { formatCurrencyAmount, normalizeAmount } from "@/lib/currency";
+import { useAmdRates } from "@/lib/use-amd-rates";
 
 const ratingOptions = [5, 4, 3, 2, 1] as const;
 const intlLocales: Record<AppLocale, string> = {
@@ -39,20 +40,6 @@ type ResultsClientProps = {
   initialDestinations?: DestinationInfo[];
   initialAmdRates?: { USD: number; EUR: number } | null;
 };
-
-function formatPrice(value: number | null, currency: string | null, locale: string): string | null {
-  if (value === null || value === undefined) return null;
-  const safeCurrency = (currency ?? "USD").trim().toUpperCase();
-  try {
-    const formattedNumber = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
-    if (safeCurrency === "AMD") return `${formattedNumber} ֏`;
-    if (safeCurrency === "USD") return `$${formattedNumber}`;
-    if (safeCurrency === "EUR") return `€${formattedNumber}`;
-    return `${formattedNumber} ${safeCurrency}`;
-  } catch {
-    return `${safeCurrency} ${value}`;
-  }
-}
 
 export default function ResultsClient({
   initialResult,
@@ -203,17 +190,13 @@ export default function ResultsClient({
         typeof hotel.minPrice === "number" && !Number.isNaN(hotel.minPrice)
           ? hotel.minPrice
           : null;
-      const converted = basePrice !== null && amdRates
-        ? convertToAmd(basePrice, baseCurrency, amdRates)
-        : null;
-      const displayPrice =
-        typeof converted === "number"
-          ? Math.round(converted)
-          : basePrice !== null
-            ? Math.round(basePrice)
-            : null;
-      const displayCurrency =
-        amdRates && typeof converted === "number" ? "AMD" : baseCurrency ?? "USD";
+      const normalized = normalizeAmount(basePrice, baseCurrency, amdRates);
+      const displayPrice = normalized
+        ? Math.round(normalized.amount)
+        : basePrice !== null
+          ? Math.round(basePrice)
+          : null;
+      const displayCurrency = normalized ? normalized.currency : baseCurrency ?? "USD";
       return {
         ...hotel,
         displayPrice,
@@ -355,14 +338,14 @@ export default function ResultsClient({
               <>
                 <div className="filter-range-values">
                   <span>
-                    {formatPrice(
+                    {formatCurrencyAmount(
                       priceMinValue,
                       amdRates ? "AMD" : result?.currency ?? "USD",
                       intlLocale
                     )}
                   </span>
                   <span>
-                    {formatPrice(
+                    {formatCurrencyAmount(
                       priceMaxValue,
                       amdRates ? "AMD" : result?.currency ?? "USD",
                       intlLocale
@@ -526,7 +509,11 @@ export default function ResultsClient({
           {!isSearching && (
             <div id="hotels" className="grid">
               {sortedHotels.map((hotel, idx) => {
-                const formattedPrice = formatPrice(hotel.displayPrice, hotel.displayCurrency, intlLocale);
+                const formattedPrice = formatCurrencyAmount(
+                  hotel.displayPrice,
+                  hotel.displayCurrency,
+                  intlLocale
+                );
                 const detailQuery =
                   parsed.payload && hotel.code
                     ? buildSearchQuery({

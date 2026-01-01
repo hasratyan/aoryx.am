@@ -41,6 +41,7 @@ export type SearchCopy = {
   childrenAges: string;
   submitIdle: string;
   submitLoading: string;
+  roomLabel: string;
   roomsLabel: string;
   datePlaceholder: string;
   unknownHotel: string;
@@ -87,6 +88,9 @@ const formatDateDisplay = (date: Date, locale: string): string => {
   // Use consistent format: DD.MM.YYYY for all locales to avoid hydration mismatch
   return `${day}.${month}.${year}`;
 };
+
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
 
 const dateFnsLocales: Record<AppLocale, DateFnsLocale> = {
   hy,
@@ -450,74 +454,61 @@ export default function SearchForm({
 
   // Guest handlers
 
-  const updateGuests = useCallback(
-    (field: "adults" | "children", value: number) => {
-      setRooms((prev) => {
-        const room = prev[0] ?? { adults: 2, children: 0, childAges: [] };
-        const roomCount = Math.max(1, prev.length);
-        const updatedRoom =
-          field === "children"
-            ? (() => {
-                const newChildCount = Math.max(0, Math.min(4, value));
-                const currentAges = room.childAges;
-                return {
-                  ...room,
-                  children: newChildCount,
-                  childAges:
-                    newChildCount > currentAges.length
-                      ? [...currentAges, ...Array(newChildCount - currentAges.length).fill(5)]
-                      : currentAges.slice(0, newChildCount),
-                };
-              })()
-            : { ...room, adults: Math.max(1, Math.min(6, value)) };
-
-        if (!showRoomCount) {
-          return [updatedRoom, ...prev.slice(1)];
-        }
-
-        return Array.from({ length: roomCount }, () => ({
-          ...updatedRoom,
-          childAges: [...updatedRoom.childAges],
-        }));
-      });
+  const updateRoomGuests = useCallback(
+    (roomIndex: number, field: "adults" | "children", value: number) => {
+      setRooms((prev) =>
+        prev.map((room, index) => {
+          if (index !== roomIndex) return room;
+          if (field === "adults") {
+            return { ...room, adults: clampNumber(value, 1, 6) };
+          }
+          const children = clampNumber(value, 0, 4);
+          const childAges = Array.isArray(room.childAges)
+            ? room.childAges.slice(0, children)
+            : [];
+          while (childAges.length < children) childAges.push(5);
+          return { ...room, children, childAges };
+        })
+      );
     },
-    [showRoomCount]
+    []
   );
 
   const updateRoomCount = useCallback((value: number) => {
-    const count = Math.max(1, Math.min(4, value));
+    const count = clampNumber(value, 1, 4);
     setRooms((prev) => {
-      const room = prev[0] ?? { adults: 2, children: 0, childAges: [] };
-      const childCount = Math.max(0, room.children);
-      const childAges = room.childAges.slice(0, childCount);
-      return Array.from({ length: count }, () => ({
-        adults: room.adults,
-        children: childCount,
-        childAges: [...childAges],
-      }));
+      const next = prev.slice(0, count).map((room) => {
+        const adults = clampNumber(room.adults ?? 1, 1, 6);
+        const children = clampNumber(
+          room.children ?? room.childAges.length ?? 0,
+          0,
+          4
+        );
+        const childAges = Array.isArray(room.childAges)
+          ? room.childAges.slice(0, children)
+          : [];
+        while (childAges.length < children) childAges.push(5);
+        return { adults, children, childAges };
+      });
+      while (next.length < count) {
+        next.push({ adults: 1, children: 0, childAges: [] });
+      }
+      return next;
     });
   }, []);
 
-  const updateChildAge = useCallback(
-    (childIndex: number, age: number) => {
-      setRooms((prev) => {
-        const room = prev[0] ?? { adults: 2, children: 0, childAges: [] };
-        const newAges = [...room.childAges];
-        newAges[childIndex] = Math.max(0, Math.min(17, age));
-        const updatedRoom = { ...room, childAges: newAges };
-
-        if (!showRoomCount) {
-          return [updatedRoom, ...prev.slice(1)];
-        }
-
-        const roomCount = Math.max(1, prev.length);
-        return Array.from({ length: roomCount }, () => ({
-          ...updatedRoom,
-          childAges: [...updatedRoom.childAges],
-        }));
-      });
+  const updateRoomChildAge = useCallback(
+    (roomIndex: number, childIndex: number, age: number) => {
+      setRooms((prev) =>
+        prev.map((room, index) => {
+          if (index !== roomIndex) return room;
+          const childAges = [...room.childAges];
+          childAges[childIndex] = clampNumber(age, 0, 17);
+          return { ...room, childAges };
+        })
+      );
     },
-    [showRoomCount]
+    []
   );
 
   // Submit handler
@@ -617,7 +608,11 @@ export default function SearchForm({
   }, [showChildAges]);
 
   useEffect(() => {
-    if (rooms[0]?.children === 0 || rooms[0]?.childAges.length === 0) {
+    if (
+      rooms.length !== 1 ||
+      rooms[0]?.children === 0 ||
+      rooms[0]?.childAges.length === 0
+    ) {
       queueMicrotask(() => setShowChildAges(false));
     }
   }, [rooms]);
@@ -769,63 +764,133 @@ export default function SearchForm({
 
       {/* Guests */}
       <div className="field">
-        <div className="guests">
-          <label>
-            <span className="material-symbols-rounded">person</span>
-            {copy.adultsLabel}
-            <input
-              type="number"
-              name="adults"
-              min={1}
-              max={6}
-              value={rooms[0].adults}
-              disabled={isFormDisabled}
-              onChange={(e) =>
-                updateGuests("adults", parseInt(e.target.value) || 1)
-              }
-            />
-          </label>
-          <label>
-            <span className="material-symbols-rounded">child_friendly</span>
-            {copy.childrenLabel}
-            <input
-              type="number"
-              name="children"
-              min={0}
-              max={4}
-              value={rooms[0].children}
-              disabled={isFormDisabled}
-              onChange={(e) => {
-                const value = parseInt(e.target.value) || 0;
-                updateGuests("children", value);
-                setShowChildAges(value > 0);
-              }}
-              onFocus={() => {
-                if (rooms[0].children > 0) {
-                  setShowChildAges(true);
-                }
-              }}
-            />
-          </label>
-        </div>
-        {showChildAges && rooms[0].childAges.length > 0 && (
-          <div className="children-ages" ref={childAgesRef}>
-            {rooms[0].childAges.map((age, childIndex) => (
-              <label key={childIndex}>
-                {copy.childrenAges}
+        {showRoomCount && rooms.length > 1 ? (
+          <div className="guests guests--rooms">
+            {rooms.map((room, roomIndex) => (
+              <fieldset key={`room-${roomIndex}`} className="guest-room">
+                <legend className="guest-room__header">
+                  <span className="material-symbols-rounded">hotel</span>
+                  <span>{copy.roomLabel} {roomIndex + 1}</span>
+                </legend>
+                <div className="guest-room__inputs">
+                  <label>
+                    <span className="material-symbols-rounded">person</span>
+                    {copy.adultsLabel}
+                    <input
+                      type="number"
+                      name={`adults-${roomIndex}`}
+                      min={1}
+                      max={6}
+                      value={room.adults}
+                      disabled={isFormDisabled}
+                      onChange={(e) =>
+                        updateRoomGuests(roomIndex, "adults", parseInt(e.target.value) || 1)
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span className="material-symbols-rounded">child_friendly</span>
+                    {copy.childrenLabel}
+                    <input
+                      type="number"
+                      name={`children-${roomIndex}`}
+                      min={0}
+                      max={4}
+                      value={room.children}
+                      disabled={isFormDisabled}
+                      onChange={(e) =>
+                        updateRoomGuests(roomIndex, "children", parseInt(e.target.value) || 0)
+                      }
+                    />
+                  </label>
+                </div>
+                {room.children > 0 && room.childAges.length > 0 && (
+                  <div className="guest-room__children">
+                    {room.childAges.map((age, childIndex) => (
+                      <label key={`room-${roomIndex}-child-${childIndex}`}>
+                        {copy.childrenAges}
+                        <input
+                          type="number"
+                          min={0}
+                          max={17}
+                          value={age}
+                          disabled={isFormDisabled}
+                          onChange={(e) =>
+                            updateRoomChildAge(
+                              roomIndex,
+                              childIndex,
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </fieldset>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="guests">
+              <label>
+                <span className="material-symbols-rounded">person</span>
+                {copy.adultsLabel}
                 <input
                   type="number"
-                  min={0}
-                  max={17}
-                  value={age}
+                  name="adults"
+                  min={1}
+                  max={6}
+                  value={rooms[0].adults}
                   disabled={isFormDisabled}
                   onChange={(e) =>
-                    updateChildAge(childIndex, parseInt(e.target.value) || 0)
+                    updateRoomGuests(0, "adults", parseInt(e.target.value) || 1)
                   }
                 />
               </label>
-            ))}
-          </div>
+              <label>
+                <span className="material-symbols-rounded">child_friendly</span>
+                {copy.childrenLabel}
+                <input
+                  type="number"
+                  name="children"
+                  min={0}
+                  max={4}
+                  value={rooms[0].children}
+                  disabled={isFormDisabled}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    updateRoomGuests(0, "children", value);
+                    setShowChildAges(value > 0);
+                  }}
+                  onFocus={() => {
+                    if (rooms[0].children > 0) {
+                      setShowChildAges(true);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+            {showChildAges && rooms[0].childAges.length > 0 && (
+              <div className="children-ages" ref={childAgesRef}>
+                {rooms[0].childAges.map((age, childIndex) => (
+                  <label key={childIndex}>
+                    {copy.childrenAges}
+                    <input
+                      type="number"
+                      min={0}
+                      max={17}
+                      value={age}
+                      disabled={isFormDisabled}
+                      onChange={(e) =>
+                        updateRoomChildAge(0, childIndex, parseInt(e.target.value) || 0)
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
       {showRoomCount && (

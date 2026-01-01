@@ -111,7 +111,12 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
       }
     } catch (error) {
       console.error("[Aoryx][search] Failed", error);
-      if (error instanceof AoryxServiceError || error instanceof AoryxClientError) {
+      if (error instanceof AoryxServiceError) {
+        initialError =
+          error.code === "MISSING_SESSION_ID"
+            ? t.search.errors.missingSession
+            : error.message;
+      } else if (error instanceof AoryxClientError) {
         initialError = error.message;
       } else {
         initialError = t.search.errors.submit;

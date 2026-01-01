@@ -5,7 +5,7 @@ import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env"
 import { parseSearchParams } from "@/lib/search-query";
 import { obfuscateRoomOptions } from "@/lib/aoryx-rate-tokens";
 import { buildLocalizedMetadata } from "@/lib/metadata";
-import { getAmdRates, getEffectiveAmdExcursionRates, getEffectiveAmdRates, type AmdRates } from "@/lib/pricing";
+import { getEffectiveAmdRates, type AmdRates } from "@/lib/pricing";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import { fetchExcursions, fetchTransferRates } from "@/lib/aoryx-addons";
 import type {
@@ -112,18 +112,7 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
         return null;
       })
     : Promise.resolve(null);
-  const excursionRatesPromise: Promise<AmdRates | null> = hotelCode
-    ? getEffectiveAmdExcursionRates().catch((error) => {
-        console.error("[ExchangeRates] Failed to load excursion rates", error);
-        return null;
-      })
-    : Promise.resolve(null);
-  const transferRatesPromise: Promise<AmdRates | null> = hotelCode
-    ? getAmdRates().catch((error) => {
-        console.error("[ExchangeRates] Failed to load transfer rates", error);
-        return null;
-      })
-    : Promise.resolve(null);
+  const initialAmdRates = await ratesPromise;
 
   let hotelInfoResult: AoryxHotelInfoResult | null = null;
   let hotelError: string | null = null;
@@ -141,13 +130,20 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
       hotelInfoResult = await getHotelInfoCached(hotelCode);
     } catch (error) {
       if (error instanceof AoryxServiceError) {
-        hotelError = error.message;
+        hotelError =
+          error.code === "MISSING_SESSION_ID"
+            ? t.search.errors.missingSession
+            : error.message;
       } else if (error instanceof AoryxClientError) {
         hotelError = error.message;
       } else {
         hotelError = t.hotel.errors.loadHotelFailed;
       }
     }
+  }
+
+  if (payload && !payload.destinationCode && hotelInfoResult?.destinationId) {
+    payload.destinationCode = hotelInfoResult.destinationId;
   }
 
   if (payload && hotelCode) {
@@ -164,7 +160,10 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
       };
     } catch (error) {
       if (error instanceof AoryxServiceError) {
-        roomsError = error.message;
+        roomsError =
+          error.code === "MISSING_SESSION_ID"
+            ? t.search.errors.missingSession
+            : error.message;
       } else if (error instanceof AoryxClientError) {
         roomsError = error.message;
       } else {
@@ -228,12 +227,6 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const [initialAmdRates, initialExcursionRates, initialTransferRates] = await Promise.all([
-    ratesPromise,
-    excursionRatesPromise,
-    transferRatesPromise,
-  ]);
-
   return (
     <HotelClient
       initialHotelInfo={hotelInfoResult}
@@ -247,8 +240,6 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
       initialExcursionOptions={excursionOptionsResult}
       initialExcursionError={excursionError}
       initialExcursionFee={excursionFee}
-      initialExcursionRates={initialExcursionRates}
-      initialTransferRates={initialTransferRates}
     />
   );
 }

@@ -40,6 +40,7 @@ export type Translation = {
     childrenLabel: string;
     childrenAges: string;
     roomsLabel: string;
+    roomLabel: string;
     datePlaceholder: string;
     submitIdle: string;
     submitLoading: string;
@@ -48,6 +49,7 @@ export type Translation = {
       missingLocation: string;
       missingDates: string;
       invalidRooms: string;
+      missingSession: string;
       submit: string;
     };
   };
@@ -67,12 +69,26 @@ export type Translation = {
     toggleOpen: string;
     toggleClose: string;
     changeHotel: string;
+    viewService: string;
     removeTag: string;
+    checkoutButton: string;
     helper: string;
     warningSelectHotel: string;
+    sessionExpiresIn: string;
+    sessionWarningTen: string;
+    sessionWarningFive: string;
+    sessionExpired: string;
     requiredTag: string;
     selectedTag: string;
     addTag: string;
+    transfers: {
+      individual: string;
+      group: string;
+      startingFrom: string;
+      selectType: string;
+      perCar: string;
+      perPax: string;
+    };
     services: {
       hotel: string;
       flight: string;
@@ -86,6 +102,61 @@ export type Translation = {
       transfer: { title: string; body: string; note: string; cta: string };
       excursion: { title: string; body: string; note: string; cta: string };
       insurance: { title: string; body: string; note: string; cta: string };
+    };
+    checkout: {
+      title: string;
+      subtitle: string;
+      summaryTitle: string;
+      summaryHint: string;
+      emptySummary: string;
+      pendingDetails: string;
+      contactTitle: string;
+      contactHint: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      billingTitle: string;
+      billingHint: string;
+      country: string;
+      city: string;
+      address: string;
+      zip: string;
+      couponTitle: string;
+      couponPlaceholder: string;
+      applyCoupon: string;
+      paymentTitle: string;
+      paymentHint: string;
+      methodIdram: string;
+      methodCard: string;
+      cardName: string;
+      cardNumber: string;
+      cardExpiry: string;
+      cardCvc: string;
+      termsLabel: string;
+      termsConnector: string;
+      payIdram: string;
+      payCard: string;
+      totalTitle: string;
+      totalLabel: string;
+      processingNote: string;
+      errors: {
+        missingHotel: string;
+        missingDetails: string;
+        cardUnavailable: string;
+        paymentFailed: string;
+      };
+      labels: {
+        destination: string;
+        dates: string;
+        rooms: string;
+        guests: string;
+        route: string;
+        vehicle: string;
+        price: string;
+        type: string;
+        hotelCode: string;
+      };
     };
   };
   trustStats: {
@@ -632,6 +703,7 @@ export type Translation = {
       paymentNote: string;
       redirectingToIdram: string;
       payWithIdram: string;
+      selectRoom: string;
       closeBookingAria: string;
     };
     policy: {
@@ -718,6 +790,7 @@ const translations: Record<Locale, Translation> = {
       childrenLabel: "Երեխա",
       childrenAges: "Երեխայի տարիքը",
       roomsLabel: "Սենյակ",
+      roomLabel: "Սենյակ",
       datePlaceholder: "Ընտրել ամսաթվերը",
       submitIdle: "Որոնել",
       submitLoading: "Որոնում...",
@@ -726,6 +799,7 @@ const translations: Record<Locale, Translation> = {
         missingLocation: "Խնդրում ենք ընտրել ուղղություն կամ հյուրանոց։",
         missingDates: "Խնդրում ենք ընտրել մուտքի և ելքի ամսաթվերը։",
         invalidRooms: "Սխալ տվյալների պատճառով ձեր սենյակների ընտրությունը վերականգնվել է։ Խնդրում ենք կրկին ընտրել նախընտրությունները։",
+        missingSession: "Որոնման սեսիայի տվյալները բացակայում են։ Խնդրում ենք կրկին որոնել։",
         submit: "Չհաջողվեց կատարել որոնումը։",
       },
     },
@@ -792,16 +866,30 @@ const translations: Record<Locale, Translation> = {
       toggleOpen: "Կազմել փաթեթ",
       toggleClose: "Թաքցնել",
       changeHotel: "Փոխել հյուրանոցը",
+      viewService: "Դիտել",
       removeTag: "Հեռացնել",
-      helper: "Սկզբում ընտրեք հյուրանոց, որպեսզի բացվեն մնացած ծառայությունները։",
-      warningSelectHotel: "Սկզբում ընտրեք հյուրանոց։",
+      checkoutButton: "Անցնել վճարման",
+      helper: "Սկզբում ընտրեք հյուրանոց, որպեսզի հասանելի դառնան մնացած լրացուցիչ ծառայությունները։",
+      warningSelectHotel: "Փաթեթ կազմելու համար առաջնահերթ ընտրեք հյուրանոց։",
+      sessionExpiresIn: "Սեսիայի ավարտին մնացել է",
+      sessionWarningTen: "Մնացել է 10 րոպե՝ փաթեթի վճարումը ավարտելու համար։",
+      sessionWarningFive: "Մնացել է 5 րոպե՝ փաթեթի վճարումը ավարտելու համար։",
+      sessionExpired: "Սեսիան ավարտվել է։ Փաթեթը վերակայվել է։ Խնդրում ենք նորից ընտրել հյուրանոցը։",
       requiredTag: "Պարտադիր",
       selectedTag: "Ընտրված",
       addTag: "Ավելացնել",
+      transfers: {
+        individual: "Անհատական (մինչև 4 ուղևոր)",
+        group: "Խմբային",
+        startingFrom: "Սկսած",
+        selectType: "Ընտրեք տրանսֆերի տեսակը՝ տարբերակները տեսնելու համար։",
+        perCar: "Մեքենայի համար",
+        perPax: "Մեկ ուղևոր",
+      },
       services: {
-        hotel: "Հյուրանոցներ",
-        flight: "Ավիատոմսեր",
-        transfer: "Տրանսֆերներ",
+        hotel: "Հյուրանոց",
+        flight: "Ավիատոմս",
+        transfer: "Տրանսֆեր",
         excursion: "Էքսկուրսիաներ",
         insurance: "Ապահովագրություն",
       },
@@ -835,6 +923,61 @@ const translations: Record<Locale, Translation> = {
           body: "Ապահովագրությունը կարելի է ավելացնել ամրագրման ընթացքում։",
           note: "Սկզբում ընտրեք հյուրանոցը։",
           cta: "Գտնել հյուրանոց",
+        },
+      },
+      checkout: {
+        title: "Վճարում",
+        subtitle: "Ստուգեք ձեր փաթեթը և ընտրեք վճարման եղանակը։",
+        summaryTitle: "Ընտրված ծառայությունները",
+        summaryHint: "Ձեր փաթեթում ընդգրկված ծառայությունները ստորև։",
+        emptySummary: "Դեռ ընտրված ծառայություններ չկան։",
+        pendingDetails: "Մանրամասները կհաստատվեն ամրագրման ընթացքում։",
+        contactTitle: "Կոնտակտային տվյալներ",
+        contactHint: "Հաստատումները և թարմացումները կուղարկվեն այստեղ։",
+        firstName: "Անուն",
+        lastName: "Ազգանուն",
+        email: "Էլ․ հասցե",
+        phone: "Հեռախոս",
+        billingTitle: "Վճարման տվյալներ",
+        billingHint: "Օգտագործվում է հաշիվների և հաստատման համար։",
+        country: "Երկիր",
+        city: "Քաղաք",
+        address: "Հասցե",
+        zip: "Փոստային ինդեքս",
+        couponTitle: "Կտրոն կամ նվեր քարտ",
+        couponPlaceholder: "Մուտքագրեք կոդը",
+        applyCoupon: "Կիրառել",
+        paymentTitle: "Վճարման եղանակ",
+        paymentHint: "Ընտրեք վճարման տարբերակը։",
+        methodIdram: "Վճարել Idram-ով",
+        methodCard: "Վճարել քարտով",
+        cardName: "Քարտի վրա նշված անուն",
+        cardNumber: "Քարտի համար",
+        cardExpiry: "Վավերականություն (MM/YY)",
+        cardCvc: "CVC",
+        termsLabel: "Համաձայն եմ",
+        termsConnector: "և",
+        payIdram: "Վճարել Idram-ով",
+        payCard: "Վճարել քարտով",
+        totalTitle: "Վճարման ամփոփում",
+        totalLabel: "Նախնական ընդհանուր",
+        processingNote: "Վճարումը կկատարվի ապահով միջավայրում։ Ամրագրումը կհաստատենք ստուգումից հետո։",
+        errors: {
+          missingHotel: "Խնդրում ենք ընտրել հյուրանոցը շարունակելու համար։",
+          missingDetails: "Սենյակների տվյալները բացակայում են։ Խնդրում ենք կրկին ընտրել հյուրանոցը։",
+          cardUnavailable: "Քարտով վճարումը դեռ հասանելի չէ։",
+          paymentFailed: "Չհաջողվեց սկսել վճարումը։ Խնդրում ենք կրկին փորձել։",
+        },
+        labels: {
+          destination: "Ուղղություն",
+          dates: "Ամսաթվեր",
+          rooms: "Սենյակներ",
+          guests: "Հյուրեր",
+          route: "Երթուղի",
+          vehicle: "Մեքենա",
+          price: "Գին",
+          type: "Տեսակ",
+          hotelCode: "Հյուրանոցի կոդ",
         },
       },
     },
@@ -1340,10 +1483,10 @@ const translations: Record<Locale, Translation> = {
       errorAlt: "Սխալ",
       emptyAlt: "Տարբերակներ չկան",
       emptyMessage: "Այս որոնման համար տարբերակներ չգտնվեց։ Փորձեք փոխել ամսաթվերը կամ ուղղությունը։",
-      fallbackTitle: "ԱՄԷ-ում հանգիստ",
+      fallbackTitle: "Որոնման արդյունքներ",
       placesFound: {
-        one: "{count} տարբերակ գտնվեց",
-        other: "{count} տարբերակ գտնվեց",
+        one: "Գտնվեց {count} տարբերակ",
+        other: "Գտնվեց {count} տարբերակ",
       },
       sortLabel: "Դասավորել ըստ",
       sortOptions: {
@@ -1497,7 +1640,7 @@ const translations: Record<Locale, Translation> = {
         showLess: "Փակել",
         showAll: "Ցուցադրել բոլորը",
       },
-      searchTitle: "Ստեղծիր քո հաջորդ անմոռանալի փորձառությունը։",
+      searchTitle: "Ստեղծիր քո հաջորդ անմոռանալի փորձառությունը",
       roomOptions: {
         loading: "Բեռնում ենք սենյակների տարբերակները...",
         empty: "Սենյակների տարբերակներ չկան։",
@@ -1517,8 +1660,8 @@ const translations: Record<Locale, Translation> = {
         refundable: "Վերադարձվող",
         nonRefundable: "Չվերադարձվող",
         roomsLeft: {
-          one: "{count} սենյակ մնաց",
-          other: "{count} սենյակ մնաց",
+          one: "Մնաց {count} սենյակ",
+          other: "Մնաց {count} սենյակ",
         },
         roomBreakdown: "Սենյակ {index}: {price}",
         signInToBook: "Մուտք գործեք՝ ամրագրելու համար",
@@ -1552,6 +1695,7 @@ const translations: Record<Locale, Translation> = {
         paymentNote: "Դուք կվերուղղորդվեք Idram՝ վճարումը ավարտելու համար։",
         redirectingToIdram: "Ուղարկում ենք Idram...",
         payWithIdram: "Վճարել Idram-ով",
+        selectRoom: "Ընտրել այս տարբերակը",
         closeBookingAria: "Փակել ամրագրման պատուհանը",
       },
       policy: {
@@ -1641,6 +1785,7 @@ const translations: Record<Locale, Translation> = {
       childrenLabel: "Children",
       childrenAges: "Child's Age",
       roomsLabel: "Rooms",
+      roomLabel: "Room",
       datePlaceholder: "Select dates",
       submitIdle: "Search",
       submitLoading: "Searching...",
@@ -1649,6 +1794,7 @@ const translations: Record<Locale, Translation> = {
         missingLocation: "Please select a destination or hotel.",
         missingDates: "Please choose your check-in and check-out dates.",
         invalidRooms: "Your room selection has been reset due to invalid data. Please re-enter your preferences.",
+        missingSession: "Search session details are missing. Please search again.",
         submit: "Unable to process your search at this time.",
       },
     },
@@ -1724,16 +1870,30 @@ const translations: Record<Locale, Translation> = {
       toggleOpen: "Package builder",
       toggleClose: "Hide builder",
       changeHotel: "Change hotel",
+      viewService: "View",
       removeTag: "Remove",
-      helper: "Select a hotel first to unlock the rest.",
-      warningSelectHotel: "Please select a hotel first.",
+      checkoutButton: "Proceed to checkout",
+      helper: "Start by selecting a hotel to unlock additional services for your package.",
+      warningSelectHotel: "Please select a hotel to continue building your package.",
+      sessionExpiresIn: "Session expires in",
+      sessionWarningTen: "10 minutes left to complete your package payment.",
+      sessionWarningFive: "5 minutes left to complete your package payment.",
+      sessionExpired: "Session expired. Your package has been reset. Please select a hotel again.",
       requiredTag: "Required",
       selectedTag: "Selected",
       addTag: "Add",
+      transfers: {
+        individual: "Individual (up to 4 passengers)",
+        group: "Group",
+        startingFrom: "Starting from",
+        selectType: "Select a transfer type to view options.",
+        perCar: "Per car",
+        perPax: "Per pax",
+      },
       services: {
-        hotel: "Hotels",
-        flight: "Flights",
-        transfer: "Transfers",
+        hotel: "Hotel",
+        flight: "Flight",
+        transfer: "Transfer",
         excursion: "Excursions",
         insurance: "Insurance",
       },
@@ -1767,6 +1927,62 @@ const translations: Record<Locale, Translation> = {
           body: "Insurance is selected during the hotel booking flow.",
           note: "Start with a hotel to continue your package.",
           cta: "Find a hotel",
+        },
+      },
+      checkout: {
+        title: "Checkout",
+        subtitle: "Review your package and choose a payment method.",
+        summaryTitle: "Selected services",
+        summaryHint: "Everything in your package, summarized below.",
+        emptySummary: "No services selected yet.",
+        pendingDetails: "Details will be confirmed during booking.",
+        contactTitle: "Contact details",
+        contactHint: "We will send confirmations and updates here.",
+        firstName: "First name",
+        lastName: "Last name",
+        email: "Email",
+        phone: "Phone",
+        billingTitle: "Billing details",
+        billingHint: "Used for invoices and payment verification.",
+        country: "Country",
+        city: "City",
+        address: "Street address",
+        zip: "ZIP / Postal code",
+        couponTitle: "Coupon or gift card",
+        couponPlaceholder: "Enter code",
+        applyCoupon: "Apply",
+        paymentTitle: "Payment method",
+        paymentHint: "Choose how you want to pay.",
+        methodIdram: "Pay by Idram",
+        methodCard: "Pay by credit card",
+        cardName: "Cardholder name",
+        cardNumber: "Card number",
+        cardExpiry: "Expiry (MM/YY)",
+        cardCvc: "CVC",
+        termsLabel: "I agree to the",
+        termsConnector: "and",
+        payIdram: "Pay with Idram",
+        payCard: "Pay by card",
+        totalTitle: "Payment summary",
+        totalLabel: "Estimated total",
+        processingNote:
+          "Your payment will be processed securely. We will confirm your booking after verification.",
+        errors: {
+          missingHotel: "Select a hotel to continue.",
+          missingDetails: "Room details are missing. Please reselect the hotel.",
+          cardUnavailable: "Card payments are not available yet.",
+          paymentFailed: "Failed to start payment. Please try again.",
+        },
+        labels: {
+          destination: "Destination",
+          dates: "Dates",
+          rooms: "Rooms",
+          guests: "Guests",
+          route: "Route",
+          vehicle: "Vehicle",
+          price: "Price",
+          type: "Type",
+          hotelCode: "Hotel code",
         },
       },
     },
@@ -2276,7 +2492,7 @@ const translations: Record<Locale, Translation> = {
       errorAlt: "Error",
       emptyAlt: "No options found",
       emptyMessage: "No options matched your search criteria. Try adjusting your dates or destination.",
-      fallbackTitle: "UAE Stays",
+      fallbackTitle: "Search Results",
       placesFound: {
         one: "{count} property found",
         other: "{count} properties found",
@@ -2488,6 +2704,7 @@ const translations: Record<Locale, Translation> = {
         paymentNote: "You will be securely redirected to Idram to complete your payment.",
         redirectingToIdram: "Redirecting to Idram...",
         payWithIdram: "Pay with Idram",
+        selectRoom: "Select this option",
         closeBookingAria: "Close booking",
       },
       policy: {
@@ -2573,6 +2790,7 @@ const translations: Record<Locale, Translation> = {
       childrenLabel: "Дети",
       childrenAges: "Возраст ребенка",
       roomsLabel: "Номера",
+      roomLabel: "Номер",
       datePlaceholder: "Выберите даты",
       submitIdle: "Поиск",
       submitLoading: "Ищем...",
@@ -2581,6 +2799,7 @@ const translations: Record<Locale, Translation> = {
         missingLocation: "Пожалуйста, выберите направление или отель.",
         missingDates: "Пожалуйста, выберите даты заезда и выезда.",
         invalidRooms: "Ваш выбор номеров был сброшен из-за некорректных данных. Пожалуйста, укажите предпочтения заново.",
+        missingSession: "Данные поисковой сессии отсутствуют. Пожалуйста, повторите поиск.",
         submit: "Не удалось отправить поиск.",
       },
     },
@@ -2656,16 +2875,30 @@ const translations: Record<Locale, Translation> = {
       toggleOpen: "Конструктор пакета",
       toggleClose: "Скрыть",
       changeHotel: "Сменить отель",
+      viewService: "Открыть",
       removeTag: "Удалить",
-      helper: "Сначала выберите отель, чтобы открыть остальные услуги.",
-      warningSelectHotel: "Сначала выберите отель.",
+      checkoutButton: "Перейти к оплате",
+      helper: "Сначала выберите отель, чтобы начать сборку пакета с дополнительными опциями.",
+      warningSelectHotel: "Пожалуйста, выберите отель, чтобы продолжить сборку пакета.",
+      sessionExpiresIn: "Сессия истекает через",
+      sessionWarningTen: "Осталось 10 минут, чтобы завершить оплату пакета.",
+      sessionWarningFive: "Осталось 5 минут, чтобы завершить оплату пакета.",
+      sessionExpired: "Сессия истекла. Пакет сброшен. Пожалуйста, выберите отель снова.",
       requiredTag: "Обязательно",
       selectedTag: "Выбрано",
       addTag: "Добавить",
+      transfers: {
+        individual: "Индивидуальный (до 4 пассажиров)",
+        group: "Групповой",
+        startingFrom: "От",
+        selectType: "Выберите тип трансфера, чтобы увидеть варианты.",
+        perCar: "За автомобиль",
+        perPax: "За пассажира",
+      },
       services: {
-        hotel: "Отели",
+        hotel: "Отель",
         flight: "Авиабилеты",
-        transfer: "Трансферы",
+        transfer: "Трансфер",
         excursion: "Экскурсии",
         insurance: "Страхование",
       },
@@ -2699,6 +2932,62 @@ const translations: Record<Locale, Translation> = {
           body: "Страхование выбирается во время бронирования отеля.",
           note: "Начните с выбора отеля, чтобы продолжить.",
           cta: "Найти отель",
+        },
+      },
+      checkout: {
+        title: "Оплата",
+        subtitle: "Проверьте пакет и выберите способ оплаты.",
+        summaryTitle: "Выбранные услуги",
+        summaryHint: "Все выбранные услуги собраны ниже.",
+        emptySummary: "Пока нет выбранных услуг.",
+        pendingDetails: "Детали будут подтверждены во время бронирования.",
+        contactTitle: "Контактные данные",
+        contactHint: "Мы отправим подтверждения и обновления на эти контакты.",
+        firstName: "Имя",
+        lastName: "Фамилия",
+        email: "Эл. почта",
+        phone: "Телефон",
+        billingTitle: "Платежные данные",
+        billingHint: "Используется для счетов и проверки платежа.",
+        country: "Страна",
+        city: "Город",
+        address: "Адрес",
+        zip: "Индекс",
+        couponTitle: "Купон или подарочная карта",
+        couponPlaceholder: "Введите код",
+        applyCoupon: "Применить",
+        paymentTitle: "Способ оплаты",
+        paymentHint: "Выберите удобный способ оплаты.",
+        methodIdram: "Оплата через Idram",
+        methodCard: "Оплата картой",
+        cardName: "Имя на карте",
+        cardNumber: "Номер карты",
+        cardExpiry: "Срок действия (MM/YY)",
+        cardCvc: "CVC",
+        termsLabel: "Я соглашаюсь с",
+        termsConnector: "и",
+        payIdram: "Оплатить через Idram",
+        payCard: "Оплатить картой",
+        totalTitle: "Сумма к оплате",
+        totalLabel: "Ориентировочный итог",
+        processingNote:
+          "Платеж обрабатывается в защищенной среде. Бронирование подтвердим после проверки.",
+        errors: {
+          missingHotel: "Выберите отель, чтобы продолжить.",
+          missingDetails: "Данные по номерам отсутствуют. Пожалуйста, выберите отель заново.",
+          cardUnavailable: "Оплата картой пока недоступна.",
+          paymentFailed: "Не удалось начать оплату. Пожалуйста, попробуйте снова.",
+        },
+        labels: {
+          destination: "Направление",
+          dates: "Даты",
+          rooms: "Номера",
+          guests: "Гости",
+          route: "Маршрут",
+          vehicle: "Авто",
+          price: "Цена",
+          type: "Тип",
+          hotelCode: "Код отеля",
         },
       },
     },
@@ -3208,12 +3497,12 @@ const translations: Record<Locale, Translation> = {
       errorAlt: "Ошибка",
       emptyAlt: "Варианты не найдены",
       emptyMessage: "По этому запросу варианты не найдены. Попробуйте изменить даты или направление.",
-      fallbackTitle: "Варианты ОАЭ",
+      fallbackTitle: "Результаты поиска",
       placesFound: {
-        one: "{count} вариант найден",
-        few: "{count} варианта найдено",
-        many: "{count} вариантов найдено",
-        other: "{count} вариантов найдено",
+        one: "Найден {count} вариант",
+        few: "Найдено {count} варианта",
+        many: "Найдено {count} вариантов",
+        other: "Найдено {count} вариантов",
       },
       sortLabel: "Сортировать по",
       sortOptions: {
@@ -3391,10 +3680,10 @@ const translations: Record<Locale, Translation> = {
         refundable: "С возвратом",
         nonRefundable: "Невозвратный",
         roomsLeft: {
-          one: "{count} номер остался",
-          few: "{count} номера осталось",
-          many: "{count} номеров осталось",
-          other: "{count} номеров осталось",
+          one: "Остался {count} номер",
+          few: "Осталось {count} номера",
+          many: "Осталось {count} номеров",
+          other: "Осталось {count} номеров",
         },
         roomBreakdown: "Номер {index}: {price}",
         signInToBook: "Войдите, чтобы забронировать",
@@ -3428,6 +3717,7 @@ const translations: Record<Locale, Translation> = {
         paymentNote: "Вы будете перенаправлены в Idram для завершения оплаты.",
         redirectingToIdram: "Переходим в Idram...",
         payWithIdram: "Оплатить через Idram",
+        selectRoom: "Выбрать этот вариант",
         closeBookingAria: "Закрыть бронирование",
       },
       policy: {
