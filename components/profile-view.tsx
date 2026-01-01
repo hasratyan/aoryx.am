@@ -272,10 +272,10 @@ export default function ProfileView({
       .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
   const lastActivityLabel = lastActivity ? formatDateSafe(lastActivity.toISOString()) : null;
 
-  const totalSearchNights = searches.reduce((sum, search) => {
-    const nights = getNights(search.params?.checkInDate, search.params?.checkOutDate);
-    return sum + (nights ?? 0);
-  }, 0);
+  // const totalSearchNights = searches.reduce((sum, search) => {
+  //   const nights = getNights(search.params?.checkInDate, search.params?.checkOutDate);
+  //   return sum + (nights ?? 0);
+  // }, 0);
   const searchNightsCount = searches
     .map((search) => getNights(search.params?.checkInDate, search.params?.checkOutDate))
     .filter((value): value is number => typeof value === "number");
@@ -374,10 +374,10 @@ export default function ProfileView({
           <p>{t.profile.stats.favorites}</p>
           <strong>{favoriteCount}</strong>
         </article>
-        <article className="profile-stat">
+        {/* <article className="profile-stat">
           <p>{t.profile.stats.nights}</p>
           <strong>{totalSearchNights}</strong>
-        </article>
+        </article> */}
         <article className="profile-stat">
           <p>{t.profile.stats.lastActivity}</p>
           <strong>{lastActivityLabel ?? (lastActivity ? "—" : t.profile.insights.empty)}</strong>
@@ -482,23 +482,42 @@ export default function ProfileView({
                       <div className="profile-item-header">
                         <div>
                           <span className={`status-chip status-${statusKey}`}>{statusLabel}</span>
-                          <h3>{payload?.hotelCode ?? t.profile.bookings.labels.hotelCode}</h3>
+                          <h3>{payload?.hotelName ?? t.profile.bookings.labels.hotelCode}</h3>
                           <p className="profile-item-meta">
                             {t.profile.bookings.labels.bookingId}: {payload?.customerRefNumber ?? "—"}
                             {payload?.destinationCode ? ` • ${t.profile.bookings.labels.destination}: ${payload.destinationCode}` : ""}
                           </p>
+                          <p className="profile-item-meta">
+                            {t.profile.bookings.labels.confirmation}: {confirmation}
+                          </p>
                         </div>
-                        {payload?.hotelCode && (
-                          <Link className="profile-link" href={`/${locale}/hotels/${payload.hotelCode}`}>
-                            {t.profile.bookings.viewHotel}
-                          </Link>
-                        )}
+                        <div className="profile-item-actions">
+                          {payload?.hotelCode && (
+                            <Link className="profile-link" href={`/${locale}/hotels/${payload.hotelCode}`}>
+                              {t.profile.bookings.viewHotel}
+                            </Link>
+                          )}
+                          {payload?.customerRefNumber && (
+                            <Link
+                              className="profile-link"
+                              href={`/${locale}/profile/voucher/${payload.customerRefNumber}`}
+                            >
+                              {t.profile.bookings.viewVoucher}
+                            </Link>
+                          )}
+                          {payload?.customerRefNumber && (
+                            <Link
+                              className="profile-link"
+                              href={`/${locale}/profile/voucher/${payload.customerRefNumber}?download=1`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {t.profile.bookings.downloadVoucher}
+                            </Link>
+                          )}
+                        </div>
                       </div>
                       <div className="profile-item-grid">
-                        <div>
-                          <span>{t.profile.bookings.labels.confirmation}</span>
-                          <strong>{confirmation}</strong>
-                        </div>
                         <div>
                           <span>{t.profile.bookings.labels.rooms}</span>
                           <strong>{roomsCount}</strong>

@@ -37,6 +37,10 @@ const normalizeLanguage = (value: string | undefined) => {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const locale =
+      typeof (body as { locale?: unknown }).locale === "string"
+        ? (body as { locale?: string }).locale?.trim()
+        : null;
     const sessionId =
       parseSessionId((body as { sessionId?: unknown }).sessionId) ??
       getSessionFromCookie(request);
@@ -147,6 +151,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id ?? null;
     const userEmail = session?.user?.email ?? null;
+    const userName = session?.user?.name ?? null;
 
     const now = new Date();
     const db = await getDb();
@@ -167,6 +172,8 @@ export async function POST(request: NextRequest) {
       prebookState,
       userId,
       userEmail,
+      userName,
+      locale,
       createdAt: now,
       updatedAt: now,
     });

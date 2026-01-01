@@ -5,6 +5,7 @@ import { clearPrebookCookie, getPrebookState, getSessionFromCookie } from "../_s
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recordUserBooking } from "@/lib/user-data";
+import { sendBookingConfirmationEmail } from "@/lib/email";
 import { parseBookingPayload, validatePrebookState } from "@/lib/aoryx-booking";
 import { obfuscateBookingResult } from "@/lib/aoryx-rate-tokens";
 
@@ -19,6 +20,10 @@ const parseSessionId = (input: unknown): string | undefined => {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const locale =
+      typeof (body as { locale?: unknown }).locale === "string"
+        ? (body as { locale?: string }).locale?.trim()
+        : null;
 
     const sessionId =
       parseSessionId((body as { sessionId?: unknown }).sessionId) ??
@@ -50,6 +55,15 @@ export async function POST(request: NextRequest) {
       const userId = session?.user?.id;
       if (userId) {
         await recordUserBooking({ userId, payload, result, source: "aoryx" });
+      }
+      if (session?.user?.email) {
+        await sendBookingConfirmationEmail({
+          to: session.user.email,
+          name: session.user.name ?? null,
+          payload,
+          result,
+          locale,
+        });
       }
     } catch (error) {
       console.error("[Aoryx][book] Failed to record user booking", error);

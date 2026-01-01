@@ -389,10 +389,7 @@ export default function PackageBuilder() {
         ) : (
           <div className="package-builder__panel" role="dialog" aria-label={t.packageBuilder.title}>
             <div className="package-builder__header">
-              <div>
-                <h3 className="package-builder__title">{t.packageBuilder.title}</h3>
-                <p className="package-builder__hint">{t.packageBuilder.helper}</p>
-              </div>
+              <h3 className="package-builder__title">{t.packageBuilder.title}</h3>
               <button
                 type="button"
                 className="package-builder__close"

@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { getDb } from "@/lib/db";
 import { book } from "@/lib/aoryx-client";
 import { recordUserBooking } from "@/lib/user-data";
+import { sendBookingConfirmationEmail } from "@/lib/email";
 import type { AoryxBookingPayload, AoryxBookingResult } from "@/types/aoryx";
 
 export const runtime = "nodejs";
@@ -18,6 +19,9 @@ type IdramPaymentRecord = {
   };
   payload?: AoryxBookingPayload;
   userId?: string | null;
+  userEmail?: string | null;
+  userName?: string | null;
+  locale?: string | null;
 };
 
 const textResponse = (message: string, status = 200) =>
@@ -161,7 +165,7 @@ export async function POST(request: NextRequest) {
     { returnDocument: "after" }
   );
 
-  const lockedRecord = lock?.value;
+  const lockedRecord = (lock?.value ?? null) as IdramPaymentRecord | null;
   if (!lockedRecord) {
     return textResponse("OK", 200);
   }
@@ -205,6 +209,16 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error("[Idram][result] Failed to record user booking", error);
       }
+    }
+
+    if (lockedRecord.userEmail) {
+      await sendBookingConfirmationEmail({
+        to: lockedRecord.userEmail,
+        name: lockedRecord.userName ?? null,
+        payload,
+        result,
+        locale: lockedRecord.locale ?? null,
+      });
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to complete booking";

@@ -1935,7 +1935,8 @@ export default function HotelClient({
     setBookingResult(null);
 
     try {
-      const checkout = await postJson<IdramCheckoutResponse>("/api/payments/idram/checkout", payload);
+      const requestPayload = { ...payload, locale };
+      const checkout = await postJson<IdramCheckoutResponse>("/api/payments/idram/checkout", requestPayload);
       if (typeof document === "undefined") {
         throw new Error(t.hotel.errors.redirectPayment);
       }
@@ -1969,6 +1970,7 @@ export default function HotelClient({
     hotelInfo?.name,
     insuranceSelectionPayload,
     isSignedIn,
+    locale,
     pathname,
     parsed.payload?.checkInDate,
     parsed.payload?.checkOutDate,

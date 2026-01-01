@@ -457,9 +457,10 @@ export default function PackageCheckoutClient() {
 
     setPaymentLoading(true);
     try {
+      const requestPayload = { ...payload, locale };
       const checkout = await postJson<IdramCheckoutResponse>(
         "/api/payments/idram/checkout",
-        payload
+        requestPayload
       );
       if (typeof document === "undefined") {
         throw new Error(t.packageBuilder.checkout.errors.paymentFailed);

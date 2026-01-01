@@ -277,6 +277,24 @@ export type Translation = {
         bookedOn: string;
       };
       viewHotel: string;
+      viewVoucher: string;
+      downloadVoucher: string;
+    };
+    voucher: {
+      title: string;
+      subtitle: string;
+      downloadPdf: string;
+      backToProfile: string;
+      issuedOn: string;
+      paymentNote: string;
+      sections: {
+        stay: string;
+        payment: string;
+        services: string;
+        guests: string;
+        notes: string;
+      };
+      notes: string;
     };
     searches: {
       title: string;
@@ -1253,6 +1271,24 @@ const translations: Record<Locale, Translation> = {
           bookedOn: "Ամրագրման ամսաթիվ",
         },
         viewHotel: "Դիտել հյուրանոցը",
+        viewVoucher: "Դիտել վաուչերը",
+        downloadVoucher: "Ներբեռնել PDF",
+      },
+      voucher: {
+        title: "Ամրագրման վաուչեր",
+        subtitle: "Պահպանեք վաուչերը՝ հյուրանոցում և ծառայություններում ներկայացնելու համար։",
+        downloadPdf: "Ներբեռնել PDF",
+        backToProfile: "Վերադառնալ պրոֆիլ",
+        issuedOn: "Տրված է",
+        paymentNote: "Այս վաուչերը հաստատում է ձեր ամրագրումը։",
+        sections: {
+          stay: "Հյուրանոցային տվյալներ",
+          payment: "Վճարման ամփոփում",
+          services: "Ներառումներ",
+          guests: "Հյուրերի ցուցակ",
+          notes: "Կարևոր նշումներ",
+        },
+        notes: "Խնդրում ենք պահել վաուչերը և ներկայացնել անհրաժեշտության դեպքում։",
       },
       searches: {
         title: "Որոնման պատմություն",
@@ -2271,6 +2307,24 @@ const translations: Record<Locale, Translation> = {
           bookedOn: "Booked on",
         },
         viewHotel: "View Hotel",
+        viewVoucher: "View voucher",
+        downloadVoucher: "Download PDF",
+      },
+      voucher: {
+        title: "Booking voucher",
+        subtitle: "Keep this voucher for check-in, transfers, and excursions.",
+        downloadPdf: "Download PDF",
+        backToProfile: "Back to profile",
+        issuedOn: "Issued on",
+        paymentNote: "This voucher confirms your booking details.",
+        sections: {
+          stay: "Hotel stay",
+          payment: "Payment summary",
+          services: "Inclusions",
+          guests: "Guest list",
+          notes: "Important notes",
+        },
+        notes: "Present this voucher at check-in and during service pickup. Contact support if any details change.",
       },
       searches: {
         title: "Search History",
@@ -3285,6 +3339,24 @@ const translations: Record<Locale, Translation> = {
           bookedOn: "Дата бронирования",
         },
         viewHotel: "Открыть отель",
+        viewVoucher: "Смотреть ваучер",
+        downloadVoucher: "Скачать PDF",
+      },
+      voucher: {
+        title: "Ваучер бронирования",
+        subtitle: "Сохраните ваучер для заселения и услуг.",
+        downloadPdf: "Скачать PDF",
+        backToProfile: "Назад в профиль",
+        issuedOn: "Дата выдачи",
+        paymentNote: "Этот ваучер подтверждает детали вашего бронирования.",
+        sections: {
+          stay: "Данные проживания",
+          payment: "Сводка оплаты",
+          services: "Включения",
+          guests: "Список гостей",
+          notes: "Важно",
+        },
+        notes: "Покажите ваучер при заселении и для услуг. При изменениях свяжитесь с поддержкой.",
       },
       searches: {
         title: "История поиска",
