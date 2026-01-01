@@ -5091,7 +5091,7 @@ select:focus-visible {
   padding: 0 1rem calc(env(safe-area-inset-bottom) + 1.01rem);
   pointer-events: none;
 
-  @media screen and (max-width: 768px) {
+  @media screen and (max-width: 1024px) {
     &.is-open{
       top: calc(env(safe-area-inset-bottom) + 1rem)
     }

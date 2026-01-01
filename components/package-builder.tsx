@@ -334,6 +334,7 @@ export default function PackageBuilder() {
 
     setShowHotelWarning(false);
     const target = service.id === "hotel" ? `/${locale}` : `/${locale}/services/${service.id}`;
+    setIsOpen(false);
     router.push(target);
   };
 
@@ -366,6 +367,7 @@ export default function PackageBuilder() {
       return;
     }
     setShowHotelWarning(false);
+    setIsOpen(false);
     router.push(`/${locale}/checkout`);
   };
 
@@ -496,7 +498,10 @@ export default function PackageBuilder() {
                             className="package-builder__view"
                             onClick={(event) => {
                               event.stopPropagation();
-                              if (viewHref) router.push(viewHref);
+                              if (viewHref) {
+                                setIsOpen(false);
+                                router.push(viewHref);
+                              }
                             }}
                           >
                             {t.packageBuilder.viewService}
@@ -509,6 +514,7 @@ export default function PackageBuilder() {
                             onClick={(event) => {
                               event.stopPropagation();
                               setShowHotelWarning(false);
+                              setIsOpen(false);
                               router.push(`/${locale}`);
                             }}
                           >
