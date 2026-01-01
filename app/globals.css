@@ -5088,8 +5088,14 @@ select:focus-visible {
   z-index: 1200;
   display: flex;
   justify-content: center;
-  padding: 0 1rem calc(env(safe-area-inset-bottom) + 1rem);
+  padding: 0 1rem calc(env(safe-area-inset-bottom) + 1.01rem);
   pointer-events: none;
+
+  @media screen and (max-width: 450px) {
+    &.is-open{
+      top: calc(env(safe-area-inset-bottom) + 1rem)
+    }
+  }
 }
 
 .package-builder__shell{
