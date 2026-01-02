@@ -16,6 +16,7 @@ import Image from "next/image";
 import ImageGallery from "./ImageGallery";
 import {
   PACKAGE_BUILDER_SESSION_MS,
+  openPackageBuilder,
   updatePackageBuilderState,
   type PackageBuilderHotelSelection,
 } from "@/lib/package-builder-state";
@@ -1779,6 +1780,7 @@ export default function HotelClient({
   const handleSelectRoom = useCallback(() => {
     if (!pendingHotelSelection) return;
     applyHotelSelection(pendingHotelSelection);
+    openPackageBuilder();
     setPendingHotelSelection(null);
     handleCloseBooking();
   }, [applyHotelSelection, handleCloseBooking, pendingHotelSelection]);
@@ -2365,7 +2367,6 @@ export default function HotelClient({
                         </div>
                         {(room.policies.length > 0 || room.cancellationPolicy) && (
                           <div className="booking-policy">
-                            <h4>{t.hotel.booking.cancellationPolicyTitle}</h4>
                             {room.policies.length > 0 ? (
                               <div className="remark-grid">
                                 {room.policies.map((policy, index) => {
@@ -2418,7 +2419,6 @@ export default function HotelClient({
                         )}
                         {room.remarks.length > 0 && (
                           <div className="booking-remarks">
-                            <h4>{t.hotel.booking.remarksTitle}</h4>
                             <div className="remark-grid">
                               {room.remarks.map((remark, index) => {
                                 const meta = getRemarkMeta(

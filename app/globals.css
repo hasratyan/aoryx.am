@@ -130,6 +130,17 @@ a {
   text-decoration:  none;
 }
 
+label{
+
+}
+
+input[type="text"], input[type="email"], input[type="password"], select, textarea {
+  text-align: center;
+  border: 1px solid #fff4;
+  border-radius: .75rem;
+  padding: .5em 1em;
+}
+
 button{
   border: none;
   border-radius: 1.5em;
@@ -1805,7 +1816,7 @@ footer{
      padding-block: 0.75em;
    }
   
-  .hotel-card {
+  .hotel-card{
     /* border: 1px solid var(--border); */
     border-radius: 1.5em;
     background: rgba(255, 255, 255, 0.05);
@@ -1973,8 +1984,12 @@ footer{
           color: #0f172a;
           font-weight: 700;
           box-shadow: 0 20px 50px -20px rgba(255, 255, 255, 0.4);
+          outline-offset: 0;
+          outline: 0px solid #fff;
           &:hover {
             transform: translateY(-2px);
+            outline-width: 1px;
+            outline-offset: 3px;
           }
           span{
             font-size: 1.25rem;
@@ -3323,16 +3338,6 @@ main.details{
     }
   }
 
-  .addon-form-grid{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75em;
-
-    .full{
-      grid-column: 1 / -1;
-    }
-  }
-
   .booking-detail-grid{
     color: #e2e8f0;
     gap: 1em;
@@ -3557,7 +3562,22 @@ main.details{
   }
 
   .booking-primary{
-    background: #fc7b13
+    color: #052e2b;
+    background: linear-gradient(135deg, #7cf2d4, #34d399);
+    box-shadow: 0 12px 30px -20px rgba(52, 211, 153, 0.7);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+
+    &:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 16px 30px -22px rgba(52, 211, 153, 0.85);
+    }
+
+    &:disabled{
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+      box-shadow: none;
+    }
   }
 
   .booking-secondary{
@@ -4048,7 +4068,7 @@ main.payment-status{
   background: #020617a6;
   border: 1px solid #94a3b833;
   border-radius: 1.5rem;
-  gap: 2rem;
+  gap: 1rem 2rem;
   padding: 1.25rem 1.5rem;
   display: flex;
   align-items: self-start;
@@ -4056,6 +4076,14 @@ main.payment-status{
 
   & > div{
     margin: auto;
+  }
+
+  @media screen and (max-width: 768px){
+    flex-direction: column;
+    flex: auto;
+    & > div{
+      margin-inline: 0;
+    }
   }
 }
 
@@ -4567,6 +4595,51 @@ main.payment-status{
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   width: 100%;
+}
+
+.admin-service-grid{
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.admin-service-card{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.55);
+  color: #f8fafc;
+  cursor: pointer;
+
+  strong{
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  small{
+    color: #94a3b8;
+    font-size: 0.8rem;
+  }
+
+  input[type="checkbox"]{
+    width: 20px;
+    height: 20px;
+    accent-color: #38bdf8;
+  }
+}
+
+.admin-service-card.is-disabled{
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(15, 23, 42, 0.4);
+
+  small{
+    color: #fda4af;
+  }
 }
 
 .admin-control{
@@ -5406,7 +5479,12 @@ select:focus-visible {
   padding: 1em 1.25em;
   box-shadow: 0 15px 30px #0005;
   backdrop-filter: blur(10px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  &:hover{
+    background: #199e70;
+    box-shadow: 0 20px 40px #189e7085;
+    transform: translateY(-3px);
+  }
 }
 
 .package-builder__toggle.is-hidden{
@@ -5562,6 +5640,12 @@ select:focus-visible {
   box-shadow: 0 25px 60px -20px #10b98180;
 }
 
+.package-builder__item.is-disabled:not(.is-selected):hover .package-builder__item-button{
+  border-color: rgba(248, 113, 113, 0.4);
+  transform: none;
+  box-shadow: none;
+}
+
 .package-builder__item.is-selected .package-builder__item-button{
   border-color: rgba(124, 242, 212, 0.9);
   background: rgba(12, 28, 35, 0.85);
@@ -5572,6 +5656,12 @@ select:focus-visible {
 
 .package-builder__item.is-locked .package-builder__item-button{
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.package-builder__item.is-disabled .package-builder__item-button{
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(15, 23, 42, 0.65);
   cursor: not-allowed;
 }
 
@@ -5617,6 +5707,12 @@ select:focus-visible {
   background: rgba(124, 242, 212, 0.2);
   color: #7cf2d4;
   font-weight: 900;
+}
+
+.package-builder__item.is-disabled .package-builder__status{
+  background: rgba(248, 113, 113, 0.18);
+  color: #fda4af;
+  font-weight: 700;
 }
 
 .package-builder__actions{
@@ -5772,15 +5868,9 @@ select:focus-visible {
 }
 
 .excursion-guest-tab{
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(15, 23, 42, 0.6);
   color: #e2e8f0;
-  font-size: 0.8rem;
 }
 
 .excursion-guest-tab.is-active{
@@ -5802,16 +5892,9 @@ select:focus-visible {
 }
 
 .excursion-apply-all{
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
   border: 1px solid rgba(124, 242, 212, 0.6);
   background: rgba(12, 28, 35, 0.9);
   color: #7cf2d4;
-  font-weight: 600;
-  font-size: 0.8rem;
 }
 
 .excursion-apply-all:disabled{
@@ -5826,6 +5909,7 @@ select:focus-visible {
   h1{
     font-size: 2rem;
     font-weight: bold;
+    margin-bottom: 0.25em;
   }
 }
 
@@ -5856,10 +5940,12 @@ select:focus-visible {
 }
 
 .service-builder__cta{
-  padding-inline: 1.25em;
-  border: 1px solid rgba(124, 242, 212, 0.6);
-  background: rgba(12, 28, 35, 0.9);
   color: #7cf2d4;
+  background: #0c1c23e6;
+  border: 1px solid #7cf2d499;
+  padding-inline: 1.25em;
+  border-radius: 1.5em;
+  padding: 0.5em 1em;
   &:hover{
     background: rgba(31, 133, 107, 0.9);
     border-color: rgba(124, 242, 212, 0.8);
@@ -5872,16 +5958,48 @@ select:focus-visible {
   cursor: not-allowed;
 }
 
-.package-service__badge{
+.flight-search{
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.flight-search__actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flight-search__actions .service-builder__cta{
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-top: 0.8rem;
-  padding: 0.3rem 0.7rem;
+  gap: 0.4rem;
+}
+
+.flight-search__badges{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.flight-results{
+  display: grid;
+  gap: 0.75rem;
+}
+
+.package-service__badge{
+  color: #e2e8f0e6;
+  background: #94a3b833;
   border-radius: 999px;
-  font-size: 0.75rem;
-  background: rgba(148, 163, 184, 0.2);
-  color: rgba(226, 232, 240, 0.9);
+  align-items: center;
+  gap: .35rem;
+  margin-top: 1em;
+  padding: .3rem .7rem;
+  font-size: .85em;
+  display: inline-flex;
+  font-weight: 600;
 }
 
 .transfer-type-group{
@@ -5903,26 +6021,30 @@ select:focus-visible {
 }
 
 .transfer-type-card{
-  gap: 1rem;
-  padding: 4rem 1.5rem;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(15, 23, 42, 0.6);
   color: #f8fafc;
   text-align: left;
+  background: #0f172a99;
+  border: 1px solid #94a3b833;
   justify-content: space-between;
+  gap: 1rem;
+  padding: 4rem 1.5rem;
   position: relative;
   overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
 
   @media screen and (max-width:900px) {
     padding-top: 1.5rem;
-    align-items: flex-start;
   }
 
   .transfer-type-card__content{
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
     z-index: 1;
+    gap: .5rem;
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
+    justify-items: left;
+    align-items: end;
 
     h2{
       font-size: 1.25rem;
@@ -5935,8 +6057,11 @@ select:focus-visible {
     }
 
     .transfer-type-card__note{
-      font-size: 0.85rem;
-      color: rgba(148, 163, 184, 0.9);
+      font-size: .85rem;
+      background: #fff3;
+      padding: 0.5em 0.8em 0.5em 1.5rem;
+      border-radius: 0 1em 1em 0;
+      margin-left: -1.5rem;
     }
   }
 
@@ -6008,8 +6133,9 @@ select:focus-visible {
 
 .package-service__empty{
   color: #fff;
+  gap: 1rem;
   display: grid;
-  gap: 0.8rem;
+  justify-items: center;
 }
 
 .package-checkout__header{

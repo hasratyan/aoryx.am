@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import Loader from "@/components/loader";
 import SearchForm from "@/components/search-form";
 import { useLanguage } from "@/components/language-provider";
 import type { Locale as AppLocale } from "@/lib/i18n";
 import { formatCurrencyAmount, normalizeAmount } from "@/lib/currency";
 import { postJson } from "@/lib/api-helpers";
+import StarBorder from "@/components/StarBorder";
 import type { AoryxExcursionTicket, AoryxTransferRate } from "@/types/aoryx";
+import type { FlydubaiFlightOffer, FlydubaiSearchResponse } from "@/types/flydubai";
 import {
   PackageBuilderService,
   PackageBuilderState,
@@ -95,6 +98,15 @@ const normalizeTransferType = (value: string | null | undefined): TransferType |
   return null;
 };
 
+type FlightSearchForm = {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate: string;
+  cabinClass: string;
+  notes: string;
+};
+
 export default function PackageServiceClient({ serviceKey }: Props) {
   const { locale, t } = useLanguage();
   const intlLocale = intlLocales[locale] ?? "en-GB";
@@ -119,6 +131,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     return stored && typeof stored === "object" ? stored : {};
   });
   const [activeExcursionGuestId, setActiveExcursionGuestId] = useState<string | null>(null);
+  const [flightForm, setFlightForm] = useState<FlightSearchForm>({
+    origin: "",
+    destination: "",
+    departureDate: "",
+    returnDate: "",
+    cabinClass: "economy",
+    notes: "",
+  });
+  const [flightOffers, setFlightOffers] = useState<FlydubaiFlightOffer[]>([]);
+  const [flightLoading, setFlightLoading] = useState(false);
+  const [flightError, setFlightError] = useState<string | null>(null);
+  const [flightSearched, setFlightSearched] = useState(false);
+  const [flightMocked, setFlightMocked] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribePackageBuilderState(() => {
@@ -132,6 +157,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const destinationName = hotelSelection?.destinationName ?? null;
   const destinationCode = hotelSelection?.destinationCode ?? null;
   const selectedTransferId = builderState.transfer?.selectionId ?? null;
+  const selectedFlightId = builderState.flight?.selectionId ?? null;
   const nonHotelSelection =
     serviceKey === "hotel"
       ? undefined
@@ -140,6 +166,54 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     serviceKey === "transfer" && hasHotel && !destinationName && !destinationCode;
   const shouldFetchTransfers =
     serviceKey === "transfer" && hasHotel && !transferMissingDestination;
+
+  const passengerCounts = useMemo(() => {
+    const rooms = hotelSelection?.rooms ?? [];
+    if (rooms.length === 0) {
+      const total =
+        typeof hotelSelection?.guestCount === "number" ? hotelSelection.guestCount : 0;
+      return { adults: total, children: 0, total };
+    }
+    let adults = 0;
+    let children = 0;
+    rooms.forEach((room) => {
+      adults += Number.isFinite(room.adults) ? room.adults : 0;
+      children += Array.isArray(room.childrenAges) ? room.childrenAges.length : 0;
+    });
+    return { adults, children, total: adults + children };
+  }, [hotelSelection?.guestCount, hotelSelection?.rooms]);
+
+  const cabinOptions = useMemo(
+    () => [
+      { value: "economy", label: t.hotel.addons.flights.cabin.economy },
+      { value: "premium", label: t.hotel.addons.flights.cabin.premium },
+      { value: "business", label: t.hotel.addons.flights.cabin.business },
+      { value: "first", label: t.hotel.addons.flights.cabin.first },
+    ],
+    [t.hotel.addons.flights.cabin]
+  );
+
+  const cabinLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    cabinOptions.forEach((option) => map.set(option.value, option.label));
+    return map;
+  }, [cabinOptions]);
+
+  const passengerSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (passengerCounts.adults > 0) {
+      parts.push(`${passengerCounts.adults} ${t.search.adultsLabel}`);
+    }
+    if (passengerCounts.children > 0) {
+      parts.push(`${passengerCounts.children} ${t.search.childrenLabel}`);
+    }
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }, [
+    passengerCounts.adults,
+    passengerCounts.children,
+    t.search.adultsLabel,
+    t.search.childrenLabel,
+  ]);
 
   const excursionGuests = useMemo<ExcursionGuest[]>(() => {
     const rooms = hotelSelection?.rooms ?? null;
@@ -190,6 +264,53 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   }, [excursionGuests]);
 
   const canSelectExcursions = hasHotel && excursionGuests.length > 0;
+
+  useEffect(() => {
+    if (serviceKey !== "flight") return;
+    const defaultDestination = destinationName ?? destinationCode ?? "";
+    const defaultDeparture = hotelSelection?.checkInDate ?? "";
+    const defaultReturn = hotelSelection?.checkOutDate ?? "";
+    setFlightForm((prev) => {
+      const selection = builderState.flight;
+      const next: FlightSearchForm = selection?.selected
+        ? {
+            origin: selection.origin ?? "",
+            destination: selection.destination ?? defaultDestination,
+            departureDate: selection.departureDate ?? defaultDeparture,
+            returnDate: selection.returnDate ?? defaultReturn,
+            cabinClass: selection.cabinClass ?? "economy",
+            notes: selection.notes ?? "",
+          }
+        : {
+            origin: prev.origin,
+            destination: prev.destination || defaultDestination,
+            departureDate: prev.departureDate || defaultDeparture,
+            returnDate: prev.returnDate || defaultReturn,
+            cabinClass: prev.cabinClass || "economy",
+            notes: prev.notes,
+          };
+      const changed = Object.keys(next).some(
+        (key) => next[key as keyof FlightSearchForm] !== prev[key as keyof FlightSearchForm]
+      );
+      return changed ? next : prev;
+    });
+  }, [
+    builderState.flight,
+    destinationCode,
+    destinationName,
+    hotelSelection?.checkInDate,
+    hotelSelection?.checkOutDate,
+    serviceKey,
+  ]);
+
+  useEffect(() => {
+    if (serviceKey !== "flight") return;
+    if (hasHotel) return;
+    setFlightOffers((prev) => (prev.length > 0 ? [] : prev));
+    setFlightError((prev) => (prev ? null : prev));
+    setFlightMocked(false);
+    setFlightSearched(false);
+  }, [hasHotel, serviceKey]);
 
   useEffect(() => {
     if (hasHotel) return;
@@ -278,6 +399,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
 
   useEffect(() => {
     if (serviceKey !== "excursion") return;
+    if (!hasHotel) {
+      setExcursionOptions((prev) => (prev.length > 0 ? [] : prev));
+      setExcursionFee((prev) => (prev !== null ? null : prev));
+      setExcursionError(null);
+      setExcursionLoading(false);
+      return;
+    }
     let active = true;
     const fetchExcursions = async () => {
       await Promise.resolve();
@@ -307,7 +435,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     return () => {
       active = false;
     };
-  }, [serviceKey, t.hotel.addons.excursions.loadFailed]);
+  }, [hasHotel, serviceKey, t.hotel.addons.excursions.loadFailed]);
 
   const transferIdMap = useMemo(() => {
     const map = new Map<AoryxTransferRate, string>();
@@ -623,6 +751,105 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     }));
   };
 
+  const updateFlightField = useCallback((field: keyof FlightSearchForm, value: string) => {
+    setFlightForm((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleFlightSearch = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (flightLoading) return;
+      const origin = flightForm.origin.trim();
+      const destination = flightForm.destination.trim();
+      const departureDate = flightForm.departureDate.trim();
+      if (!origin || !destination || !departureDate) {
+        return;
+      }
+
+      setFlightLoading(true);
+      setFlightError(null);
+      setFlightMocked(false);
+      setFlightSearched(true);
+      try {
+        const payload = {
+          origin,
+          destination,
+          departureDate,
+          returnDate: flightForm.returnDate.trim() || null,
+          cabinClass: flightForm.cabinClass.trim() || null,
+          adults: passengerCounts.adults || undefined,
+          children: passengerCounts.children || undefined,
+          currency: hotelSelection?.currency ?? "USD",
+        };
+        const data = await postJson<FlydubaiSearchResponse>("/api/flydubai/search", payload);
+        setFlightOffers(Array.isArray(data.offers) ? data.offers : []);
+        setFlightMocked(Boolean(data.mock));
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : t.packageBuilder.flights.loadFailed;
+        setFlightError(message);
+      } finally {
+        setFlightLoading(false);
+      }
+    },
+    [
+      flightForm.cabinClass,
+      flightForm.departureDate,
+      flightForm.destination,
+      flightForm.origin,
+      flightForm.returnDate,
+      flightLoading,
+      hotelSelection?.currency,
+      passengerCounts.adults,
+      passengerCounts.children,
+      t.packageBuilder.flights.loadFailed,
+    ]
+  );
+
+  const handleSelectFlight = useCallback(
+    (offer: FlydubaiFlightOffer) => {
+      const outboundSegments = offer.segments ?? [];
+      const origin = outboundSegments[0]?.origin ?? flightForm.origin.trim();
+      const destination =
+        outboundSegments[outboundSegments.length - 1]?.destination ??
+        flightForm.destination.trim();
+      const departureDate =
+        outboundSegments[0]?.departureDateTime?.split("T")[0] ?? flightForm.departureDate.trim();
+      const returnSegments = offer.returnSegments ?? [];
+      const returnDate =
+        returnSegments[0]?.departureDateTime?.split("T")[0] ?? flightForm.returnDate.trim();
+      const cabinClass = offer.cabinClass ?? (flightForm.cabinClass.trim() || "economy");
+      const label = [origin, destination].filter(Boolean).join(" → ");
+
+      updatePackageBuilderState((prev) => ({
+        ...prev,
+        flight: {
+          selected: true,
+          selectionId: offer.id,
+          label: label || t.packageBuilder.services.flight,
+          price: offer.totalPrice,
+          currency: offer.currency,
+          origin: origin || null,
+          destination: destination || null,
+          departureDate: departureDate || null,
+          returnDate: returnDate || null,
+          cabinClass: cabinClass || null,
+          notes: flightForm.notes.trim() || null,
+        },
+        updatedAt: Date.now(),
+      }));
+    },
+    [
+      flightForm.cabinClass,
+      flightForm.departureDate,
+      flightForm.destination,
+      flightForm.notes,
+      flightForm.origin,
+      flightForm.returnDate,
+      t.packageBuilder.services.flight,
+    ]
+  );
+
   const toggleExcursionForActiveGuest = (excursionId: string) => {
     if (!activeExcursionGuestId) return;
     const guest = excursionGuestMap.get(activeExcursionGuestId);
@@ -674,6 +901,47 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       return formatCurrencyAmount(normalized.amount, normalized.currency, intlLocale);
     },
     [amdRates, intlLocale]
+  );
+
+  const formatFlightDate = useCallback((value: string | null | undefined) => {
+    if (!value) return null;
+    const [datePart] = value.split("T");
+    if (!datePart) return null;
+    const [year, month, day] = datePart.split("-");
+    if (!year || !month || !day) return datePart;
+    return `${day}.${month}.${year}`;
+  }, []);
+
+  const formatFlightDateTime = useCallback(
+    (value: string | null | undefined) => {
+      if (!value) return null;
+      const [datePart, timePart] = value.split("T");
+      const date = formatFlightDate(datePart);
+      const time = timePart ? timePart.slice(0, 5) : "";
+      return [date, time].filter(Boolean).join(" ");
+    },
+    [formatFlightDate]
+  );
+
+  const getCabinLabel = useCallback(
+    (value: string | null | undefined) => {
+      const normalized = value?.trim().toLowerCase();
+      if (!normalized) return null;
+      return cabinLabelMap.get(normalized) ?? value ?? null;
+    },
+    [cabinLabelMap]
+  );
+
+  const buildSegmentLine = useCallback(
+    (label: string, segments: FlydubaiFlightOffer["segments"]) => {
+      if (!segments || segments.length === 0) return null;
+      const start = formatFlightDateTime(segments[0]?.departureDateTime);
+      const end = formatFlightDateTime(segments[segments.length - 1]?.arrivalDateTime);
+      if (!start && !end) return null;
+      const line = [start, end].filter(Boolean).join(" \u2192 ");
+      return `${label}: ${line}`;
+    },
+    [formatFlightDateTime]
   );
 
   const getStartingPrice = useCallback((options: AoryxTransferRate[]) => {
@@ -856,7 +1124,198 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     );
   };
 
+  const renderFlightPanel = () => {
+    if (!hasHotel) {
+      return (
+        <div className="service-builder__panel">
+          <div className="package-service__empty">
+            <p>{t.packageBuilder.warningSelectHotel}</p>
+            <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
+              {t.packageBuilder.services.hotel}
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    const searchLabel = flightLoading
+      ? t.packageBuilder.flights.searching
+      : t.packageBuilder.flights.searchButton;
+
+    const offersContent = (() => {
+      if (flightLoading) {
+        return <Loader text={t.packageBuilder.flights.searching} />;
+      }
+      if (flightError) {
+        return <p className="package-service__state error">{flightError}</p>;
+      }
+      if (!flightSearched) {
+        return <p className="package-service__state">{t.packageBuilder.flights.searchPrompt}</p>;
+      }
+      if (flightOffers.length === 0) {
+        return <p className="package-service__state">{t.packageBuilder.flights.noOptions}</p>;
+      }
+
+      return (
+        <div className="package-service__list" role="list">
+          {flightOffers.map((offer) => {
+            const outboundSegments = offer.segments ?? [];
+            const outboundOrigin = outboundSegments[0]?.origin ?? flightForm.origin;
+            const outboundDestination =
+              outboundSegments[outboundSegments.length - 1]?.destination ??
+              flightForm.destination;
+            const outboundLine = buildSegmentLine(
+              t.hotel.addons.flights.departureLabel,
+              outboundSegments
+            );
+            const returnSegments = offer.returnSegments ?? [];
+            const returnLine =
+              returnSegments.length > 0
+                ? buildSegmentLine(t.hotel.addons.flights.returnLabel, returnSegments)
+                : null;
+            const cabinLabel = getCabinLabel(offer.cabinClass ?? flightForm.cabinClass);
+            const priceLabel = formatServicePrice(offer.totalPrice, offer.currency);
+            const metaParts: string[] = [];
+            if (cabinLabel) {
+              metaParts.push(`${t.hotel.addons.flights.cabinLabel}: ${cabinLabel}`);
+            }
+            if (priceLabel) {
+              metaParts.push(`${t.packageBuilder.checkout.labels.price}: ${priceLabel}`);
+            }
+            const metaLine = metaParts.length > 0 ? metaParts.join(" · ") : null;
+            const isSelected = selectedFlightId === offer.id;
+
+            return (
+              <div
+                key={offer.id}
+                className={`package-service__card${isSelected ? " is-selected" : ""}`}
+                role="listitem"
+              >
+                <div>
+                  <h3 className="package-service__route">
+                    {outboundOrigin} → {outboundDestination}
+                  </h3>
+                  {outboundLine && <p className="package-service__meta">{outboundLine}</p>}
+                  {returnLine && <p className="package-service__meta">{returnLine}</p>}
+                  {metaLine && <p className="package-service__meta">{metaLine}</p>}
+                </div>
+                <button
+                  type="button"
+                  className="service-builder__cta"
+                  onClick={() => handleSelectFlight(offer)}
+                >
+                  {isSelected ? t.packageBuilder.selectedTag : t.packageBuilder.addTag}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      );
+    })();
+
+    return (
+      <>
+      <div className="search">
+        <form className="flight-search" onSubmit={handleFlightSearch}>
+            <label>
+              <input
+                type="text"
+                value={flightForm.origin}
+                onChange={(event) => updateFlightField("origin", event.target.value)}
+                required
+                placeholder={t.hotel.addons.flights.originLabel}
+              />
+            </label>
+            <label>
+              <input
+                type="text"
+                value={flightForm.destination}
+                onChange={(event) => updateFlightField("destination", event.target.value)}
+                required
+                placeholder={t.hotel.addons.flights.destinationLabel}
+              />
+            </label>
+            <label>
+              <input
+                type="date"
+                value={flightForm.departureDate}
+                onChange={(event) => updateFlightField("departureDate", event.target.value)}
+                required
+                placeholder={t.hotel.addons.flights.departureLabel}
+              />
+            </label>
+            <label>
+              <input
+                type="date"
+                value={flightForm.returnDate}
+                onChange={(event) => updateFlightField("returnDate", event.target.value)}
+                placeholder={t.hotel.addons.flights.returnLabel}
+              />
+            </label>
+            <label className="addon-field">
+              <span>{t.hotel.addons.flights.cabinLabel}</span>
+              <select
+                value={flightForm.cabinClass}
+                onChange={(event) => updateFlightField("cabinClass", event.target.value)}
+              >
+                {cabinOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          <div className="flight-search__actions">
+            <button type="submit" className="service-builder__cta" disabled={flightLoading}>
+              <span className="material-symbols-rounded" aria-hidden="true">search</span>
+              {searchLabel}
+            </button>
+            <div className="flight-search__badges">
+              {passengerSummary && (
+                <span className="package-service__badge">
+                  <span className="material-symbols-rounded" aria-hidden="true">
+                    group
+                  </span>
+                  {passengerSummary}
+                </span>
+              )}
+              {flightMocked && flightSearched && (
+                <span className="package-service__badge">
+                  <span className="material-symbols-rounded" aria-hidden="true">
+                    info
+                  </span>
+                  {t.packageBuilder.flights.demoNote}
+                </span>
+              )}
+            </div>
+          </div>
+          <StarBorder
+            as="div"
+            color="#34d399"
+            speed="5s"
+            thickness={2}
+          > </StarBorder>
+        </form>
+      </div>
+      <div className="service-builder__panel">
+        <p className="service-builder__note">{pageCopy.note}</p>
+        <div className="flight-results">{offersContent}</div>
+      </div>
+      </>
+    );
+  };
+
   const renderExcursionList = () => {
+    if (!hasHotel) {
+      return (
+        <div className="package-service__empty">
+          <p>{t.packageBuilder.warningSelectHotel}</p>
+          <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
+            {t.packageBuilder.services.hotel}
+          </Link>
+        </div>
+      );
+    }
     if (excursionLoading) {
       return <p className="package-service__state">{t.hotel.addons.excursions.loading}</p>;
     }
@@ -988,6 +1447,8 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           <div className="search">
             <SearchForm copy={t.search} />
           </div>
+        ) : serviceKey === "flight" ? (
+          renderFlightPanel()
         ) : serviceKey === "transfer" ? (
           <>
             {renderTransferTypeGroup()}
@@ -996,7 +1457,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         ) : serviceKey === "excursion" ? (
           <div className="service-builder__panel">{renderExcursionList()}</div>
         ) : (
-          <div className="service-builder__panel service-builder__panel--compact">
+          <div className="service-builder__panel">
             {!hasHotel ? (
               <div className="package-service__empty">
                 <p>{t.packageBuilder.warningSelectHotel}</p>

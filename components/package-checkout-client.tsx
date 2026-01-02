@@ -443,6 +443,12 @@ export default function PackageCheckoutClient() {
         airTickets:
           builderState.flight?.selected
             ? {
+                origin: builderState.flight.origin ?? null,
+                destination: builderState.flight.destination ?? null,
+                departureDate: builderState.flight.departureDate ?? null,
+                returnDate: builderState.flight.returnDate ?? null,
+                cabinClass: builderState.flight.cabinClass ?? null,
+                notes: builderState.flight.notes ?? null,
                 price: builderState.flight.price ?? null,
                 currency: builderState.flight.currency ?? null,
               }
@@ -591,15 +597,54 @@ export default function PackageCheckoutClient() {
       details: excursionDetails.length > 0 ? excursionDetails : [t.packageBuilder.checkout.pendingDetails],
     });
 
-    (["flight", "insurance"] as PackageBuilderService[]).forEach((serviceId) => {
-      const selection =
-        builderState[serviceId as Exclude<PackageBuilderService, "hotel" | "transfer" | "excursion">];
-      cards.push({
-        id: serviceId,
-        label: t.packageBuilder.services[serviceId],
-        selected: selection?.selected === true,
-        details: [t.packageBuilder.checkout.pendingDetails],
-      });
+    const flight = builderState.flight;
+    const flightDetails: string[] = [];
+    const flightRoute = [flight?.origin, flight?.destination].filter(Boolean).join(" -> ");
+    const flightRouteLine = buildDetailLine(
+      t.packageBuilder.checkout.labels.route,
+      flightRoute || null
+    );
+    if (flightRouteLine) flightDetails.push(flightRouteLine);
+    const flightDates = [flight?.departureDate, flight?.returnDate].filter(Boolean).join(" / ");
+    const flightDatesLine = buildDetailLine(
+      t.packageBuilder.checkout.labels.dates,
+      flightDates || null
+    );
+    if (flightDatesLine) flightDetails.push(flightDatesLine);
+    const cabinClass = flight?.cabinClass?.trim().toLowerCase();
+    const cabinLabel =
+      cabinClass === "economy"
+        ? t.hotel.addons.flights.cabin.economy
+        : cabinClass === "premium"
+          ? t.hotel.addons.flights.cabin.premium
+          : cabinClass === "business"
+            ? t.hotel.addons.flights.cabin.business
+            : cabinClass === "first"
+              ? t.hotel.addons.flights.cabin.first
+              : flight?.cabinClass ?? null;
+    const cabinLine = buildDetailLine(t.hotel.addons.flights.cabinLabel, cabinLabel);
+    if (cabinLine) flightDetails.push(cabinLine);
+    const flightPrice = formatServicePrice(
+      flight?.price ?? null,
+      flight?.currency ?? null,
+      baseRates
+    );
+    const flightPriceLine = buildDetailLine(t.packageBuilder.checkout.labels.price, flightPrice);
+    if (flightPriceLine) flightDetails.push(flightPriceLine);
+
+    cards.push({
+      id: "flight",
+      label: t.packageBuilder.services.flight,
+      selected: flight?.selected === true,
+      details: flightDetails.length > 0 ? flightDetails : [t.packageBuilder.checkout.pendingDetails],
+    });
+
+    const insuranceSelection = builderState.insurance;
+    cards.push({
+      id: "insurance",
+      label: t.packageBuilder.services.insurance,
+      selected: insuranceSelection?.selected === true,
+      details: [t.packageBuilder.checkout.pendingDetails],
     });
 
     return cards.filter((card) => card.selected);

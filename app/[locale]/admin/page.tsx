@@ -102,6 +102,12 @@ export default async function AdminHomePage({ params }: PageProps) {
       title: t.admin.favorites.title,
       body: t.admin.dashboard.cards.favorites,
     },
+    {
+      href: "/admin/services",
+      icon: "tune",
+      title: t.admin.services.title,
+      body: t.admin.dashboard.cards.services,
+    },
   ];
 
   return (

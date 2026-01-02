@@ -2,16 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/language-provider";
 import type { Locale as AppLocale } from "@/lib/i18n";
 import { formatCurrencyAmount, normalizeAmount } from "@/lib/currency";
 import { useAmdRates } from "@/lib/use-amd-rates";
+import { getJson } from "@/lib/api-helpers";
 import {
+  DEFAULT_SERVICE_FLAGS,
   PackageBuilderState,
   PackageBuilderService,
+  PACKAGE_BUILDER_OPEN_EVENT,
+  ServiceFlags,
+  clearPackageBuilderStateForOwner,
+  readPackageBuilderOwner,
   readPackageBuilderState,
+  readPackageBuilderStateForOwner,
   subscribePackageBuilderState,
   updatePackageBuilderState,
+  writePackageBuilderOwner,
+  writePackageBuilderStateForOwner,
 } from "@/lib/package-builder-state";
 import { buildSearchQuery } from "@/lib/search-query";
 
@@ -43,6 +53,7 @@ const formatRemainingTime = (remainingMs: number) => {
 export default function PackageBuilder() {
   const { locale, t } = useLanguage();
   const router = useRouter();
+  const { data: session, status: authStatus } = useSession();
   const intlLocale = intlLocales[locale] ?? "en-GB";
   const { rates: hotelRates } = useAmdRates();
   const { rates: baseRates } = useAmdRates(undefined, {
@@ -54,12 +65,79 @@ export default function PackageBuilder() {
     readPackageBuilderState()
   );
   const [showHotelWarning, setShowHotelWarning] = useState(false);
+  const [disabledServiceId, setDisabledServiceId] = useState<PackageBuilderService | null>(null);
+  const [serviceFlags, setServiceFlags] = useState<ServiceFlags>(DEFAULT_SERVICE_FLAGS);
   const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(null);
   const [sessionWarningKey, setSessionWarningKey] = useState<SessionWarningKey | null>(null);
   const sessionWarningRef = useRef<"none" | "ten" | "five" | "expired">("none");
   const sessionExpiresAtRef = useRef<number | null>(null);
   const hotelSelectionRef = useRef<string | null>(null);
   const lastScrollYRef = useRef(0);
+  const hasSelection = (state: PackageBuilderState) =>
+    Boolean(
+      state.hotel?.selected ||
+        state.transfer?.selected ||
+        state.flight?.selected ||
+        state.excursion?.selected ||
+        state.insurance?.selected
+    );
+  const isSessionActive = (state: PackageBuilderState) => {
+    const expiresAt = state.sessionExpiresAt;
+    return typeof expiresAt === "number" && expiresAt > Date.now();
+  };
+  const isStateRestorable = (state: PackageBuilderState) =>
+    hasSelection(state) && isSessionActive(state);
+
+  useEffect(() => {
+    if (authStatus === "loading") return;
+    const ownerId = session?.user?.id ?? session?.user?.email ?? null;
+    const currentOwner = ownerId ? `user:${ownerId}` : "guest";
+    const activeState = readPackageBuilderState();
+    const activeHasSelections = hasSelection(activeState);
+    const rawStoredOwner = readPackageBuilderOwner();
+    const storedOwner = rawStoredOwner ?? (activeHasSelections ? "guest" : null);
+    const activeRestorable = isStateRestorable(activeState);
+
+    if (storedOwner && storedOwner !== currentOwner && storedOwner !== "guest") {
+      if (activeRestorable) {
+        writePackageBuilderStateForOwner(storedOwner, activeState);
+      } else {
+        clearPackageBuilderStateForOwner(storedOwner);
+      }
+    }
+
+    if (storedOwner !== currentOwner) {
+      const allowGuestMigration =
+        storedOwner === "guest" && currentOwner !== "guest" && activeRestorable;
+      if (allowGuestMigration) {
+        writePackageBuilderStateForOwner(currentOwner, activeState);
+        writePackageBuilderOwner(currentOwner);
+        return;
+      }
+
+      const savedState = readPackageBuilderStateForOwner(currentOwner);
+      const savedRestorable = isStateRestorable(savedState);
+      if (!savedRestorable && currentOwner !== "guest") {
+        clearPackageBuilderStateForOwner(currentOwner);
+      }
+      updatePackageBuilderState(() => (savedRestorable ? savedState : {}));
+    }
+    writePackageBuilderOwner(currentOwner);
+  }, [authStatus, session?.user?.email, session?.user?.id]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+    const ownerId = session?.user?.id ?? session?.user?.email ?? null;
+    if (!ownerId) return;
+    const currentOwner = `user:${ownerId}`;
+    const storedOwner = readPackageBuilderOwner();
+    if (storedOwner !== currentOwner) return;
+    if (isStateRestorable(builderState)) {
+      writePackageBuilderStateForOwner(currentOwner, builderState);
+    } else {
+      clearPackageBuilderStateForOwner(currentOwner);
+    }
+  }, [authStatus, builderState, session?.user?.email, session?.user?.id]);
 
   const selectedHotelLabel = (() => {
     if (!builderState.hotel?.selected) return null;
@@ -75,6 +153,17 @@ export default function PackageBuilder() {
     const transferType = builderState.transfer.transferType?.trim().toUpperCase();
     if (transferType === "GROUP") return t.packageBuilder.transfers.group;
     if (transferType === "INDIVIDUAL") return t.packageBuilder.transfers.individual;
+    return null;
+  })();
+  const selectedFlightLabel = (() => {
+    if (!builderState.flight?.selected) return null;
+    const label = builderState.flight.label?.trim();
+    if (label) return label;
+    const origin = builderState.flight.origin?.trim();
+    const destination = builderState.flight.destination?.trim();
+    if (origin && destination) {
+      return `${origin} - ${destination}`;
+    }
     return null;
   })();
 
@@ -106,12 +195,47 @@ export default function PackageBuilder() {
     { id: "excursion", icon: "tour", label: t.packageBuilder.services.excursion },
     { id: "insurance", icon: "shield_with_heart", label: t.packageBuilder.services.insurance },
   ];
+  const serviceDisabledMessage = (() => {
+    if (!disabledServiceId) return null;
+    const serviceLabel = services.find((service) => service.id === disabledServiceId)?.label;
+    return serviceLabel
+      ? t.packageBuilder.serviceDisabled.replace("{service}", serviceLabel)
+      : null;
+  })();
 
   useEffect(() => {
     const unsubscribe = subscribePackageBuilderState(() => {
       setBuilderState(readPackageBuilderState());
     });
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const data = await getJson<{ flags?: ServiceFlags }>("/api/services/availability");
+        if (!active) return;
+        setServiceFlags({ ...DEFAULT_SERVICE_FLAGS, ...(data.flags ?? {}) });
+      } catch (error) {
+        if (!active) return;
+        setServiceFlags(DEFAULT_SERVICE_FLAGS);
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleOpen = () => {
+      setShowHotelWarning(false);
+      setDisabledServiceId(null);
+      setIsOpen(true);
+    };
+    window.addEventListener(PACKAGE_BUILDER_OPEN_EVENT, handleOpen);
+    return () => window.removeEventListener(PACKAGE_BUILDER_OPEN_EVENT, handleOpen);
   }, []);
 
   useEffect(() => {
@@ -323,16 +447,24 @@ export default function PackageBuilder() {
 
   const toggleOpen = () => {
     setShowHotelWarning(false);
+    setDisabledServiceId(null);
     setIsOpen((prev) => !prev);
   };
 
   const handleSelect = (service: ServiceItem) => {
+    if (serviceFlags[service.id] === false) {
+      setShowHotelWarning(false);
+      setDisabledServiceId(service.id);
+      return;
+    }
     if (service.id !== "hotel" && !hasHotel) {
       setShowHotelWarning(true);
+      setDisabledServiceId(null);
       return;
     }
 
     setShowHotelWarning(false);
+    setDisabledServiceId(null);
     const target = service.id === "hotel" ? `/${locale}` : `/${locale}/services/${service.id}`;
     setIsOpen(false);
     router.push(target);
@@ -367,6 +499,7 @@ export default function PackageBuilder() {
       return;
     }
     setShowHotelWarning(false);
+    setDisabledServiceId(null);
     setIsOpen(false);
     router.push(`/${locale}/checkout`);
   };
@@ -417,6 +550,14 @@ export default function PackageBuilder() {
                 {t.packageBuilder.warningSelectHotel}
               </div>
             )}
+            {serviceDisabledMessage && (
+              <div className="package-builder__warning" role="alert">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  block
+                </span>
+                {serviceDisabledMessage}
+              </div>
+            )}
             <div className="package-builder__grid" role="list">
               {services.map((service) => {
                 const serviceSelection =
@@ -424,6 +565,7 @@ export default function PackageBuilder() {
                     ? builderState.hotel
                     : builderState[service.id as Exclude<PackageBuilderService, "hotel">];
                 const isSelected = serviceSelection?.selected === true;
+                const isDisabled = serviceFlags[service.id] === false;
                 const serviceRates = service.id === "hotel" ? hotelRates : baseRates;
                 const normalizedPrice = isSelected
                   ? normalizeAmount(
@@ -436,17 +578,21 @@ export default function PackageBuilder() {
                   ? formatCurrencyAmount(normalizedPrice.amount, normalizedPrice.currency, intlLocale)
                   : null;
                 const priceLabel = isSelected ? formattedPrice ?? t.common.contactForRates : null;
-                const statusLabel = isSelected
-                  ? t.packageBuilder.selectedTag
-                  : service.required
-                    ? t.packageBuilder.requiredTag
-                    : t.packageBuilder.addTag;
+                const statusLabel = isDisabled
+                  ? t.packageBuilder.disabledTag
+                  : isSelected
+                    ? t.packageBuilder.selectedTag
+                    : service.required
+                      ? t.packageBuilder.requiredTag
+                      : t.packageBuilder.addTag;
                 const isLocked = !hasHotel && service.id !== "hotel";
                 const selectionLabel =
                   service.id === "hotel"
                     ? selectedHotelLabel
                     : service.id === "transfer"
                       ? selectedTransferLabel
+                      : service.id === "flight"
+                        ? selectedFlightLabel
                       : null;
                 const viewHref =
                   service.id === "hotel" ? hotelViewHref : `/${locale}/services/${service.id}`;
@@ -458,12 +604,12 @@ export default function PackageBuilder() {
                   <div
                     key={service.id}
                     role="listitem"
-                    className={`package-builder__item${isSelected ? " is-selected" : ""}${isLocked ? " is-locked" : ""}`}
+                    className={`package-builder__item${isSelected ? " is-selected" : ""}${isLocked ? " is-locked" : ""}${isDisabled ? " is-disabled" : ""}`}
                   >
                     <button
                       type="button"
                       className="package-builder__item-button"
-                      aria-disabled={isLocked}
+                      aria-disabled={isLocked || isDisabled}
                       onClick={() => handleSelect(service)}
                     >
                       <span

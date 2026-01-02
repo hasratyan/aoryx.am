@@ -81,6 +81,8 @@ export type Translation = {
     requiredTag: string;
     selectedTag: string;
     addTag: string;
+    disabledTag: string;
+    serviceDisabled: string;
     transfers: {
       individual: string;
       group: string;
@@ -88,6 +90,14 @@ export type Translation = {
       selectType: string;
       perCar: string;
       perPax: string;
+    };
+    flights: {
+      searchButton: string;
+      searching: string;
+      searchPrompt: string;
+      noOptions: string;
+      loadFailed: string;
+      demoNote: string;
     };
     services: {
       hotel: string;
@@ -365,6 +375,25 @@ export type Translation = {
         users: string;
         searches: string;
         favorites: string;
+        services: string;
+      };
+    };
+    services: {
+      title: string;
+      subtitle: string;
+      panelTitle: string;
+      note: string;
+      saved: string;
+      actions: {
+        save: string;
+        saving: string;
+      };
+      status: {
+        enabled: string;
+        disabled: string;
+      };
+      errors: {
+        saveFailed: string;
       };
     };
     featured: {
@@ -810,7 +839,7 @@ const translations: Record<Locale, Translation> = {
       marquee: " ՀՅՈՒՐԱՆՈՑՆԵՐ  ✦  ՏՐԱՆՍՖԵՐՆԵՐ  ✦  ԹԵՄԱՏԻԿ ՊԱՐԿԵՐԻ ՏՈՄՍԵՐ  ✦  ԷՔՍԿՈՒՐՍԻԱՆԵՐ  ✦  ԱՎԻԱՏՈՄՍԵՐ  ✦  ԱՊԱՀՈՎԱԳՐՈՒԹՅՈՒՆ  ✦ ",
     },
     search: {
-      wherePlaceholder: "Քաղաք, տեսարժան վայր կամ հյուրանոց",
+      wherePlaceholder: "Քաղաք, կամ հյուրանոց",
       loadingDestinations: "Ուղղությունների բեռնում...",
       noLocations: "Ուղղություն կամ հյուրանոց չի գտնվել",
       adultsLabel: "Մեծահասակ",
@@ -905,6 +934,8 @@ const translations: Record<Locale, Translation> = {
       requiredTag: "Պարտադիր",
       selectedTag: "Ընտրված",
       addTag: "Ավելացնել",
+      disabledTag: "Անհասանելի",
+      serviceDisabled: "\"{service}\" ծառայությունը ժամանակավորապես անհասանելի է։",
       transfers: {
         individual: "Անհատական (մինչև 4 ուղևոր)",
         group: "Խմբային",
@@ -912,6 +943,14 @@ const translations: Record<Locale, Translation> = {
         selectType: "Ընտրեք տրանսֆերի տեսակը՝ տարբերակները տեսնելու համար։",
         perCar: "Մեքենայի համար",
         perPax: "Մեկ ուղևոր",
+      },
+      flights: {
+        searchButton: "Որոնել թռիչքներ",
+        searching: "Թռիչքները որոնվում են...",
+        searchPrompt: "Որոնեք՝ հասանելի թռիչքները տեսնելու համար։",
+        noOptions: "Տվյալ ամսաթվերի համար թռիչքներ չկան։",
+        loadFailed: "Չհաջողվեց բեռնել թռիչքները։",
+        demoNote: "Ցուցադրվում են օրինակելի արժեքներ՝ մինչև թեստային հասանելիությունը։",
       },
       services: {
         hotel: "Հյուրանոց",
@@ -922,31 +961,31 @@ const translations: Record<Locale, Translation> = {
       },
       pages: {
         hotel: {
-          title: "Ընտրեք հյուրանոցը",
+          title: "Հյուրանոց",
           body: "Որոնեք և ավելացրեք հյուրանոցը ձեր փաթեթին։",
           note: "Հյուրանոց ընտրելուց հետո կարող եք ավելացնել այլ ծառայություններ։",
           cta: "Որոնել հյուրանոցներ",
         },
         flight: {
-          title: "Ավելացրեք ավիատոմսեր",
-          body: "Ավիատոմսերը ավելացվում են հյուրանոցի ամրագրման ընթացքում։",
-          note: "Շարունակեք հյուրանոցի ընտրությամբ՝ ձեր փաթեթը սկսելու համար։",
-          cta: "Գտնել հյուրանոց",
+          title: "Ավիատոմսեր",
+          body: "Որոնեք flydubai-ի թռիչքները և ավելացրեք դրանք ձեր փաթեթին։",
+          note: "Ամսաթվերն ու ուղևորների քանակը վերցվում են հյուրանոցի որոնումից։",
+          cta: "Որոնել թռիչքներ",
         },
         transfer: {
-          title: "Ավելացրեք տրանսֆեր",
+          title: "Տրանսֆեր",
           body: "Տրանսֆերները ընտրեք հյուրանոցի ամրագրման ընթացքում։",
           note: "Սկզբում ընտրեք հյուրանոցը։",
           cta: "Գտնել հյուրանոց",
         },
         excursion: {
-          title: "Ավելացրեք էքսկուրսիաներ",
+          title: "Էքսկուրսիաներ",
           body: "Էքսկուրսիաները հասանելի են հյուրանոցի ամրագրման փուլում։",
           note: "Սկզբում ընտրեք հյուրանոցը։",
           cta: "Գտնել հյուրանոց",
         },
         insurance: {
-          title: "Ավելացրեք ապահովագրություն",
+          title: "Ապահովագրություն",
           body: "Ապահովագրությունը կարելի է ավելացնել ամրագրման ընթացքում։",
           note: "Սկզբում ընտրեք հյուրանոցը։",
           cta: "Գտնել հյուրանոց",
@@ -1086,7 +1125,7 @@ const translations: Record<Locale, Translation> = {
       signOut: "Ելք",
       signIn: "Մուտք",
       guestInitialsFallback: "Հյուր",
-      guestNameFallback: "Հյուրը",
+      guestNameFallback: "Հյուր",
     },
     accessibility: {
       skipToContent: "Անցնել հիմնական բովանդակությանը",
@@ -1371,6 +1410,25 @@ const translations: Record<Locale, Translation> = {
         users: "Դիտեք օգտատերերի տվյալները և ակտիվությունը։",
         searches: "Վերահսկեք օգտատերերի որոնումները։",
         favorites: "Դիտեք պահպանված հյուրանոցները։",
+        services: "Կառավարեք ծառայությունների հասանելիությունը։",
+      },
+    },
+    services: {
+      title: "Ծառայությունների հասանելիություն",
+      subtitle: "Ակտիվացրեք կամ անջատեք ծառայությունները օգտատերերի համար։",
+      panelTitle: "Հասանելի ծառայություններ",
+      note: "Անջատված ծառայությունները անգործուն կլինեն փաթեթ կազմելու ընթացքում։",
+      saved: "Պահպանված է",
+      actions: {
+        save: "Պահպանել փոփոխությունները",
+        saving: "Պահպանվում է...",
+      },
+      status: {
+        enabled: "Ակտիվ",
+        disabled: "Անջատված",
+      },
+      errors: {
+        saveFailed: "Չհաջողվեց պահպանել փոփոխությունները։",
       },
     },
     featured: {
@@ -1832,7 +1890,7 @@ const translations: Record<Locale, Translation> = {
         " HOTELS  ✦  TRANSFERS  ✦  EXCURSIONS  ✦  THEME PARKS  ✦  FLIGHTS  ✦  INSURANCE  ✦ ",
     },
     search: {
-      wherePlaceholder: "City, landmark, or hotel",
+      wherePlaceholder: "City, or hotel",
       loadingDestinations: "Loading destinations...",
       noLocations: "No destinations or hotels found",
       adultsLabel: "Adults",
@@ -1936,6 +1994,8 @@ const translations: Record<Locale, Translation> = {
       requiredTag: "Required",
       selectedTag: "Selected",
       addTag: "Add",
+      disabledTag: "Unavailable",
+      serviceDisabled: "{service} is currently unavailable.",
       transfers: {
         individual: "Individual (up to 4 passengers)",
         group: "Group",
@@ -1943,6 +2003,14 @@ const translations: Record<Locale, Translation> = {
         selectType: "Select a transfer type to view options.",
         perCar: "Per car",
         perPax: "Per pax",
+      },
+      flights: {
+        searchButton: "Search flights",
+        searching: "Searching flights...",
+        searchPrompt: "Search to see available flights.",
+        noOptions: "No flights available for these dates.",
+        loadFailed: "Failed to load flight options.",
+        demoNote: "Showing demo fares until test credentials are provided.",
       },
       services: {
         hotel: "Hotel",
@@ -1953,31 +2021,31 @@ const translations: Record<Locale, Translation> = {
       },
       pages: {
         hotel: {
-          title: "Choose your hotel",
+          title: "Hotel",
           body: "Search and add the hotel for your package.",
           note: "Once your hotel is set, you can add more services.",
           cta: "Search hotels",
         },
         flight: {
-          title: "Add flights",
-          body: "Flights are added during the hotel booking flow.",
-          note: "Start with a hotel to continue your package.",
-          cta: "Find a hotel",
+          title: "Flights",
+          body: "Search flydubai flights and add them to your package.",
+          note: "Dates and passenger counts come from your hotel search.",
+          cta: "Search flights",
         },
         transfer: {
-          title: "Add transfers",
+          title: "Transfers",
           body: "Transfers are selected during the hotel booking flow.",
           note: "Start with a hotel to continue your package.",
           cta: "Find a hotel",
         },
         excursion: {
-          title: "Add excursions",
+          title: "Excursions",
           body: "Excursions are selected during the hotel booking flow.",
           note: "Start with a hotel to continue your package.",
           cta: "Find a hotel",
         },
         insurance: {
-          title: "Add insurance",
+          title: "Insurance",
           body: "Insurance is selected during the hotel booking flow.",
           note: "Start with a hotel to continue your package.",
           cta: "Find a hotel",
@@ -2407,6 +2475,25 @@ const translations: Record<Locale, Translation> = {
         users: "See user profiles and recent activity.",
         searches: "Monitor recent searches across the site.",
         favorites: "Review saved hotels by users.",
+        services: "Control which services are available to users.",
+      },
+    },
+    services: {
+      title: "Service Availability",
+      subtitle: "Enable or disable services for users.",
+      panelTitle: "Available services",
+      note: "Disabled services will be inactive in the package builder.",
+      saved: "Changes saved.",
+      actions: {
+        save: "Save changes",
+        saving: "Saving...",
+      },
+      status: {
+        enabled: "Enabled",
+        disabled: "Disabled",
+      },
+      errors: {
+        saveFailed: "Failed to save service availability.",
       },
     },
     featured: {
@@ -2864,7 +2951,7 @@ const translations: Record<Locale, Translation> = {
         " ОТЕЛИ  ✦  ТРАНСФЕРЫ  ✦  ЭКСКУРСИИ  ✦  ТЕМАТИЧЕСКИЕ ПАРКИ  ✦  АВИАБИЛЕТЫ  ✦  СТРАХОВКА  ✦ ",
     },
     search: {
-      wherePlaceholder: "Город, место или отель",
+      wherePlaceholder: "Город, или отель",
       loadingDestinations: "Загрузка направлений...",
       noLocations: "Направления или отели не найдены",
       adultsLabel: "Взрослые",
@@ -2968,6 +3055,8 @@ const translations: Record<Locale, Translation> = {
       requiredTag: "Обязательно",
       selectedTag: "Выбрано",
       addTag: "Добавить",
+      disabledTag: "Недоступно",
+      serviceDisabled: "Услуга \"{service}\" временно недоступна.",
       transfers: {
         individual: "Индивидуальный (до 4 пассажиров)",
         group: "Групповой",
@@ -2975,6 +3064,14 @@ const translations: Record<Locale, Translation> = {
         selectType: "Выберите тип трансфера, чтобы увидеть варианты.",
         perCar: "За автомобиль",
         perPax: "За пассажира",
+      },
+      flights: {
+        searchButton: "Искать рейсы",
+        searching: "Ищем рейсы...",
+        searchPrompt: "Выполните поиск, чтобы увидеть доступные рейсы.",
+        noOptions: "Нет доступных рейсов на эти даты.",
+        loadFailed: "Не удалось загрузить рейсы.",
+        demoNote: "Показаны демо-тарифы до получения тестовых данных.",
       },
       services: {
         hotel: "Отель",
@@ -2985,31 +3082,31 @@ const translations: Record<Locale, Translation> = {
       },
       pages: {
         hotel: {
-          title: "Выберите отель",
+          title: "Отель",
           body: "Найдите и добавьте отель в ваш пакет.",
           note: "После выбора отеля можно добавить другие услуги.",
           cta: "Найти отель",
         },
         flight: {
-          title: "Добавьте авиабилеты",
-          body: "Авиабилеты добавляются во время бронирования отеля.",
-          note: "Начните с выбора отеля, чтобы продолжить.",
-          cta: "Найти отель",
+          title: "Авиабилеты",
+          body: "Ищите рейсы flydubai и добавляйте их в пакет.",
+          note: "Даты и количество пассажиров берутся из поиска отеля.",
+          cta: "Искать рейсы",
         },
         transfer: {
-          title: "Добавьте трансферы",
+          title: "Трансферы",
           body: "Трансферы выбираются во время бронирования отеля.",
           note: "Начните с выбора отеля, чтобы продолжить.",
           cta: "Найти отель",
         },
         excursion: {
-          title: "Добавьте экскурсии",
+          title: "Экскурсии",
           body: "Экскурсии выбираются во время бронирования отеля.",
           note: "Начните с выбора отеля, чтобы продолжить.",
           cta: "Найти отель",
         },
         insurance: {
-          title: "Добавьте страховку",
+          title: "Страховка",
           body: "Страхование выбирается во время бронирования отеля.",
           note: "Начните с выбора отеля, чтобы продолжить.",
           cta: "Найти отель",
@@ -3439,6 +3536,25 @@ const translations: Record<Locale, Translation> = {
         users: "Профили пользователей и их активность.",
         searches: "Отслеживайте последние поиски.",
         favorites: "Сохраненные отели пользователей.",
+        services: "Управляйте доступностью услуг.",
+      },
+    },
+    services: {
+      title: "Доступность услуг",
+      subtitle: "Включайте или отключайте услуги для пользователей.",
+      panelTitle: "Доступные услуги",
+      note: "Отключенные услуги будут недоступны в конструкторе пакета.",
+      saved: "Изменения сохранены.",
+      actions: {
+        save: "Сохранить изменения",
+        saving: "Сохранение...",
+      },
+      status: {
+        enabled: "Включено",
+        disabled: "Отключено",
+      },
+      errors: {
+        saveFailed: "Не удалось сохранить доступность услуг.",
       },
     },
     featured: {
