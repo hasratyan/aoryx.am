@@ -130,7 +130,7 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
               </article>
             ))}
           </div>
-          <Link href={"#hero"} className="btn-cta" aria-label={t.bundleSave.cta}>
+          <Link href={"#hero"} aria-label={t.bundleSave.cta}>
             {t.bundleSave.cta}
           </Link>
         </section>

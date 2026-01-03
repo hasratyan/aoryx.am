@@ -57,6 +57,13 @@ const formatDateRange = (checkIn?: string | null, checkOut?: string | null, loca
   return `${formatter.format(checkInDate)} - ${formatter.format(checkOutDate)}`;
 };
 
+const formatRemainingTime = (remainingMs: number) => {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+};
+
 const buildDetailLine = (label: string, value: string | null) => {
   if (!value) return null;
   return `${label}: ${value}`;
@@ -147,6 +154,7 @@ export default function PackageCheckoutClient() {
   const [couponCode, setCouponCode] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(null);
   const [contact, setContact] = useState({
     firstName: "",
     lastName: "",
@@ -186,6 +194,26 @@ export default function PackageCheckoutClient() {
     });
     return unsubscribe;
   }, []);
+
+  const hasHotel = builderState.hotel?.selected === true;
+  const sessionExpiresAt =
+    typeof builderState.sessionExpiresAt === "number" ? builderState.sessionExpiresAt : null;
+  const formattedSessionRemaining =
+    sessionRemainingMs !== null ? formatRemainingTime(sessionRemainingMs) : null;
+
+  useEffect(() => {
+    if (!hasHotel || !sessionExpiresAt) {
+      setSessionRemainingMs(null);
+      return;
+    }
+    const updateRemaining = () => {
+      const remaining = sessionExpiresAt - Date.now();
+      setSessionRemainingMs(remaining > 0 ? remaining : 0);
+    };
+    updateRemaining();
+    const interval = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(interval);
+  }, [hasHotel, sessionExpiresAt]);
 
   useEffect(() => {
     setGuestDetails((prev) => buildGuestDetails(builderState.hotel, contact, prev));
@@ -731,6 +759,12 @@ export default function PackageCheckoutClient() {
         <div className="package-checkout__header">
           <h1>{t.packageBuilder.checkout.title}</h1>
           <p>{t.packageBuilder.checkout.subtitle}</p>
+          {formattedSessionRemaining ? (
+            <p className="package-checkout__timer">
+              {t.packageBuilder.sessionExpiresIn}:{" "}
+              <strong>{formattedSessionRemaining}</strong>
+            </p>
+          ) : null}
         </div>
 
         <form className="package-checkout__layout" onSubmit={handleSubmit}>

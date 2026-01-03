@@ -5531,6 +5531,13 @@ select:focus-visible {
     gap: 1em 2em;
   }
 
+  .package-builder__timer{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5em;
+  }
+
   .package-builder__checkout{
     color: #7cf2d4;
     background: #0c1c23e6;
@@ -6196,6 +6203,19 @@ select:focus-visible {
     font-size: 2rem;
     font-weight: bold;
   }
+}
+
+.package-checkout__timer{
+  color: #e2e8f0e6;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  display: inline-flex;
+  font-weight: 600;
 }
 
 .package-checkout__eyebrow{

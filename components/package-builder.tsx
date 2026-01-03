@@ -15,6 +15,7 @@ import {
   PACKAGE_BUILDER_OPEN_EVENT,
   ServiceFlags,
   clearPackageBuilderStateForOwner,
+  openPackageBuilder,
   readPackageBuilderOwner,
   readPackageBuilderState,
   readPackageBuilderStateForOwner,
@@ -69,10 +70,9 @@ export default function PackageBuilder() {
   const [serviceFlags, setServiceFlags] = useState<ServiceFlags>(DEFAULT_SERVICE_FLAGS);
   const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(null);
   const [sessionWarningKey, setSessionWarningKey] = useState<SessionWarningKey | null>(null);
-  const sessionWarningRef = useRef<"none" | "ten" | "five" | "expired">("none");
-  const sessionExpiresAtRef = useRef<number | null>(null);
-  const hotelSelectionRef = useRef<string | null>(null);
+  const sessionWarningRef = useRef<"none" | SessionWarningKey>("none");
   const lastScrollYRef = useRef(0);
+  const hotelSelectionRef = useRef<string | null>(null);
   const hasSelection = (state: PackageBuilderState) =>
     Boolean(
       state.hotel?.selected ||
@@ -205,7 +205,36 @@ export default function PackageBuilder() {
 
   useEffect(() => {
     const unsubscribe = subscribePackageBuilderState(() => {
-      setBuilderState(readPackageBuilderState());
+      const nextState = readPackageBuilderState();
+      setBuilderState(nextState);
+      const nextHotelKey =
+        nextState.hotel?.selected === true
+          ? [
+              nextState.hotel.hotelCode ?? "",
+              nextState.hotel.selectionKey ?? "",
+              nextState.hotel.checkInDate ?? "",
+              nextState.hotel.checkOutDate ?? "",
+              nextState.hotel.roomCount ?? "",
+              nextState.hotel.guestCount ?? "",
+            ].join("|")
+          : null;
+      if (nextHotelKey !== hotelSelectionRef.current) {
+        hotelSelectionRef.current = nextHotelKey;
+        const shouldClearWarning =
+          Boolean(nextHotelKey) || sessionWarningRef.current !== "expired";
+        if (shouldClearWarning) {
+          sessionWarningRef.current = "none";
+          setSessionWarningKey(null);
+        }
+      }
+      const nextExpiresAt =
+        typeof nextState.sessionExpiresAt === "number" ? nextState.sessionExpiresAt : null;
+      if (!nextState.hotel?.selected || !nextExpiresAt) {
+        setSessionRemainingMs(null);
+        return;
+      }
+      const remaining = nextExpiresAt - Date.now();
+      setSessionRemainingMs(remaining > 0 ? remaining : 0);
     });
     return unsubscribe;
   }, []);
@@ -268,16 +297,6 @@ export default function PackageBuilder() {
   }, []);
 
   const hasHotel = builderState.hotel?.selected === true;
-  const hotelSelectionKey = hasHotel
-    ? [
-        builderState.hotel?.hotelCode ?? "",
-        builderState.hotel?.selectionKey ?? "",
-        builderState.hotel?.checkInDate ?? "",
-        builderState.hotel?.checkOutDate ?? "",
-        builderState.hotel?.roomCount ?? "",
-        builderState.hotel?.guestCount ?? "",
-      ].join("|")
-    : null;
   const sessionExpiresAt =
     typeof builderState.sessionExpiresAt === "number" ? builderState.sessionExpiresAt : null;
   const formattedSessionRemaining =
@@ -364,86 +383,47 @@ export default function PackageBuilder() {
   })();
 
   useEffect(() => {
-    if (hotelSelectionRef.current === hotelSelectionKey) return;
-    hotelSelectionRef.current = hotelSelectionKey;
-    sessionWarningRef.current = "none";
-    setSessionWarningKey(null);
-  }, [hotelSelectionKey]);
-
-  useEffect(() => {
-    if (!hasHotel || !sessionExpiresAt) {
-      setSessionRemainingMs(null);
-      return;
-    }
-
-    const updateRemaining = () => {
+    if (!hasHotel || !sessionExpiresAt) return;
+    const tick = () => {
       const remaining = sessionExpiresAt - Date.now();
-      setSessionRemainingMs(remaining > 0 ? remaining : 0);
+      const nextRemaining = remaining > 0 ? remaining : 0;
+      setSessionRemainingMs(nextRemaining);
+      let nextWarning: SessionWarningKey | null = null;
+      if (nextRemaining <= 0) {
+        nextWarning = "expired";
+      } else if (nextRemaining <= FIVE_MINUTES_MS) {
+        nextWarning = "five";
+      } else if (nextRemaining <= TEN_MINUTES_MS) {
+        nextWarning = "ten";
+      }
+      const nextKey = nextWarning ?? "none";
+      if (nextKey !== sessionWarningRef.current) {
+        sessionWarningRef.current = nextKey;
+        setSessionWarningKey(nextWarning);
+        if (nextWarning) {
+          openPackageBuilder();
+          if (nextWarning === "expired") {
+            updatePackageBuilderState((prev) => ({
+              ...prev,
+              hotel: undefined,
+              transfer: undefined,
+              excursion: undefined,
+              insurance: undefined,
+              flight: undefined,
+              sessionExpiresAt: undefined,
+              updatedAt: Date.now(),
+            }));
+          }
+        }
+      }
     };
-
-    updateRemaining();
-    const interval = window.setInterval(updateRemaining, 1000);
-    return () => window.clearInterval(interval);
+    const interval = window.setInterval(tick, 1000);
+    const timeout = window.setTimeout(tick, 0);
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
   }, [hasHotel, sessionExpiresAt]);
-
-  useEffect(() => {
-    if (!hasHotel || !sessionExpiresAt) {
-      if (sessionWarningRef.current !== "expired") {
-        sessionWarningRef.current = "none";
-        setSessionWarningKey(null);
-      }
-      sessionExpiresAtRef.current = null;
-      return;
-    }
-
-    if (sessionExpiresAt !== sessionExpiresAtRef.current) {
-      sessionExpiresAtRef.current = sessionExpiresAt;
-      sessionWarningRef.current = "none";
-      setSessionWarningKey(null);
-    }
-
-    if (sessionRemainingMs === null) return;
-
-    if (sessionRemainingMs <= 0) {
-      if (sessionWarningRef.current !== "expired") {
-        sessionWarningRef.current = "expired";
-        setSessionWarningKey("expired");
-        setIsOpen(true);
-        updatePackageBuilderState((prev) => ({
-          ...prev,
-          hotel: undefined,
-          transfer: undefined,
-          excursion: undefined,
-          insurance: undefined,
-          flight: undefined,
-          sessionExpiresAt: undefined,
-          updatedAt: Date.now(),
-        }));
-      }
-      return;
-    }
-
-    if (sessionRemainingMs <= FIVE_MINUTES_MS) {
-      if (sessionWarningRef.current !== "five") {
-        sessionWarningRef.current = "five";
-        setSessionWarningKey("five");
-        setIsOpen(true);
-      }
-      return;
-    }
-
-    if (sessionRemainingMs <= TEN_MINUTES_MS) {
-      if (sessionWarningRef.current !== "ten") {
-        sessionWarningRef.current = "ten";
-        setSessionWarningKey("ten");
-        setIsOpen(true);
-      }
-    }
-  }, [
-    hasHotel,
-    sessionExpiresAt,
-    sessionRemainingMs,
-  ]);
 
   const toggleOpen = () => {
     setShowHotelWarning(false);
@@ -686,6 +666,7 @@ export default function PackageBuilder() {
               <div className="package-builder__footer">
                 {hasHotel && formattedSessionRemaining ? (
                   <span className="package-builder__timer">
+                    <span className="material-symbols-rounded">timer</span>
                     {t.packageBuilder.sessionExpiresIn}:{" "}
                     <strong>{formattedSessionRemaining}</strong>
                   </span>
