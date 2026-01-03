@@ -64,6 +64,8 @@ export type PackageBuilderState = {
     transferDestination?: string | null;
     vehicleName?: string | null;
     transferType?: string | null;
+    includeReturn?: boolean | null;
+    vehicleQuantity?: number | null;
   };
   excursion?: PackageBuilderServiceSelection & {
     selections?: Record<string, string[]>;

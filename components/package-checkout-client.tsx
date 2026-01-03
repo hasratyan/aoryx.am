@@ -395,6 +395,7 @@ export default function PackageCheckoutClient() {
           builderState.transfer?.selected
             ? {
                 id: builderState.transfer.selectionId ?? "transfer",
+                includeReturn: builderState.transfer.includeReturn ?? undefined,
                 transferType: normalizeTransferType(builderState.transfer.transferType ?? null),
                 origin: builderState.transfer.transferOrigin
                   ? { name: builderState.transfer.transferOrigin }
@@ -405,12 +406,25 @@ export default function PackageCheckoutClient() {
                 vehicle: builderState.transfer.vehicleName
                   ? { name: builderState.transfer.vehicleName }
                   : undefined,
+                quantity:
+                  typeof builderState.transfer.vehicleQuantity === "number"
+                    ? builderState.transfer.vehicleQuantity
+                    : undefined,
                 pricing: {
                   currency: builderState.transfer.currency ?? undefined,
-                  oneWay:
-                    typeof builderState.transfer.price === "number"
-                      ? builderState.transfer.price
-                      : undefined,
+                  ...(builderState.transfer.includeReturn
+                    ? {
+                        return:
+                          typeof builderState.transfer.price === "number"
+                            ? builderState.transfer.price
+                            : undefined,
+                      }
+                    : {
+                        oneWay:
+                          typeof builderState.transfer.price === "number"
+                            ? builderState.transfer.price
+                            : undefined,
+                      }),
                 },
                 totalPrice: builderState.transfer.price ?? null,
               }

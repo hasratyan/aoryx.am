@@ -83,13 +83,16 @@ export type Translation = {
     addTag: string;
     disabledTag: string;
     serviceDisabled: string;
-    transfers: {
-      individual: string;
-      group: string;
-      startingFrom: string;
-      selectType: string;
+      transfers: {
+        individual: string;
+        group: string;
+        startingFrom: string;
+        selectType: string;
       perCar: string;
       perPax: string;
+      childPolicyLabel: string;
+      childPolicyFree: PluralForms;
+      childPolicyHalf: PluralForms;
     };
     flights: {
       searchButton: string;
@@ -634,6 +637,7 @@ export type Translation = {
         title: string;
         description: string;
         panelTitle: string;
+        airportLabel: string;
         paxLabel: string;
         bagsLabel: string;
         includeReturn: string;
@@ -937,12 +941,21 @@ const translations: Record<Locale, Translation> = {
       disabledTag: "Անհասանելի",
       serviceDisabled: "\"{service}\" ծառայությունը ժամանակավորապես անհասանելի է։",
       transfers: {
-        individual: "Անհատական (մինչև 4 ուղևոր)",
+        individual: "Անհատական (մինչև 6 ուղևոր)",
         group: "Խմբային",
         startingFrom: "Սկսած",
         selectType: "Ընտրեք տրանսֆերի տեսակը՝ տարբերակները տեսնելու համար։",
         perCar: "Մեքենայի համար",
         perPax: "Մեկ ուղևոր",
+        childPolicyLabel: "Սակագին երեխաների համար",
+        childPolicyFree: {
+          one: "{count} երեխա անվճար (0-1.99)",
+          other: "{count} երեխա անվճար (0-1.99)",
+        },
+        childPolicyHalf: {
+          one: "{count} երեխա 50% զեղչով (2-11.99)",
+          other: "{count} երեխա 50% զեղչով (2-11.99)",
+        },
       },
       flights: {
         searchButton: "Որոնել թռիչքներ",
@@ -1661,6 +1674,7 @@ const translations: Record<Locale, Translation> = {
           title: "Տրանսֆեր",
           description: "Օդանավակայանային տրանսֆերներ ձեր հանգստի համար։",
           panelTitle: "Տրանսֆերի տարբերակներ",
+          airportLabel: "Օդանավակայան",
           paxLabel: "ուղևոր",
           bagsLabel: "պայուսակ",
           includeReturn: "Ներառել վերադարձը",
@@ -1997,12 +2011,21 @@ const translations: Record<Locale, Translation> = {
       disabledTag: "Unavailable",
       serviceDisabled: "{service} is currently unavailable.",
       transfers: {
-        individual: "Individual (up to 4 passengers)",
+        individual: "Individual (up to 6 passengers)",
         group: "Group",
         startingFrom: "Starting from",
         selectType: "Select a transfer type to view options.",
         perCar: "Per car",
         perPax: "Per pax",
+        childPolicyLabel: "Children pricing",
+        childPolicyFree: {
+          one: "{count} child free (0-1.99)",
+          other: "{count} children free (0-1.99)",
+        },
+        childPolicyHalf: {
+          one: "{count} child 50% off (2-11.99)",
+          other: "{count} children 50% off (2-11.99)",
+        },
       },
       flights: {
         searchButton: "Search flights",
@@ -2726,6 +2749,7 @@ const translations: Record<Locale, Translation> = {
           title: "Transfers",
           description: "Airport pick-ups and city rides tailored to your stay.",
           panelTitle: "Transfer Options",
+          airportLabel: "Airport",
           paxLabel: "pax",
           bagsLabel: "bags",
           includeReturn: "Include return transfer",
@@ -3058,12 +3082,25 @@ const translations: Record<Locale, Translation> = {
       disabledTag: "Недоступно",
       serviceDisabled: "Услуга \"{service}\" временно недоступна.",
       transfers: {
-        individual: "Индивидуальный (до 4 пассажиров)",
+        individual: "Индивидуальный (до 6 пассажиров)",
         group: "Групповой",
         startingFrom: "От",
         selectType: "Выберите тип трансфера, чтобы увидеть варианты.",
         perCar: "За автомобиль",
         perPax: "За пассажира",
+        childPolicyLabel: "Детские тарифы",
+        childPolicyFree: {
+          one: "{count} ребенок бесплатно (0-1.99)",
+          few: "{count} ребенка бесплатно (0-1.99)",
+          many: "{count} детей бесплатно (0-1.99)",
+          other: "{count} ребенка бесплатно (0-1.99)",
+        },
+        childPolicyHalf: {
+          one: "{count} ребенок со скидкой 50% (2-11.99)",
+          few: "{count} ребенка со скидкой 50% (2-11.99)",
+          many: "{count} детей со скидкой 50% (2-11.99)",
+          other: "{count} ребенка со скидкой 50% (2-11.99)",
+        },
       },
       flights: {
         searchButton: "Искать рейсы",
@@ -3791,6 +3828,7 @@ const translations: Record<Locale, Translation> = {
           title: "Трансферы",
           description: "Трансферы из аэропорта и по городу под ваш маршрут.",
           panelTitle: "Варианты трансфера",
+          airportLabel: "Аэропорт",
           paxLabel: "пасс.",
           bagsLabel: "багаж",
           includeReturn: "Добавить обратный трансфер",

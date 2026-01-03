@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/components/loader";
 import SearchForm from "@/components/search-form";
 import { useLanguage } from "@/components/language-provider";
-import type { Locale as AppLocale } from "@/lib/i18n";
+import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 import { formatCurrencyAmount, normalizeAmount } from "@/lib/currency";
 import { postJson } from "@/lib/api-helpers";
 import StarBorder from "@/components/StarBorder";
@@ -98,6 +98,42 @@ const normalizeTransferType = (value: string | null | undefined): TransferType |
   return null;
 };
 
+type TransferAirportOption = {
+  key: string;
+  label: string;
+  code: string | null;
+  name: string | null;
+};
+
+const normalizeAirportKey = (value: string | null | undefined) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed.toUpperCase() : null;
+};
+
+const buildTransferAirportOption = (transfer: AoryxTransferRate): TransferAirportOption | null => {
+  const origin = transfer.origin ?? null;
+  if (!origin) return null;
+  const code = normalizeAirportKey(origin.airportCode ?? origin.locationCode);
+  const name = origin.name?.trim() ?? null;
+  const key = code ?? normalizeAirportKey(name);
+  if (!key) return null;
+  const label =
+    name && code && name.toUpperCase() !== code
+      ? `${name} (${code})`
+      : name ?? code ?? key;
+  return { key, label, code, name };
+};
+
+const getTransferAirportKey = (transfer: AoryxTransferRate) => {
+  const origin = transfer.origin ?? null;
+  if (!origin) return null;
+  return (
+    normalizeAirportKey(origin.airportCode ?? origin.locationCode) ??
+    normalizeAirportKey(origin.name)
+  );
+};
+
 type FlightSearchForm = {
   origin: string;
   destination: string;
@@ -110,6 +146,12 @@ type FlightSearchForm = {
 export default function PackageServiceClient({ serviceKey }: Props) {
   const { locale, t } = useLanguage();
   const intlLocale = intlLocales[locale] ?? "en-GB";
+  const pluralRules = useMemo(() => new Intl.PluralRules(intlLocale), [intlLocale]);
+  const formatPlural = useCallback((count: number, forms: PluralForms) => {
+    const category = pluralRules.select(count);
+    const template = forms[category] ?? forms.other;
+    return template.replace("{count}", count.toString());
+  }, [pluralRules]);
   const ratesEndpoint =
     serviceKey === "hotel"
       ? "/api/utils/exchange-rates"
@@ -122,6 +164,11 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [selectedTransferType, setSelectedTransferType] = useState<TransferType | null>(null);
+  const [selectedAirportKey, setSelectedAirportKey] = useState<string | null>(null);
+  const [includeReturnTransfer, setIncludeReturnTransfer] = useState<boolean>(() => {
+    const stored = readPackageBuilderState().transfer?.includeReturn;
+    return typeof stored === "boolean" ? stored : true;
+  });
   const [excursionOptions, setExcursionOptions] = useState<AoryxExcursionTicket[]>([]);
   const [excursionLoading, setExcursionLoading] = useState(false);
   const [excursionError, setExcursionError] = useState<string | null>(null);
@@ -144,7 +191,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const [flightError, setFlightError] = useState<string | null>(null);
   const [flightSearched, setFlightSearched] = useState(false);
   const [flightMocked, setFlightMocked] = useState(false);
-
+  const transferSyncRef = useRef<{
+    selectionId: string;
+    includeReturn: boolean;
+    price: number | null;
+    currency: string | null;
+    vehicleQuantity: number | null;
+  } | null>(null);
   useEffect(() => {
     const unsubscribe = subscribePackageBuilderState(() => {
       setBuilderState(readPackageBuilderState());
@@ -156,6 +209,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const hasHotel = hotelSelection?.selected === true;
   const destinationName = hotelSelection?.destinationName ?? null;
   const destinationCode = hotelSelection?.destinationCode ?? null;
+  const selectedHotelName = hotelSelection?.hotelName?.trim() ?? null;
   const selectedTransferId = builderState.transfer?.selectionId ?? null;
   const selectedFlightId = builderState.flight?.selectionId ?? null;
   const nonHotelSelection =
@@ -166,6 +220,46 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     serviceKey === "transfer" && hasHotel && !destinationName && !destinationCode;
   const shouldFetchTransfers =
     serviceKey === "transfer" && hasHotel && !transferMissingDestination;
+
+  const airportOptions = useMemo(() => {
+    const map = new Map<string, TransferAirportOption>();
+    transferOptions.forEach((transfer) => {
+      const option = buildTransferAirportOption(transfer);
+      if (!option) return;
+      if (!map.has(option.key)) map.set(option.key, option);
+    });
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [transferOptions]);
+
+  const preferredAirportKey = useMemo(() => {
+    if (airportOptions.length === 0) return null;
+    return (
+      airportOptions.find((option) => option.code === "DXB")?.key ??
+      airportOptions.find((option) => option.label.toLowerCase().includes("dubai"))?.key ??
+      airportOptions[0]?.key ??
+      null
+    );
+  }, [airportOptions]);
+
+  useEffect(() => {
+    if (!preferredAirportKey) {
+      if (selectedAirportKey !== null) setSelectedAirportKey(null);
+      return;
+    }
+    if (selectedAirportKey && airportOptions.some((option) => option.key === selectedAirportKey)) {
+      return;
+    }
+    setSelectedAirportKey(preferredAirportKey);
+  }, [airportOptions, preferredAirportKey, selectedAirportKey]);
+
+  const activeAirportKey = selectedAirportKey ?? preferredAirportKey;
+
+  const filteredTransferOptions = useMemo(() => {
+    if (!activeAirportKey || airportOptions.length === 0) return transferOptions;
+    return transferOptions.filter(
+      (transfer) => getTransferAirportKey(transfer) === activeAirportKey
+    );
+  }, [activeAirportKey, airportOptions.length, transferOptions]);
 
   const passengerCounts = useMemo(() => {
     const rooms = hotelSelection?.rooms ?? [];
@@ -214,6 +308,143 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     t.search.adultsLabel,
     t.search.childrenLabel,
   ]);
+  const transferGuestCounts = useMemo(() => {
+    const rooms = hotelSelection?.rooms ?? [];
+    if (rooms.length === 0) {
+      const total =
+        typeof hotelSelection?.guestCount === "number" ? hotelSelection.guestCount : 0;
+      return {
+        total,
+        chargeable: total,
+        adults: total,
+        childFree: 0,
+        childHalf: 0,
+        childAdult: 0,
+      };
+    }
+
+    let total = 0;
+    let chargeable = 0;
+    let adults = 0;
+    let childFree = 0;
+    let childHalf = 0;
+    let childAdult = 0;
+
+    rooms.forEach((room) => {
+      const roomAdults = Number.isFinite(room.adults) ? room.adults : 0;
+      adults += roomAdults;
+      total += roomAdults;
+      chargeable += roomAdults;
+
+      const childrenAges = Array.isArray(room.childrenAges) ? room.childrenAges : [];
+      childrenAges.forEach((ageValue) => {
+        const age = typeof ageValue === "number" ? ageValue : Number(ageValue);
+        total += 1;
+        if (!Number.isFinite(age)) {
+          childAdult += 1;
+          chargeable += 1;
+          return;
+        }
+        if (age < 2) {
+          childFree += 1;
+          return;
+        }
+        if (age < 12) {
+          childHalf += 1;
+          chargeable += 0.5;
+          return;
+        }
+        childAdult += 1;
+        chargeable += 1;
+      });
+    });
+
+    return {
+      total,
+      chargeable,
+      adults,
+      childFree,
+      childHalf,
+      childAdult,
+    };
+  }, [hotelSelection?.guestCount, hotelSelection?.rooms]);
+
+  const getTransferPricing = useCallback(
+    (transfer: AoryxTransferRate, includeReturn: boolean) => {
+      const oneWay =
+        typeof transfer.pricing?.oneWay === "number" ? transfer.pricing.oneWay : null;
+      const returnPrice =
+        typeof transfer.pricing?.return === "number" ? transfer.pricing.return : null;
+      const price = includeReturn
+        ? returnPrice ?? (oneWay !== null ? oneWay * 2 : null)
+        : oneWay ?? returnPrice;
+      const currency = transfer.pricing?.currency ?? null;
+      return { price, currency };
+    },
+    []
+  );
+
+  const resolveTransferChargeType = useCallback((transfer: AoryxTransferRate) => {
+    const chargeType = transfer.pricing?.chargeType ?? null;
+    if (chargeType === "PER_PAX" || chargeType === "PER_VEHICLE") return chargeType;
+    const transferType = normalizeTransferType(transfer.transferType);
+    return transferType === "GROUP" ? "PER_PAX" : "PER_VEHICLE";
+  }, []);
+
+  const getTransferTotals = useCallback(
+    (
+      transfer: AoryxTransferRate,
+      includeReturn: boolean,
+      guestCounts: { total: number; chargeable: number }
+    ) => {
+      const { price, currency } = getTransferPricing(transfer, includeReturn);
+      const chargeType = resolveTransferChargeType(transfer);
+      if (price === null || !Number.isFinite(price)) {
+        return {
+          unitPrice: null,
+          totalPrice: null,
+          currency,
+          chargeType,
+          paxCount: null,
+          vehicleCount: null,
+        };
+      }
+      if (chargeType === "PER_PAX") {
+        const minPax = transfer.paxRange?.minPax ?? 1;
+        const paxCount = guestCounts.chargeable > 0 ? Math.max(guestCounts.chargeable, minPax) : null;
+        const totalPrice = paxCount ? price * paxCount : null;
+        return {
+          unitPrice: price,
+          totalPrice,
+          currency,
+          chargeType,
+          paxCount,
+          vehicleCount: null,
+        };
+      }
+      const maxPaxRaw = transfer.vehicle?.maxPax ?? transfer.paxRange?.maxPax ?? null;
+      const maxPax =
+        typeof maxPaxRaw === "number" && Number.isFinite(maxPaxRaw) && maxPaxRaw > 0
+          ? maxPaxRaw
+          : null;
+      const vehicleCount =
+        guestCounts.total > 0
+          ? maxPax
+            ? Math.max(1, Math.ceil(guestCounts.total / maxPax))
+            : 1
+          : null;
+      const totalPrice = vehicleCount ? price * vehicleCount : price;
+      return {
+        unitPrice: price,
+        totalPrice,
+        currency,
+        chargeType,
+        paxCount: null,
+        vehicleCount,
+      };
+    },
+    [getTransferPricing, resolveTransferChargeType]
+  );
 
   const excursionGuests = useMemo<ExcursionGuest[]>(() => {
     const rooms = hotelSelection?.rooms ?? null;
@@ -445,10 +676,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     return map;
   }, [transferOptions]);
 
+  const transferById = useMemo(() => {
+    const map = new Map<string, AoryxTransferRate>();
+    transferOptions.forEach((transfer, index) => {
+      const id = transferIdMap.get(transfer) ?? buildTransferId(transfer, index);
+      map.set(id, transfer);
+    });
+    return map;
+  }, [transferIdMap, transferOptions]);
+
   const { individualTransfers, groupTransfers } = useMemo(() => {
     const individual: AoryxTransferRate[] = [];
     const group: AoryxTransferRate[] = [];
-    transferOptions.forEach((transfer) => {
+    filteredTransferOptions.forEach((transfer) => {
       const type = normalizeTransferType(transfer.transferType);
       if (type === "GROUP") {
         group.push(transfer);
@@ -457,7 +697,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       }
     });
     return { individualTransfers: individual, groupTransfers: group };
-  }, [transferOptions]);
+  }, [filteredTransferOptions]);
 
   useEffect(() => {
     if (selectedTransferType) return;
@@ -476,6 +716,61 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     groupTransfers.length,
     individualTransfers.length,
     selectedTransferType,
+  ]);
+
+  useEffect(() => {
+    if (serviceKey !== "transfer") return;
+    if (!selectedTransferId) return;
+    const transfer = transferById.get(selectedTransferId);
+    if (!transfer) return;
+    const { unitPrice, totalPrice, currency, vehicleCount } = getTransferTotals(
+      transfer,
+      includeReturnTransfer,
+      transferGuestCounts
+    );
+    const selectionPrice = totalPrice ?? unitPrice;
+    const nextSync = {
+      selectionId: selectedTransferId,
+      includeReturn: includeReturnTransfer,
+      price: selectionPrice ?? null,
+      currency: currency ?? null,
+      vehicleQuantity: vehicleCount ?? null,
+    };
+    const prevSync = transferSyncRef.current;
+    if (
+      prevSync &&
+      prevSync.selectionId === nextSync.selectionId &&
+      prevSync.includeReturn === nextSync.includeReturn &&
+      prevSync.price === nextSync.price &&
+      prevSync.currency === nextSync.currency &&
+      prevSync.vehicleQuantity === nextSync.vehicleQuantity
+    ) {
+      return;
+    }
+    transferSyncRef.current = nextSync;
+    updatePackageBuilderState((prev) => {
+      if (!prev.transfer?.selected || prev.transfer.selectionId !== selectedTransferId) {
+        return prev;
+      }
+      return {
+        ...prev,
+        transfer: {
+          ...prev.transfer,
+          includeReturn: includeReturnTransfer,
+          price: selectionPrice,
+          currency,
+          vehicleQuantity: vehicleCount ?? null,
+        },
+        updatedAt: Date.now(),
+      };
+    });
+  }, [
+    includeReturnTransfer,
+    getTransferTotals,
+    transferGuestCounts,
+    selectedTransferId,
+    serviceKey,
+    transferById,
   ]);
 
   const excursionOptionsWithId = useMemo(
@@ -725,13 +1020,12 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     const originName = transfer.origin?.name ?? transfer.origin?.locationCode ?? null;
     const destinationLabel = transfer.destination?.name ?? transfer.destination?.locationCode ?? null;
     const vehicleName = transfer.vehicle?.name ?? transfer.vehicle?.category ?? null;
-    const price =
-      typeof transfer.pricing?.oneWay === "number"
-        ? transfer.pricing.oneWay
-        : typeof transfer.pricing?.return === "number"
-          ? transfer.pricing.return
-          : null;
-    const currency = transfer.pricing?.currency ?? null;
+    const { unitPrice, totalPrice, currency, vehicleCount } = getTransferTotals(
+      transfer,
+      includeReturnTransfer,
+      transferGuestCounts
+    );
+    const selectionPrice = totalPrice ?? unitPrice;
     const transferType = transfer.transferType ?? null;
     updatePackageBuilderState((prev) => ({
       ...prev,
@@ -743,9 +1037,11 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         transferOrigin: originName,
         transferDestination: destinationLabel,
         vehicleName,
-        price,
+        price: selectionPrice,
         currency,
         transferType,
+        includeReturn: includeReturnTransfer,
+        vehicleQuantity: vehicleCount ?? null,
       },
       updatedAt: Date.now(),
     }));
@@ -944,24 +1240,26 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     [formatFlightDateTime]
   );
 
-  const getStartingPrice = useCallback((options: AoryxTransferRate[]) => {
-    const normalized = options
-      .map((transfer) => {
-        const price = transfer.pricing?.oneWay ?? transfer.pricing?.return ?? null;
-        const currency = transfer.pricing?.currency ?? null;
-        return normalizeAmount(price, currency, amdRates);
-      })
-      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+  const getStartingPrice = useCallback(
+    (options: AoryxTransferRate[]) => {
+      const normalized = options
+        .map((transfer) => {
+          const { price, currency } = getTransferPricing(transfer, includeReturnTransfer);
+          return normalizeAmount(price, currency, amdRates);
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
-    if (normalized.length === 0) return null;
-    const currency = normalized[0].currency;
-    const amounts = normalized
-      .filter((entry) => entry.currency === currency)
-      .map((entry) => entry.amount);
-    if (amounts.length === 0) return null;
-    const minAmount = Math.min(...amounts);
-    return formatCurrencyAmount(minAmount, currency, intlLocale);
-  }, [amdRates, intlLocale]);
+      if (normalized.length === 0) return null;
+      const currency = normalized[0].currency;
+      const amounts = normalized
+        .filter((entry) => entry.currency === currency)
+        .map((entry) => entry.amount);
+      if (amounts.length === 0) return null;
+      const minAmount = Math.min(...amounts);
+      return formatCurrencyAmount(minAmount, currency, intlLocale);
+    },
+    [amdRates, getTransferPricing, includeReturnTransfer, intlLocale]
+  );
 
   const individualStarting = useMemo(
     () => getStartingPrice(individualTransfers),
@@ -977,7 +1275,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     if (transferMissingDestination) return null;
     if (transferLoading) return null;
     if (transferError) return null;
-    if (transferOptions.length === 0) return null;
+    if (filteredTransferOptions.length === 0) return null;
 
     const individualLabel = individualStarting
       ? `${t.packageBuilder.transfers.startingFrom} ${individualStarting}`
@@ -1036,6 +1334,51 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     );
   };
 
+  const renderTransferReturnToggle = () => {
+    if (!hasHotel) return null;
+    if (transferMissingDestination) return null;
+    if (transferLoading) return null;
+    if (transferError) return null;
+    if (filteredTransferOptions.length === 0) return null;
+
+    return (
+      <label className="transfer-return-toggle">
+        <input
+          type="checkbox"
+          checked={includeReturnTransfer}
+          onChange={(event) => setIncludeReturnTransfer(event.target.checked)}
+        />
+        <span>{t.hotel.addons.transfers.includeReturn}</span>
+      </label>
+    );
+  };
+
+  const renderTransferAirportSelect = () => {
+    if (!hasHotel) return null;
+    if (transferMissingDestination) return null;
+    if (transferLoading) return null;
+    if (transferError) return null;
+    if (filteredTransferOptions.length === 0) return null;
+    if (airportOptions.length === 0) return null;
+
+    return (
+      <label className="transfer-airport-select">
+        <span className="material-symbols-rounded">connecting_airports</span>
+        <span>{t.hotel.addons.transfers.airportLabel}</span>
+        <select
+          value={activeAirportKey ?? ""}
+          onChange={(event) => setSelectedAirportKey(event.target.value)}
+        >
+          {airportOptions.map((option) => (
+            <option key={option.key} value={option.key}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  };
+
   const renderTransferList = () => {
     if (!hasHotel) {
       return (
@@ -1056,7 +1399,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     if (transferError) {
       return <p className="package-service__state error">{transferError}</p>;
     }
-    if (transferOptions.length === 0) {
+    if (filteredTransferOptions.length === 0) {
       return <p className="package-service__state">{t.hotel.addons.transfers.noOptions}</p>;
     }
 
@@ -1082,18 +1425,65 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           const isSelected = selectedTransferId === id;
           const origin = transfer.origin?.name ?? transfer.origin?.locationCode ?? "—";
           const destination = transfer.destination?.name ?? transfer.destination?.locationCode ?? "—";
-          const price = transfer.pricing?.oneWay ?? transfer.pricing?.return ?? null;
-          const currency = transfer.pricing?.currency ?? "USD";
-          const normalizedPrice = normalizeAmount(price, currency, amdRates);
-          const formattedPrice = normalizedPrice
-            ? formatCurrencyAmount(normalizedPrice.amount, normalizedPrice.currency, intlLocale)
-            : null;
+          const destinationLabel = selectedHotelName
+            ? selectedHotelName
+            : destination;
           const transferType = normalizeTransferType(transfer.transferType);
+          const vehicleName = transfer.vehicle?.name ?? transfer.vehicle?.category ?? null;
+          const { unitPrice, totalPrice, currency, chargeType, vehicleCount } = getTransferTotals(
+            transfer,
+            includeReturnTransfer,
+            transferGuestCounts
+          );
+          const resolvedCurrency = currency ?? "USD";
+          const normalizedUnitPrice = normalizeAmount(unitPrice, resolvedCurrency, amdRates);
+          const formattedUnitPrice = normalizedUnitPrice
+            ? formatCurrencyAmount(normalizedUnitPrice.amount, normalizedUnitPrice.currency, intlLocale)
+            : null;
+          const normalizedTotalPrice = normalizeAmount(totalPrice, resolvedCurrency, amdRates);
+          const formattedTotalPrice = normalizedTotalPrice
+            ? formatCurrencyAmount(normalizedTotalPrice.amount, normalizedTotalPrice.currency, intlLocale)
+            : null;
+          const unitSuffix =
+            chargeType === "PER_PAX"
+              ? t.packageBuilder.transfers.perPax
+              : t.packageBuilder.transfers.perCar;
+          const totalGuestCount = transferGuestCounts.total;
+          const childPolicyParts: string[] = [];
+          if (transferGuestCounts.childFree > 0) {
+            childPolicyParts.push(
+              formatPlural(
+                transferGuestCounts.childFree,
+                t.packageBuilder.transfers.childPolicyFree
+              )
+            );
+          }
+          if (transferGuestCounts.childHalf > 0) {
+            childPolicyParts.push(
+              formatPlural(
+                transferGuestCounts.childHalf,
+                t.packageBuilder.transfers.childPolicyHalf
+              )
+            );
+          }
+          const childPolicyLine =
+            transferType === "GROUP" && childPolicyParts.length > 0
+              ? `${t.packageBuilder.transfers.childPolicyLabel}: ${childPolicyParts.join(" · ")}`
+              : null;
+          const maxPaxRaw = transfer.vehicle?.maxPax ?? transfer.paxRange?.maxPax ?? null;
+          const maxPax =
+            typeof maxPaxRaw === "number" && Number.isFinite(maxPaxRaw) && maxPaxRaw > 0
+              ? maxPaxRaw
+              : null;
+          const individualLabel =
+            maxPax && /\d+/.test(t.packageBuilder.transfers.individual)
+              ? t.packageBuilder.transfers.individual.replace(/\d+/, maxPax.toString())
+              : t.packageBuilder.transfers.individual;
           const typeLabel =
             transferType === "GROUP"
               ? t.packageBuilder.transfers.group
               : transferType === "INDIVIDUAL"
-                ? t.packageBuilder.transfers.individual
+                ? individualLabel
                 : t.packageBuilder.services.transfer;
           return (
             <div
@@ -1103,19 +1493,50 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             >
               <div>
                 <h3 className="package-service__route">
-                  {origin} → {destination}
+                  {origin}{" "}
+                  <span className="material-symbols-rounded">
+                    {includeReturnTransfer ? "sync_alt" : "arrow_right_alt"}
+                  </span>{" "}
+                  {destinationLabel}
                 </h3>
-                <p className="package-service__meta">
+                <p className="package-service__meta type">
+                  <span className="material-symbols-rounded">{transferType === "GROUP" ? "groups" : "person"}</span>
                   {typeLabel}
-                  {formattedPrice ? ` · ${formattedPrice}` : ""}
                 </p>
+                {transferType === "INDIVIDUAL" && vehicleName ? (
+                  <p className="package-service__meta">
+                    <span className="material-symbols-rounded">directions_car</span>
+                    {t.packageBuilder.checkout.labels.vehicle}: {vehicleName}
+                  </p>
+                ) : null}
+                {transferType === "INDIVIDUAL" && vehicleCount ? (
+                  <p className="package-service__meta">
+                    <span className="material-symbols-rounded">numbers</span>
+                    {t.hotel.addons.transfers.vehicleQty}: {vehicleCount}
+                  </p>
+                ) : null}
+                {formattedUnitPrice ? (
+                  <p className="package-service__meta">
+                    <span className="material-symbols-rounded">sell</span>
+                    {t.packageBuilder.checkout.labels.price}: {formattedUnitPrice} · {unitSuffix}
+                  </p>
+                ) : null}
+                {childPolicyLine ? (
+                  <p className="package-service__meta"><span className="material-symbols-rounded">child_care</span>{childPolicyLine}</p>
+                ) : null}
+                {formattedTotalPrice && totalGuestCount > 0 ? (
+                  <p className="package-service__meta rate">
+                    {t.common.total} ({t.packageBuilder.checkout.labels.guests}: {totalGuestCount}):{" "}
+                    {formattedTotalPrice}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"
                 className="service-builder__cta"
                 onClick={() => handleSelectTransfer(transfer, id)}
               >
-                {isSelected ? t.packageBuilder.selectedTag : t.packageBuilder.addTag}
+                {isSelected ? <><span className="material-symbols-rounded">check</span> {t.packageBuilder.selectedTag}</> : <><span className="material-symbols-rounded">add_2</span>{t.packageBuilder.addTag}</>}
               </button>
             </div>
           );
@@ -1452,7 +1873,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         ) : serviceKey === "transfer" ? (
           <>
             {renderTransferTypeGroup()}
-            <div className="service-builder__panel">{renderTransferList()}</div>
+            <div className="transfer-panel__controls">
+              {renderTransferReturnToggle()}
+              {renderTransferAirportSelect()}
+            </div>
+            <div className="service-builder__panel">
+              {renderTransferList()}
+            </div>
           </>
         ) : serviceKey === "excursion" ? (
           <div className="service-builder__panel">{renderExcursionList()}</div>
