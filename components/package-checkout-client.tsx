@@ -982,25 +982,6 @@ export default function PackageCheckoutClient() {
                 </label>
               </div>
             </div>
-
-            <div className="checkout-section">
-              <div className="checkout-section__heading">
-                <h2>{t.packageBuilder.checkout.couponTitle}</h2>
-              </div>
-              <div className="checkout-coupon">
-                <input
-                  className="checkout-input"
-                  type="text"
-                  placeholder={t.packageBuilder.checkout.couponPlaceholder}
-                  value={couponCode}
-                  onChange={(event) => setCouponCode(event.target.value)}
-                />
-                <button type="button" className="checkout-apply">
-                  {t.packageBuilder.checkout.applyCoupon}
-                </button>
-              </div>
-            </div>
-
             <div className="checkout-section">
               <div className="checkout-section__heading">
                 <h2>{t.packageBuilder.checkout.paymentTitle}</h2>
@@ -1111,6 +1092,19 @@ export default function PackageCheckoutClient() {
                 <strong>{estimatedTotal ?? t.common.contact}</strong>
               </div>
               <p className="checkout-summary__note">{t.packageBuilder.checkout.processingNote}</p>
+              <h4>{t.packageBuilder.checkout.couponTitle}</h4>
+              <div className="checkout-coupon">
+                <input
+                  className="checkout-input"
+                  type="text"
+                  placeholder={t.packageBuilder.checkout.couponPlaceholder}
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value)}
+                />
+                <button type="button" className="checkout-apply">
+                  {t.packageBuilder.checkout.applyCoupon}
+                </button>
+              </div>
               {paymentError ? (
                 <p className="checkout-error" role="alert">
                   {paymentError}

@@ -41,11 +41,6 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
       <Link href="#main-content" className="skip-link">
         {t.accessibility.skipToContent}
       </Link>
-      {/* <div className="glow">
-        <span className="glow-a" />
-        <span className="glow-b" />
-        <span className="glow-c" />
-      </div> */}
       <div className="videoWrap">
         <video src="/uae.mp4" autoPlay muted loop playsInline />
       </div>
