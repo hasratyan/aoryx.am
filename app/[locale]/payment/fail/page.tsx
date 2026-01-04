@@ -7,6 +7,7 @@ import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import { getDb } from "@/lib/db";
 import { hotelInfo as getHotelInfo } from "@/lib/aoryx-client";
 import { calculateBookingTotal } from "@/lib/booking-total";
+import { getAoryxHotelPlatformFee } from "@/lib/pricing";
 
 const resolveLocaleFromParam = (value: string | undefined) =>
   locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
@@ -94,7 +95,8 @@ export default async function PaymentFailPage({
   }
 
   const payload = bookingRecord?.payload;
-  const total = payload ? calculateBookingTotal(payload) : null;
+  const hotelMarkup = await getAoryxHotelPlatformFee();
+  const total = payload ? calculateBookingTotal(payload, { hotelMarkup }) : null;
   const currency = payload?.currency ?? "USD";
 
   return (

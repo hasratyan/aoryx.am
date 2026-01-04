@@ -37,13 +37,17 @@ export type Translation = {
     loadingDestinations: string;
     noLocations: string;
     adultsLabel: string;
+    adultsShort: string;
     childrenLabel: string;
+    childrenShort: string;
     childrenAges: string;
     roomsLabel: string;
     roomLabel: string;
     datePlaceholder: string;
     submitIdle: string;
     submitLoading: string;
+    expandSearch: string;
+    collapseSearch: string;
     unknownHotel: string;
     errors: {
       missingLocation: string;
@@ -599,9 +603,12 @@ export type Translation = {
   };
   common: {
     backToSearch: string;
+    scrollTop: string;
     contact: string;
     contactForRates: string;
     close: string;
+    yes: string;
+    no: string;
     total: string;
     status: string;
     night: PluralForms;
@@ -747,6 +754,8 @@ export type Translation = {
       confirmationNumberLabel: string;
       priceChangeWarning: string;
       priceChangeConfirm: string;
+      resetPackageWarning: string;
+      resetPackageConfirm: string;
       titles: { mr: string; ms: string; mrs: string; master: string };
       firstNamePlaceholder: string;
       lastNamePlaceholder: string;
@@ -847,13 +856,17 @@ const translations: Record<Locale, Translation> = {
       loadingDestinations: "Ուղղությունների բեռնում...",
       noLocations: "Ուղղություն կամ հյուրանոց չի գտնվել",
       adultsLabel: "Մեծահասակ",
+      adultsShort: "Մեծ.",
       childrenLabel: "Երեխա",
+      childrenShort: "Երխ.",
       childrenAges: "Երեխայի տարիքը",
       roomsLabel: "Սենյակ",
       roomLabel: "Սենյակ",
       datePlaceholder: "Ընտրել ամսաթվերը",
       submitIdle: "Որոնել",
       submitLoading: "Որոնում...",
+      expandSearch: "Բացել որոնումը",
+      collapseSearch: "Թաքցնել որոնումը",
       unknownHotel: "Անհայտ հյուրանոց",
       errors: {
         missingLocation: "Խնդրում ենք ընտրել ուղղություն կամ հյուրանոց։",
@@ -1031,7 +1044,7 @@ const translations: Record<Locale, Translation> = {
         city: "Քաղաք",
         address: "Հասցե",
         zip: "Փոստային ինդեքս",
-        couponTitle: "Կտրոն կամ նվեր քարտ",
+        couponTitle: "Կտրոնի կամ նվեր քարտի կոդ",
         couponPlaceholder: "Մուտքագրեք կոդը",
         applyCoupon: "Կիրառել",
         paymentTitle: "Վճարման եղանակ",
@@ -1047,7 +1060,7 @@ const translations: Record<Locale, Translation> = {
         payIdram: "Վճարել Idram-ով",
         payCard: "Վճարել քարտով",
         totalTitle: "Վճարման ամփոփում",
-        totalLabel: "Նախնական ընդհանուր",
+        totalLabel: "Ընդհանուր",
         processingNote: "Վճարումը կկատարվի ապահով միջավայրում։ Ամրագրումը կհաստատենք ստուգումից հետո։",
         errors: {
           missingHotel: "Խնդրում ենք ընտրել հյուրանոցը շարունակելու համար։",
@@ -1633,9 +1646,12 @@ const translations: Record<Locale, Translation> = {
     },
     common: {
       backToSearch: "Վերադառնալ որոնմանը",
+      scrollTop: "Վերև գնալ",
       contact: "Կապվել",
       contactForRates: "Կապվեք գների համար",
       close: "Փակել",
+      yes: "Այո",
+      no: "Ոչ",
       total: "Ընդամենը",
       status: "Կարգավիճակ",
       night: {
@@ -1800,6 +1816,8 @@ const translations: Record<Locale, Translation> = {
         confirmationNumberLabel: "Հաստատման համար",
         priceChangeWarning: "Ստուգման ընթացքում գինը փոխվել է։ Խնդրում ենք հաստատել նոր գինը։",
         priceChangeConfirm: "Հաստատում եմ նոր գինը և ցանկանում եմ շարունակել։",
+        resetPackageWarning: "Նախապես ընտրված տարբերակը փոխելիս փաթեթը կվերագործարկվի",
+        resetPackageConfirm: "Հաստատում եմ՝ վերակայել փաթեթը։",
         titles: {
           mr: "Պրն.",
           ms: "Տիկ.",
@@ -1908,13 +1926,17 @@ const translations: Record<Locale, Translation> = {
       loadingDestinations: "Loading destinations...",
       noLocations: "No destinations or hotels found",
       adultsLabel: "Adults",
+      adultsShort: "Adl.",
       childrenLabel: "Children",
+      childrenShort: "Chd.",
       childrenAges: "Child's Age",
       roomsLabel: "Rooms",
       roomLabel: "Room",
       datePlaceholder: "Select dates",
       submitIdle: "Search",
       submitLoading: "Searching...",
+      expandSearch: "Expand search",
+      collapseSearch: "Collapse search",
       unknownHotel: "Unknown hotel",
       errors: {
         missingLocation: "Please select a destination or hotel.",
@@ -2101,7 +2123,7 @@ const translations: Record<Locale, Translation> = {
         city: "City",
         address: "Street address",
         zip: "ZIP / Postal code",
-        couponTitle: "Coupon or gift card",
+        couponTitle: "Coupon or gift card code",
         couponPlaceholder: "Enter code",
         applyCoupon: "Apply",
         paymentTitle: "Payment method",
@@ -2117,7 +2139,7 @@ const translations: Record<Locale, Translation> = {
         payIdram: "Pay with Idram",
         payCard: "Pay by card",
         totalTitle: "Payment summary",
-        totalLabel: "Estimated total",
+        totalLabel: "Total",
         processingNote:
           "Your payment will be processed securely. We will confirm your booking after verification.",
         errors: {
@@ -2708,9 +2730,12 @@ const translations: Record<Locale, Translation> = {
     },
     common: {
       backToSearch: "Back to Search",
+      scrollTop: "Scroll to top",
       contact: "Contact",
       contactForRates: "Contact for Rates",
       close: "Close",
+      yes: "Yes",
+      no: "No",
       total: "Total",
       status: "Status",
       night: {
@@ -2875,6 +2900,8 @@ const translations: Record<Locale, Translation> = {
         confirmationNumberLabel: "Confirmation Number",
         priceChangeWarning: "The price has updated during verification. Please review and confirm the new rate to proceed.",
         priceChangeConfirm: "I accept the updated price and wish to proceed with the booking.",
+        resetPackageWarning: "Changing the already selected option will reset your package selections.",
+        resetPackageConfirm: "I understand — reset my package selections.",
         titles: {
           mr: "Mr.",
           ms: "Ms.",
@@ -2979,13 +3006,17 @@ const translations: Record<Locale, Translation> = {
       loadingDestinations: "Загрузка направлений...",
       noLocations: "Направления или отели не найдены",
       adultsLabel: "Взрослые",
+      adultsShort: "Взр.",
       childrenLabel: "Дети",
+      childrenShort: "Дет.",
       childrenAges: "Возраст ребенка",
       roomsLabel: "Номера",
       roomLabel: "Номер",
       datePlaceholder: "Выберите даты",
       submitIdle: "Поиск",
       submitLoading: "Ищем...",
+      expandSearch: "Развернуть поиск",
+      collapseSearch: "Свернуть поиск",
       unknownHotel: "Неизвестный отель",
       errors: {
         missingLocation: "Пожалуйста, выберите направление или отель.",
@@ -3176,7 +3207,7 @@ const translations: Record<Locale, Translation> = {
         city: "Город",
         address: "Адрес",
         zip: "Индекс",
-        couponTitle: "Купон или подарочная карта",
+        couponTitle: "Код купона или подарочной карты",
         couponPlaceholder: "Введите код",
         applyCoupon: "Применить",
         paymentTitle: "Способ оплаты",
@@ -3192,7 +3223,7 @@ const translations: Record<Locale, Translation> = {
         payIdram: "Оплатить через Idram",
         payCard: "Оплатить картой",
         totalTitle: "Сумма к оплате",
-        totalLabel: "Ориентировочный итог",
+        totalLabel: "Итого",
         processingNote:
           "Платеж обрабатывается в защищенной среде. Бронирование подтвердим после проверки.",
         errors: {
@@ -3785,9 +3816,12 @@ const translations: Record<Locale, Translation> = {
     },
     common: {
       backToSearch: "Вернуться к поиску",
+      scrollTop: "Наверх",
       contact: "Связаться",
       contactForRates: "Свяжитесь для уточнения цены",
       close: "Закрыть",
+      yes: "Да",
+      no: "Нет",
       total: "Итого",
       status: "Статус",
       night: {
@@ -3958,6 +3992,8 @@ const translations: Record<Locale, Translation> = {
         confirmationNumberLabel: "Номер подтверждения",
         priceChangeWarning: "Цена изменилась во время проверки. Подтвердите обновленную цену перед бронированием.",
         priceChangeConfirm: "Подтверждаю новую цену и хочу продолжить.",
+        resetPackageWarning: "Изменение уже выбранного параметра приведет к сбросу выбранных вами пакетов.",
+        resetPackageConfirm: "Подтверждаю сброс выбранных услуг пакета.",
         titles: {
           mr: "Г-н",
           ms: "Г-жа",

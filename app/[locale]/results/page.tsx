@@ -3,7 +3,8 @@ import ResultsClient from "./results-client";
 import { parseSearchParams } from "@/lib/search-query";
 import { search, AoryxClientError, AoryxServiceError } from "@/lib/aoryx-client";
 import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
-import { getEffectiveAmdRates } from "@/lib/pricing";
+import { getAmdRates, getAoryxHotelPlatformFee } from "@/lib/pricing";
+import { applyMarkup } from "@/lib/pricing-utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recordUserSearch } from "@/lib/user-data";
@@ -58,10 +59,15 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
   let initialResult: SafeSearchResult | null = null;
   let initialError: string | null = null;
   let initialAmdRates: { USD: number; EUR: number } | null = null;
+  let hotelMarkup: number | null = null;
 
   if (parsed.payload) {
-    const ratesPromise = getEffectiveAmdRates().catch((error) => {
+    const ratesPromise = getAmdRates().catch((error) => {
       console.error("[ExchangeRates] Failed to load rates", error);
+      return null;
+    });
+    const markupPromise = getAoryxHotelPlatformFee().catch((error) => {
+      console.error("[Pricing] Failed to load hotel platform fee", error);
       return null;
     });
     try {
@@ -123,6 +129,22 @@ export default async function ResultsPage({ params, searchParams }: PageProps) {
       }
     }
     initialAmdRates = await ratesPromise;
+    hotelMarkup = await markupPromise;
+    if (initialResult) {
+      const resolvedMarkup = typeof hotelMarkup === "number" ? hotelMarkup : null;
+      if (resolvedMarkup !== null) {
+        initialResult = {
+          ...initialResult,
+          hotels: initialResult.hotels.map((hotel) => ({
+            ...hotel,
+            minPrice:
+              typeof hotel.minPrice === "number" && Number.isFinite(hotel.minPrice)
+                ? applyMarkup(hotel.minPrice, resolvedMarkup) ?? hotel.minPrice
+                : hotel.minPrice,
+          })),
+        };
+      }
+    }
   }
 
   return (

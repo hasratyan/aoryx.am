@@ -15,6 +15,7 @@ import type { FlydubaiFlightOffer, FlydubaiSearchResponse } from "@/types/flydub
 import {
   PackageBuilderService,
   PackageBuilderState,
+  openPackageBuilder,
   readPackageBuilderState,
   subscribePackageBuilderState,
   updatePackageBuilderState,
@@ -152,11 +153,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     const template = forms[category] ?? forms.other;
     return template.replace("{count}", count.toString());
   }, [pluralRules]);
-  const ratesEndpoint =
-    serviceKey === "hotel"
-      ? "/api/utils/exchange-rates"
-      : "/api/utils/exchange-rates?scope=transfers";
-  const { rates: amdRates } = useAmdRates(undefined, { endpoint: ratesEndpoint });
+  const { rates: amdRates } = useAmdRates();
   const [builderState, setBuilderState] = useState<PackageBuilderState>(() =>
     readPackageBuilderState()
   );
@@ -1045,6 +1042,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       },
       updatedAt: Date.now(),
     }));
+    openPackageBuilder();
   };
 
   const updateFlightField = useCallback((field: keyof FlightSearchForm, value: string) => {
@@ -1494,9 +1492,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               <div>
                 <h3 className="package-service__route">
                   {origin}{" "}
-                  <span className="material-symbols-rounded">
-                    {includeReturnTransfer ? "sync_alt" : "arrow_right_alt"}
-                  </span>{" "}
+                  <span className="material-symbols-rounded">{includeReturnTransfer ? "sync_alt" : "arrow_right_alt"}</span>
                   {destinationLabel}
                 </h3>
                 <p className="package-service__meta type">

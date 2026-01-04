@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { calculateBookingTotal } from "@/lib/booking-total";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale } from "@/lib/i18n";
 import type { AoryxBookingPayload, AoryxBookingResult } from "@/types/aoryx";
@@ -16,6 +15,8 @@ type AdminBookingRecord = {
   source: string | null;
   payload: AoryxBookingPayload | null;
   booking: AoryxBookingResult | null;
+  displayTotal?: number | null;
+  displayCurrency?: string | null;
 };
 
 type AdminBookingsClientProps = {
@@ -97,7 +98,10 @@ const countGuestsFromRooms = (rooms: Array<{ adults: number; childrenAges: numbe
 
 const normalizeText = (value: string) => value.trim().toLowerCase();
 
-export default function AdminBookingsClient({ adminUser, initialBookings }: AdminBookingsClientProps) {
+export default function AdminBookingsClient({
+  adminUser,
+  initialBookings,
+}: AdminBookingsClientProps) {
   const t = useTranslations();
   const { locale } = useLanguage();
   const intlLocale = intlLocales[locale] ?? "en-GB";
@@ -127,7 +131,9 @@ export default function AdminBookingsClient({ adminUser, initialBookings }: Admi
     const entries = initialBookings.map((entry) => {
       const payload = entry.payload;
       const booking = entry.booking;
-      const total = payload ? calculateBookingTotal(payload) : null;
+      const total =
+        typeof entry.displayTotal === "number" ? entry.displayTotal : null;
+      const totalCurrency = entry.displayCurrency ?? payload?.currency ?? "USD";
       const guestsCount = payload ? countGuestsFromRooms(payload.rooms) : 0;
       const statusKey = getStatusKey(booking?.status ?? null);
       const createdTimestamp = entry.createdAt ? parseDate(entry.createdAt)?.getTime() ?? 0 : 0;
@@ -153,6 +159,7 @@ export default function AdminBookingsClient({ adminUser, initialBookings }: Admi
         payload,
         booking,
         total,
+        totalCurrency,
         guestsCount,
         statusKey,
         createdTimestamp,
@@ -333,7 +340,7 @@ export default function AdminBookingsClient({ adminUser, initialBookings }: Admi
                   const statusLabel = t.profile.bookings.status[item.statusKey];
                   const totalLabel =
                     payload && item.total !== null
-                      ? formatPrice(item.total, payload.currency ?? "USD", intlLocale)
+                      ? formatPrice(item.total, item.totalCurrency, intlLocale)
                       : "—";
                   const bookingId =
                     payload?.customerRefNumber ??

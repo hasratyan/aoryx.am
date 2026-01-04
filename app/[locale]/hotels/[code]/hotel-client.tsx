@@ -18,6 +18,7 @@ import {
   PACKAGE_BUILDER_SESSION_MS,
   openPackageBuilder,
   updatePackageBuilderState,
+  readPackageBuilderState,
   type PackageBuilderHotelSelection,
 } from "@/lib/package-builder-state";
 import type {
@@ -48,6 +49,19 @@ const toNumberValue = (value: unknown): number | null => {
 };
 
 const normalizeMealLabel = (value: string) => value.trim().toLowerCase();
+
+const buildHotelSelectionKey = (selection?: PackageBuilderHotelSelection | null) =>
+  selection
+    ? [
+        selection.hotelCode ?? "",
+        selection.destinationCode ?? "",
+        selection.checkInDate ?? "",
+        selection.checkOutDate ?? "",
+        selection.roomCount ?? "",
+        selection.guestCount ?? "",
+        selection.selectionKey ?? "",
+      ].join("|")
+    : "";
 
 const pickMealLabel = (value?: string | null) => {
   if (typeof value !== "string") return null;
@@ -103,6 +117,7 @@ type BookingRoomState = {
   policies: NonNullable<AoryxRoomOption["policies"]>;
   remarks: NonNullable<AoryxRoomOption["remarks"]>;
   cancellationPolicy: string | null;
+  displayTotalPrice?: number | null;
   price: {
     gross: number | null;
     net: number | null;
@@ -365,6 +380,12 @@ const buildBookingGuests = (
       policies: prebookRoom?.policies ?? [],
       remarks: prebookRoom?.remarks ?? [],
       cancellationPolicy: prebookRoom?.cancellationPolicy ?? null,
+      displayTotalPrice:
+        typeof prebookRoom?.displayTotalPrice === "number" && Number.isFinite(prebookRoom.displayTotalPrice)
+          ? prebookRoom.displayTotalPrice
+          : typeof prebookRoom?.totalPrice === "number" && Number.isFinite(prebookRoom.totalPrice)
+            ? prebookRoom.totalPrice
+            : null,
       price: {
         gross: prebookRoom?.price?.gross ?? null,
         net: prebookRoom?.price?.net ?? null,
@@ -550,9 +571,7 @@ export default function HotelClient({
   const { data: session, status: authStatus } = useSession();
   const isSignedIn = Boolean(session?.user);
   const { rates: hotelRates } = useAmdRates(initialAmdRates);
-  const { rates: addonRates } = useAmdRates(undefined, {
-    endpoint: "/api/utils/exchange-rates?scope=transfers",
-  });
+  const addonRates = hotelRates;
 
   const formatDisplayPrice = useCallback(
     (amount: number | null | undefined, currency: string | null | undefined) => {
@@ -598,6 +617,8 @@ export default function HotelClient({
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingPreparing, setBookingPreparing] = useState(false);
   const [bookingResult, setBookingResult] = useState<AoryxBookingResult | null>(null);
+  const [requiresResetConfirmation, setRequiresResetConfirmation] = useState(false);
+  const [resetConfirmed, setResetConfirmed] = useState(false);
   const [confirmPriceChange, setConfirmPriceChange] = useState(false);
   const [pendingHotelSelection, setPendingHotelSelection] =
     useState<PackageBuilderHotelSelection | null>(null);
@@ -784,12 +805,23 @@ export default function HotelClient({
   const tripAdvisorRating = hotelInfo?.tripAdvisorRating ?? null;
   const roomCount = roomDetailsPayload?.rooms.length ?? 1;
   const groupedRoomOptions = useMemo(() => {
+    const resolveDisplayPrice = (option: AoryxRoomOption) => {
+      if (typeof option.displayTotalPrice === "number" && Number.isFinite(option.displayTotalPrice)) {
+        return option.displayTotalPrice;
+      }
+      if (typeof option.totalPrice === "number" && Number.isFinite(option.totalPrice)) {
+        return option.totalPrice;
+      }
+      return null;
+    };
+
     if (roomCount <= 1) {
       return roomOptions.map((option, index) => ({
         key: `${option.id}-${index}`,
         option,
         items: [option],
         totalPrice: option.totalPrice,
+        displayTotalPrice: resolveDisplayPrice(option),
         currency: option.currency ?? fallbackCurrency,
       }));
     }
@@ -820,6 +852,11 @@ export default function HotelClient({
       const totalPrice = hasAllPrices
         ? items.reduce((sum, item) => sum + (item.totalPrice ?? 0), 0)
         : null;
+      const displayPrices = items.map(resolveDisplayPrice);
+      const hasAllDisplay = displayPrices.every((price) => typeof price === "number");
+      const displayTotalPrice = hasAllDisplay
+        ? displayPrices.reduce((sum, price) => sum + (price ?? 0), 0)
+        : null;
       const currency =
         group.option.currency ??
         fallbackCurrency ??
@@ -830,6 +867,7 @@ export default function HotelClient({
         ...group,
         items,
         totalPrice,
+        displayTotalPrice,
         currency,
       };
     });
@@ -864,8 +902,18 @@ export default function HotelClient({
     if (priceSort === "default") return filtered;
     const sorted = [...filtered];
     sorted.sort((a, b) => {
-      const aPrice = typeof a.totalPrice === "number" ? a.totalPrice : null;
-      const bPrice = typeof b.totalPrice === "number" ? b.totalPrice : null;
+      const aPrice =
+        typeof a.displayTotalPrice === "number"
+          ? a.displayTotalPrice
+          : typeof a.totalPrice === "number"
+            ? a.totalPrice
+            : null;
+      const bPrice =
+        typeof b.displayTotalPrice === "number"
+          ? b.displayTotalPrice
+          : typeof b.totalPrice === "number"
+            ? b.totalPrice
+            : null;
       if (aPrice === null && bPrice === null) return 0;
       if (aPrice === null) return 1;
       if (bPrice === null) return -1;
@@ -883,11 +931,13 @@ export default function HotelClient({
   const roomsTotal = useMemo(() => {
     if (bookingGuests.length === 0) return null;
     const total = bookingGuests.reduce((sum, room) => {
-      const price = isFiniteNumber(room.price.net)
-        ? room.price.net
-        : isFiniteNumber(room.price.gross)
-          ? room.price.gross
-          : 0;
+      const price = isFiniteNumber(room.displayTotalPrice)
+        ? room.displayTotalPrice
+        : isFiniteNumber(room.price.net)
+          ? room.price.net
+          : isFiniteNumber(room.price.gross)
+            ? room.price.gross
+            : 0;
       return sum + price;
     }, 0);
     return total > 0 ? total : null;
@@ -1523,29 +1573,11 @@ export default function HotelClient({
   );
 
   const applyHotelSelection = useCallback(
-    (nextHotel: PackageBuilderHotelSelection) => {
+    (nextHotel: PackageBuilderHotelSelection, options?: { resetPackage?: boolean }) => {
       updatePackageBuilderState((prev) => {
         const now = Date.now();
-        const nextHotelKey = [
-          nextHotel.hotelCode ?? "",
-          nextHotel.destinationCode ?? "",
-          nextHotel.checkInDate ?? "",
-          nextHotel.checkOutDate ?? "",
-          nextHotel.roomCount ?? "",
-          nextHotel.guestCount ?? "",
-          nextHotel.selectionKey ?? "",
-        ].join("|");
-        const prevHotelKey = prev.hotel
-          ? [
-              prev.hotel.hotelCode ?? "",
-              prev.hotel.destinationCode ?? "",
-              prev.hotel.checkInDate ?? "",
-              prev.hotel.checkOutDate ?? "",
-              prev.hotel.roomCount ?? "",
-              prev.hotel.guestCount ?? "",
-              prev.hotel.selectionKey ?? "",
-            ].join("|")
-          : "";
+        const nextHotelKey = buildHotelSelectionKey(nextHotel);
+        const prevHotelKey = buildHotelSelectionKey(prev.hotel);
         const prevSessionActive =
           typeof prev.sessionExpiresAt === "number" && prev.sessionExpiresAt > now;
         const shouldStartSession = !prevSessionActive || prevHotelKey !== nextHotelKey;
@@ -1561,10 +1593,19 @@ export default function HotelClient({
         const shouldClearTransfer = Boolean(
           shouldClearTransferByName || shouldClearTransferByCode
         );
+        const resetPackage = options?.resetPackage === true;
+        const nextTransfer = resetPackage
+          ? undefined
+          : shouldClearTransfer
+            ? undefined
+            : prev.transfer;
         return {
           ...prev,
           hotel: nextHotel,
-          transfer: shouldClearTransfer ? undefined : prev.transfer,
+          transfer: nextTransfer,
+          excursion: resetPackage ? undefined : prev.excursion,
+          insurance: resetPackage ? undefined : prev.insurance,
+          flight: resetPackage ? undefined : prev.flight,
           sessionExpiresAt: shouldStartSession
             ? now + PACKAGE_BUILDER_SESSION_MS
             : prev.sessionExpiresAt,
@@ -1581,6 +1622,7 @@ export default function HotelClient({
       option: AoryxRoomOption;
       items: AoryxRoomOption[];
       totalPrice: number | null;
+      displayTotalPrice?: number | null;
       currency: string | null;
     }) => {
       if (!hotelCode) return;
@@ -1599,16 +1641,23 @@ export default function HotelClient({
       const selectionNationality = parsed.payload?.nationality ?? null;
       const selectionRooms = parsed.payload?.rooms ?? null;
       const selectionKey = rateKeys.join("|");
-      const selectionPrice =
+      const selectionBasePrice =
         typeof group.totalPrice === "number" && Number.isFinite(group.totalPrice)
           ? group.totalPrice
           : group.items.every((item) => typeof item.totalPrice === "number" && Number.isFinite(item.totalPrice))
             ? group.items.reduce((sum, item) => sum + (item.totalPrice ?? 0), 0)
             : null;
+      const selectionDisplayPrice =
+        typeof group.displayTotalPrice === "number" && Number.isFinite(group.displayTotalPrice)
+          ? group.displayTotalPrice
+          : selectionBasePrice;
+      const selectionPrice = selectionDisplayPrice;
       const selectionCurrency = group.currency ?? fallbackCurrency ?? parsed.payload?.currency ?? null;
       const perRoomFallback =
-        typeof selectionPrice === "number" && Number.isFinite(selectionPrice) && group.items.length > 0
-          ? selectionPrice / group.items.length
+        typeof selectionBasePrice === "number" &&
+        Number.isFinite(selectionBasePrice) &&
+        group.items.length > 0
+          ? selectionBasePrice / group.items.length
           : null;
       const selectionRoomSelections = group.items.map((item, index) => {
         const gross = isFiniteNumber(item.price?.gross)
@@ -1707,6 +1756,12 @@ export default function HotelClient({
           isPriceChanged: result.isPriceChanged ?? null,
           currency: result.currency ?? prebookCurrency ?? null,
         });
+        const builderSnapshot = readPackageBuilderState();
+        const shouldReset =
+          builderSnapshot.hotel?.selected === true &&
+          buildHotelSelectionKey(builderSnapshot.hotel) !== buildHotelSelectionKey(nextHotel);
+        setRequiresResetConfirmation(shouldReset);
+        setResetConfirmed(false);
         setPendingHotelSelection(nextHotel);
         setBookingGuests(guests);
         setBookingOpen(true);
@@ -1747,6 +1802,8 @@ export default function HotelClient({
     setBookingGuests([]);
     setConfirmPriceChange(false);
     setPendingHotelSelection(null);
+    setRequiresResetConfirmation(false);
+    setResetConfirmed(false);
     setBookingLoading(false);
     setBookingPreparing(false);
     setShowTransfers(false);
@@ -1779,11 +1836,20 @@ export default function HotelClient({
 
   const handleSelectRoom = useCallback(() => {
     if (!pendingHotelSelection) return;
-    applyHotelSelection(pendingHotelSelection);
+    if (requiresResetConfirmation && !resetConfirmed) return;
+    applyHotelSelection(pendingHotelSelection, {
+      resetPackage: requiresResetConfirmation,
+    });
     openPackageBuilder();
     setPendingHotelSelection(null);
     handleCloseBooking();
-  }, [applyHotelSelection, handleCloseBooking, pendingHotelSelection]);
+  }, [
+    applyHotelSelection,
+    handleCloseBooking,
+    pendingHotelSelection,
+    requiresResetConfirmation,
+    resetConfirmed,
+  ]);
 
   const handleBook = useCallback(async () => {
     if (!activePrebook || !hotelCode) return;
@@ -2193,7 +2259,7 @@ export default function HotelClient({
                       <div className="room-options-list">
                         {visibleRoomOptions.map((group) => {
                           const price = formatDisplayPrice(
-                            group.totalPrice,
+                            group.displayTotalPrice ?? group.totalPrice,
                             group.currency ?? fallbackCurrency
                           );
                           const rateKeys = group.items
@@ -2240,7 +2306,7 @@ export default function HotelClient({
                                   <div className="room-breakdown">
                                     {group.items.map((item, itemIndex) => {
                                       const itemPrice = formatDisplayPrice(
-                                        item.totalPrice,
+                                        item.displayTotalPrice ?? item.totalPrice,
                                         item.currency ?? group.currency ?? fallbackCurrency
                                       );
                                       return (
@@ -2322,11 +2388,6 @@ export default function HotelClient({
                       </div>
                     </div>
                   )}
-                  {activePrebook?.isPriceChanged && (
-                    <p className="booking-warning">
-                      {t.hotel.booking.priceChangeWarning}
-                    </p>
-                  )}
                   {bookingGuests.map((room) => (
                     <fieldset key={room.roomIdentifier} className="booking-room">
                       <legend>
@@ -2339,7 +2400,10 @@ export default function HotelClient({
                             <span>
                               <span className="material-symbols-rounded" aria-hidden="true">attach_money</span>
                               {t.hotel.booking.roomPriceLabel}:{" "}
-                              {formatDisplayPrice(room.price.net ?? room.price.gross, bookingCurrency) ?? t.common.contact}
+                              {formatDisplayPrice(
+                                room.displayTotalPrice ?? room.price.net ?? room.price.gross,
+                                bookingCurrency
+                              ) ?? t.common.contact}
                             </span>
                           )}
                           {room.meal && <span><span className="material-symbols-rounded" aria-hidden="true">restaurant</span>{t.hotel.booking.mealPlanLabel}: {room.meal}</span>}
@@ -2453,7 +2517,6 @@ export default function HotelClient({
                     </fieldset>
                   ))}
                   
-
                   <div className="booking-summary">
                     <div className="booking-summary-lines">
                       <div>
@@ -2471,6 +2534,24 @@ export default function HotelClient({
                   {/* <p className="booking-note">
                     {t.hotel.booking.paymentNote}
                   </p> */}
+                  {activePrebook?.isPriceChanged && (
+                    <p className="booking-warning">
+                      {t.hotel.booking.priceChangeWarning}
+                    </p>
+                  )}
+                  {requiresResetConfirmation && (
+                    <div className="booking-warning">
+                      <p>{t.hotel.booking.resetPackageWarning}</p>
+                      <label className="booking-confirm">
+                        <input
+                          type="checkbox"
+                          checked={resetConfirmed}
+                          onChange={(event) => setResetConfirmed(event.target.checked)}
+                        />
+                        <span>{t.hotel.booking.resetPackageConfirm}</span>
+                      </label>
+                    </div>
+                  )}
                   <div className="booking-actions">
                     <button
                       type="button"
@@ -2484,7 +2565,11 @@ export default function HotelClient({
                       type="button"
                       className="booking-primary"
                       onClick={handleSelectRoom}
-                      disabled={!pendingHotelSelection || bookingPreparing}
+                      disabled={
+                        !pendingHotelSelection ||
+                        bookingPreparing ||
+                        (requiresResetConfirmation && !resetConfirmed)
+                      }
                     >
                       {t.hotel.booking.selectRoom}
                     </button>

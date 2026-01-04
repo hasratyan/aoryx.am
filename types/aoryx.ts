@@ -337,6 +337,7 @@ export interface AoryxRoomOption {
   refundable: boolean | null;
   currency: string | null;
   totalPrice: number | null;
+  displayTotalPrice?: number | null;
   availableRooms: number | null;
   cancellationPolicy: string | null;
   meal?: string | null;

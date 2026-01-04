@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import PackageServiceClient from "@/components/package-service-client";
 import ProfileSignIn from "@/components/profile-signin";
 import { authOptions } from "@/lib/auth";
+import { buildLocalizedMetadata } from "@/lib/metadata";
+import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import type { PackageBuilderService } from "@/lib/package-builder-state";
 
 const serviceKeys: PackageBuilderService[] = [
@@ -18,6 +20,29 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: Promise<{ locale: string; service: string }>;
 };
+
+const resolveLocale = (value: string | undefined) =>
+  locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+
+const resolveServiceKey = (value: string | undefined): PackageBuilderService | null => {
+  const normalized = value?.toLowerCase() ?? "";
+  return serviceKeys.includes(normalized as PackageBuilderService)
+    ? (normalized as PackageBuilderService)
+    : null;
+};
+
+export async function generateMetadata({ params }: { params: { locale: string; service: string } }) {
+  const resolvedLocale = resolveLocale(params.locale);
+  const t = getTranslations(resolvedLocale);
+  const serviceKey = resolveServiceKey(params.service);
+  const pageCopy = serviceKey ? t.packageBuilder.pages[serviceKey] : null;
+  return buildLocalizedMetadata({
+    locale: resolvedLocale,
+    title: pageCopy?.title ?? t.packageBuilder.title,
+    description: pageCopy?.body ?? t.packageBuilder.subtitle,
+    path: serviceKey ? `/services/${serviceKey}` : "/services",
+  });
+}
 
 export default async function ServicePage({ params }: PageProps) {
   const { service } = await params;

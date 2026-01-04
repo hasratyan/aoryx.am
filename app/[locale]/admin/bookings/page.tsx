@@ -6,6 +6,8 @@ import { getDb } from "@/lib/db";
 import { hasAdminConfig, isAdminUser } from "@/lib/admin";
 import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
+import { resolveBookingDisplayTotal } from "@/lib/booking-total";
+import { getAmdRates, getAoryxHotelPlatformFee } from "@/lib/pricing";
 import type { AoryxBookingPayload, AoryxBookingResult } from "@/types/aoryx";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +34,8 @@ type AdminBookingRecord = {
   source: string | null;
   payload: AoryxBookingPayload | null;
   booking: AoryxBookingResult | null;
+  displayTotal?: number | null;
+  displayCurrency?: string | null;
 };
 
 const resolveLocale = (value: string | undefined) =>
@@ -174,6 +178,25 @@ export default async function AdminBookingsPage({ params }: PageProps) {
       booking: sanitizeBookingResult(entry.booking ?? null),
     };
   });
+  const [hotelMarkup, rates] = await Promise.all([
+    getAoryxHotelPlatformFee(),
+    getAmdRates().catch((error) => {
+      console.error("[ExchangeRates] Failed to load rates", error);
+      return null;
+    }),
+  ]);
+
+  const bookingsWithTotals = bookings.map((entry) => {
+    const payload = entry.payload;
+    const displayTotal = payload
+      ? resolveBookingDisplayTotal(payload, rates, { hotelMarkup })
+      : null;
+    return {
+      ...entry,
+      displayTotal: displayTotal?.amount ?? null,
+      displayCurrency: displayTotal?.currency ?? null,
+    };
+  });
 
   return (
     <main className="container admin-page">
@@ -182,7 +205,7 @@ export default async function AdminBookingsPage({ params }: PageProps) {
           name: session.user.name ?? null,
           email: session.user.email ?? null,
         }}
-        initialBookings={bookings}
+        initialBookings={bookingsWithTotals}
       />
     </main>
   );

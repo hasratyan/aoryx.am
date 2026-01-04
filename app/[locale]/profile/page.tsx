@@ -5,6 +5,8 @@ import ProfileSignIn from "@/components/profile-signin";
 import ProfileView from "@/components/profile-view";
 import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
+import { resolveBookingDisplayTotal } from "@/lib/booking-total";
+import { getAmdRates, getAoryxHotelPlatformFee } from "@/lib/pricing";
 import type { AoryxBookingPayload, AoryxBookingResult, AoryxSearchParams } from "@/types/aoryx";
 
 type BookingRecord = {
@@ -12,6 +14,8 @@ type BookingRecord = {
   booking?: AoryxBookingResult | null;
   payload?: AoryxBookingPayload | null;
   source?: string | null;
+  displayTotal?: number | null;
+  displayCurrency?: string | null;
 };
 
 type SearchRecord = {
@@ -149,12 +153,31 @@ export default async function ProfilePage() {
       }
     : null;
 
-  const serializedBookings = bookings.map((item) => ({
-    createdAt: serializeDate(item.createdAt),
-    booking: sanitizeBookingResult(item.booking ?? null),
-    payload: sanitizeBookingPayload(item.payload ?? null),
-    source: item.source ?? null,
-  }));
+  const [hotelMarkup, rates] = await Promise.all([
+    getAoryxHotelPlatformFee(),
+    getAmdRates().catch((error) => {
+      console.error("[ExchangeRates] Failed to load rates", error);
+      return null;
+    }),
+  ]);
+
+  const serializedBookings = bookings.map((item) => {
+    const payload = sanitizeBookingPayload(item.payload ?? null);
+    const displayTotal =
+      payload && rates
+        ? resolveBookingDisplayTotal(payload, rates, { hotelMarkup })
+        : payload
+          ? resolveBookingDisplayTotal(payload, null, { hotelMarkup })
+          : null;
+    return {
+      createdAt: serializeDate(item.createdAt),
+      booking: sanitizeBookingResult(item.booking ?? null),
+      payload,
+      source: item.source ?? null,
+      displayTotal: displayTotal?.amount ?? null,
+      displayCurrency: displayTotal?.currency ?? null,
+    };
+  });
 
   const serializedSearches = searches.map((item) => ({
     createdAt: serializeDate(item.createdAt),

@@ -145,9 +145,7 @@ export default function PackageCheckoutClient() {
   const intlLocale = intlLocales[locale] ?? "en-GB";
   const { data: session } = useSession();
   const { rates: hotelRates } = useAmdRates();
-  const { rates: baseRates } = useAmdRates(undefined, {
-    endpoint: "/api/utils/exchange-rates?scope=transfers",
-  });
+  const baseRates = hotelRates;
   const [builderState, setBuilderState] = useState<PackageBuilderState>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("idram");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -578,9 +576,6 @@ export default function PackageCheckoutClient() {
       typeof hotel?.guestCount === "number" ? hotel.guestCount.toString() : null
     );
     if (guestLine) hotelDetails.push(guestLine);
-    const hotelPrice = formatServicePrice(hotel?.price ?? null, hotel?.currency ?? null, hotelRates);
-    const hotelPriceLine = buildDetailLine(t.packageBuilder.checkout.labels.price, hotelPrice);
-    if (hotelPriceLine) hotelDetails.push(hotelPriceLine);
 
     cards.push({
       id: "hotel",
@@ -590,14 +585,28 @@ export default function PackageCheckoutClient() {
     });
 
     const transferDetails: string[] = [];
+    const routeConnector = transfer?.includeReturn ? " <-> " : " -> ";
     const route = [transfer?.transferOrigin, transfer?.transferDestination]
       .filter(Boolean)
-      .join(" -> ");
+      .join(routeConnector);
     const routeLine = buildDetailLine(t.packageBuilder.checkout.labels.route, route || null);
     if (routeLine) transferDetails.push(routeLine);
+    const includeReturnLine = buildDetailLine(
+      t.hotel.addons.transfers.includeReturn,
+      transfer?.includeReturn ? t.common.yes : t.common.no
+    );
+    if (includeReturnLine) transferDetails.push(includeReturnLine);
+    const vehicleName = transfer?.vehicleName?.trim() ?? null;
+    const vehicleQty =
+      typeof transfer?.vehicleQuantity === "number" ? transfer.vehicleQuantity : null;
+    const transferType = transfer?.transferType?.trim().toUpperCase() ?? null;
+    const vehicleLabel =
+      vehicleName && transferType === "INDIVIDUAL" && vehicleQty && vehicleQty > 1
+        ? `${vehicleName} x ${vehicleQty}`
+        : vehicleName;
     const vehicleLine = buildDetailLine(
       t.packageBuilder.checkout.labels.vehicle,
-      transfer?.vehicleName ?? null
+      vehicleLabel
     );
     if (vehicleLine) transferDetails.push(vehicleLine);
     const typeLine = buildDetailLine(
@@ -605,16 +614,6 @@ export default function PackageCheckoutClient() {
       transfer?.transferType ?? null
     );
     if (typeLine) transferDetails.push(typeLine);
-    const normalizedTransfer = normalizeAmount(
-      transfer?.price ?? null,
-      transfer?.currency ?? null,
-      baseRates
-    );
-    const transferPrice = normalizedTransfer
-      ? formatCurrencyAmount(normalizedTransfer.amount, normalizedTransfer.currency, intlLocale)
-      : null;
-    const priceLine = buildDetailLine(t.packageBuilder.checkout.labels.price, transferPrice);
-    if (priceLine) transferDetails.push(priceLine);
 
     cards.push({
       id: "transfer",
@@ -624,13 +623,6 @@ export default function PackageCheckoutClient() {
     });
 
     const excursionDetails: string[] = [];
-    const excursionPrice = formatServicePrice(
-      excursion?.price ?? null,
-      excursion?.currency ?? null,
-      baseRates
-    );
-    const excursionPriceLine = buildDetailLine(t.packageBuilder.checkout.labels.price, excursionPrice);
-    if (excursionPriceLine) excursionDetails.push(excursionPriceLine);
 
     cards.push({
       id: "excursion",
@@ -666,13 +658,6 @@ export default function PackageCheckoutClient() {
               : flight?.cabinClass ?? null;
     const cabinLine = buildDetailLine(t.hotel.addons.flights.cabinLabel, cabinLabel);
     if (cabinLine) flightDetails.push(cabinLine);
-    const flightPrice = formatServicePrice(
-      flight?.price ?? null,
-      flight?.currency ?? null,
-      baseRates
-    );
-    const flightPriceLine = buildDetailLine(t.packageBuilder.checkout.labels.price, flightPrice);
-    if (flightPriceLine) flightDetails.push(flightPriceLine);
 
     cards.push({
       id: "flight",
@@ -690,6 +675,69 @@ export default function PackageCheckoutClient() {
     });
 
     return cards.filter((card) => card.selected);
+  })();
+
+  const serviceTotals = (() => {
+    const totals: { id: PackageBuilderService; label: string; value: string }[] = [];
+    const add = (
+      id: PackageBuilderService,
+      label: string,
+      amount: number | null | undefined,
+      currency: string | null | undefined,
+      rates: typeof baseRates
+    ) => {
+      const formatted = formatServicePrice(amount ?? null, currency ?? null, rates);
+      totals.push({ id, label, value: formatted ?? t.common.contact });
+    };
+
+    if (hotel?.selected) {
+      add(
+        "hotel",
+        t.packageBuilder.services.hotel,
+        hotel.price,
+        hotel.currency,
+        hotelRates
+      );
+    }
+    if (transfer?.selected) {
+      add(
+        "transfer",
+        t.packageBuilder.services.transfer,
+        transfer.price,
+        
+        transfer.currency,
+        baseRates
+      );
+    }
+    if (excursion?.selected) {
+      add(
+        "excursion",
+        t.packageBuilder.services.excursion,
+        excursion.price,
+        excursion.currency,
+        baseRates
+      );
+    }
+    if (builderState.flight?.selected) {
+      add(
+        "flight",
+        t.packageBuilder.services.flight,
+        builderState.flight.price,
+        builderState.flight.currency,
+        baseRates
+      );
+    }
+    if (builderState.insurance?.selected) {
+      add(
+        "insurance",
+        t.packageBuilder.services.insurance,
+        builderState.insurance.price,
+        builderState.insurance.currency,
+        baseRates
+      );
+    }
+
+    return totals;
   })();
 
   const estimatedTotal = (() => {
@@ -712,7 +760,12 @@ export default function PackageCheckoutClient() {
       totals.push({ amount: normalized.amount, currency: normalized.currency });
     };
 
-    addSelection(hotel?.selected === true, hotel?.price ?? null, hotel?.currency ?? null, hotelRates);
+    addSelection(
+      hotel?.selected === true,
+      hotel?.price ?? null,
+      hotel?.currency ?? null,
+      hotelRates
+    );
     addSelection(transfer?.selected === true, transfer?.price ?? null, transfer?.currency ?? null, baseRates);
     addSelection(excursion?.selected === true, excursion?.price ?? null, excursion?.currency ?? null, baseRates);
     addSelection(builderState.flight?.selected === true, builderState.flight?.price ?? null, builderState.flight?.currency ?? null, baseRates);
@@ -761,6 +814,7 @@ export default function PackageCheckoutClient() {
           <p>{t.packageBuilder.checkout.subtitle}</p>
           {formattedSessionRemaining ? (
             <p className="package-checkout__timer">
+              <span className="material-symbols-rounded">timer</span>
               {t.packageBuilder.sessionExpiresIn}:{" "}
               <strong>{formattedSessionRemaining}</strong>
             </p>
@@ -1121,17 +1175,22 @@ export default function PackageCheckoutClient() {
           <aside className="package-checkout__summary">
             <div className="checkout-summary__card">
               <h3>{t.packageBuilder.checkout.totalTitle}</h3>
+              {serviceTotals.map((service) => (
+                <div key={service.id} className="checkout-summary__line">
+                  <span>{service.label}</span>
+                  <strong>{service.value}</strong>
+                </div>
+              ))}
               <div className="checkout-summary__line">
                 <span>{t.packageBuilder.checkout.totalLabel}</span>
-                <strong>{estimatedTotal ?? t.common.contact}</strong>
+                <strong>{estimatedTotal ?? 0}</strong>
               </div>
               <p className="checkout-summary__note">{t.packageBuilder.checkout.processingNote}</p>
-              <h4>{t.packageBuilder.checkout.couponTitle}</h4>
               <div className="checkout-coupon">
                 <input
                   className="checkout-input"
                   type="text"
-                  placeholder={t.packageBuilder.checkout.couponPlaceholder}
+                  placeholder={t.packageBuilder.checkout.couponTitle}
                   value={couponCode}
                   onChange={(event) => setCouponCode(event.target.value)}
                 />

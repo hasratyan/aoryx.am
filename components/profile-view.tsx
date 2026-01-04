@@ -3,18 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { calculateBookingTotal } from "@/lib/booking-total";
 import { buildSearchQuery } from "@/lib/search-query";
 import type { AoryxBookingPayload, AoryxBookingResult, AoryxSearchParams } from "@/types/aoryx";
 import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale } from "@/lib/i18n";
-import { convertToAmd, useAmdRates } from "@/lib/use-amd-rates";
 
 type BookingRecord = {
   createdAt?: string | null;
   booking?: AoryxBookingResult | null;
   payload?: AoryxBookingPayload | null;
   source?: string | null;
+  displayTotal?: number | null;
+  displayCurrency?: string | null;
 };
 
 type SearchRecord = {
@@ -155,10 +155,6 @@ export default function ProfileView({
   const t = useTranslations();
   const { locale } = useLanguage();
   const intlLocale = intlLocales[locale] ?? "en-GB";
-  const { rates: hotelRates } = useAmdRates();
-  const { rates: baseRates } = useAmdRates(undefined, {
-    endpoint: "/api/utils/exchange-rates?scope=transfers",
-  });
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -169,79 +165,10 @@ export default function ProfileView({
     hydrated ? formatDate(value ?? null, intlLocale) : null;
   const formatDateRangeSafe = (start?: string | null, end?: string | null) =>
     hydrated ? formatDateRange(start, end, intlLocale) : null;
-  const formatBookingTotal = (payload: AoryxBookingPayload | null) => {
-    if (!payload) return null;
-    const baseCurrency = payload.currency ?? "USD";
-    const baseTotal = calculateBookingTotal(payload);
-    const roomsTotal = payload.rooms.reduce((sum, room) => {
-      const net = room.price.net;
-      const gross = room.price.gross;
-      const price =
-        typeof net === "number" && Number.isFinite(net)
-          ? net
-          : typeof gross === "number" && Number.isFinite(gross)
-            ? gross
-            : 0;
-      return sum + price;
-    }, 0);
-    const transferTotal =
-      typeof payload.transferSelection?.totalPrice === "number" &&
-      Number.isFinite(payload.transferSelection.totalPrice)
-        ? payload.transferSelection.totalPrice
-        : 0;
-    const excursionsTotal =
-      typeof payload.excursions?.totalAmount === "number" &&
-      Number.isFinite(payload.excursions.totalAmount)
-        ? payload.excursions.totalAmount
-        : 0;
-    const insuranceTotal =
-      typeof payload.insurance?.price === "number" && Number.isFinite(payload.insurance.price)
-        ? payload.insurance.price
-        : 0;
-    const flightsTotal =
-      typeof payload.airTickets?.price === "number" && Number.isFinite(payload.airTickets.price)
-        ? payload.airTickets.price
-        : 0;
-
-    const convertAmount = (
-      amount: number,
-      currency: string | null | undefined,
-      rates: typeof baseRates
-    ) => {
-      if (!Number.isFinite(amount) || amount <= 0) return 0;
-      if (!rates) return null;
-      const converted = convertToAmd(amount, currency, rates);
-      return converted ?? null;
-    };
-
-    const transferCurrency = payload.transferSelection?.pricing?.currency ?? baseCurrency;
-    const excursionsCurrency = payload.excursions?.selections?.[0]?.currency ?? baseCurrency;
-    const insuranceCurrency = payload.insurance?.currency ?? baseCurrency;
-    const flightsCurrency = payload.airTickets?.currency ?? baseCurrency;
-
-    const roomsConverted = convertAmount(roomsTotal, baseCurrency, hotelRates);
-    const transferConverted = convertAmount(transferTotal, transferCurrency, baseRates);
-    const excursionsConverted = convertAmount(excursionsTotal, excursionsCurrency, baseRates);
-    const insuranceConverted = convertAmount(insuranceTotal, insuranceCurrency, baseRates);
-    const flightsConverted = convertAmount(flightsTotal, flightsCurrency, baseRates);
-
-    if (
-      roomsConverted === null ||
-      transferConverted === null ||
-      excursionsConverted === null ||
-      insuranceConverted === null ||
-      flightsConverted === null
-    ) {
-      return formatPrice(baseTotal, baseCurrency, intlLocale);
-    }
-
-    const totalAmd =
-      roomsConverted +
-      transferConverted +
-      excursionsConverted +
-      insuranceConverted +
-      flightsConverted;
-    return formatPrice(totalAmd, "AMD", intlLocale);
+  const formatBookingTotal = (record: BookingRecord) => {
+    if (typeof record.displayTotal !== "number") return null;
+    const currency = record.displayCurrency ?? "AMD";
+    return formatPrice(record.displayTotal, currency, intlLocale);
   };
 
   if (hasError) {
@@ -469,7 +396,7 @@ export default function ProfileView({
                   const booking = item.booking ?? null;
                   const statusKey = getStatusKey(booking?.status ?? null);
                   const statusLabel = t.profile.bookings.status[statusKey];
-                  const totalLabel = payload ? formatBookingTotal(payload) ?? "—" : "—";
+                  const totalLabel = formatBookingTotal(item) ?? "—";
                   const roomsCount = payload?.rooms.length ?? 0;
                   const guestsCount = payload ? countGuestsFromRooms(payload.rooms) : 0;
                   const confirmation =

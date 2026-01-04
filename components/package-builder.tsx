@@ -57,9 +57,7 @@ export default function PackageBuilder() {
   const { data: session, status: authStatus } = useSession();
   const intlLocale = intlLocales[locale] ?? "en-GB";
   const { rates: hotelRates } = useAmdRates();
-  const { rates: baseRates } = useAmdRates(undefined, {
-    endpoint: "/api/utils/exchange-rates?scope=transfers",
-  });
+  const baseRates = hotelRates;
   const [isOpen, setIsOpen] = useState(false);
   const [showToggle, setShowToggle] = useState(true);
   const [builderState, setBuilderState] = useState<PackageBuilderState>(() =>
@@ -151,6 +149,14 @@ export default function PackageBuilder() {
   const selectedTransferLabel = (() => {
     if (!builderState.transfer?.selected) return null;
     const transferType = builderState.transfer.transferType?.trim().toUpperCase();
+    const vehicleName = builderState.transfer.vehicleName?.trim();
+    const vehicleQty = builderState.transfer.vehicleQuantity;
+    if (transferType === "INDIVIDUAL" && vehicleName) {
+      if (typeof vehicleQty === "number" && vehicleQty > 1) {
+        return `${vehicleName} x ${vehicleQty}`;
+      }
+      return vehicleName;
+    }
     if (transferType === "GROUP") return t.packageBuilder.transfers.group;
     if (transferType === "INDIVIDUAL") return t.packageBuilder.transfers.individual;
     return null;
@@ -547,12 +553,9 @@ export default function PackageBuilder() {
                 const isSelected = serviceSelection?.selected === true;
                 const isDisabled = serviceFlags[service.id] === false;
                 const serviceRates = service.id === "hotel" ? hotelRates : baseRates;
+                const serviceAmount = serviceSelection?.price ?? null;
                 const normalizedPrice = isSelected
-                  ? normalizeAmount(
-                      serviceSelection?.price ?? null,
-                      serviceSelection?.currency ?? null,
-                      serviceRates
-                    )
+                  ? normalizeAmount(serviceAmount, serviceSelection?.currency ?? null, serviceRates)
                   : null;
                 const formattedPrice = normalizedPrice
                   ? formatCurrencyAmount(normalizedPrice.amount, normalizedPrice.currency, intlLocale)

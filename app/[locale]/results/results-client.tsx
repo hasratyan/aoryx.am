@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buildSearchQuery, parseSearchParams } from "@/lib/search-query";
 import type { AoryxSearchParams, AoryxSearchResult } from "@/types/aoryx";
@@ -59,6 +59,8 @@ export default function ResultsClient({
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isSearchSticky, setIsSearchSticky] = useState(false);
   const searchKey = searchParams.toString();
   const parsed = useMemo(
     () =>
@@ -69,6 +71,32 @@ export default function ResultsClient({
       }),
     [searchKey, t]
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const root = document.documentElement;
+    root.setAttribute("data-results-page", "true");
+    const update = () => {
+      const hasScroll = window.scrollY > 0;
+      setShowScrollTop((prev) => (prev === hasScroll ? prev : hasScroll));
+      const isSticky = window.innerWidth >= 1400 && hasScroll;
+      setIsSearchSticky((prev) => (prev === isSticky ? prev : isSticky));
+      if (isSticky) {
+        root.setAttribute("data-results-scroll", "true");
+      } else {
+        root.removeAttribute("data-results-scroll");
+      }
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      root.removeAttribute("data-results-page");
+      root.removeAttribute("data-results-scroll");
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   const [sortBy, setSortBy] = useState<
     "price-asc" | "price-desc" | "rating-desc" | "rating-asc"
@@ -125,9 +153,6 @@ export default function ResultsClient({
     return diffDays > 0 ? diffDays : null;
   })();
   const filtersToggleLabel = filtersOpen ? t.results.filters.closeLabel : t.results.filters.openLabel;
-  const placesFoundCount = result?.propertyCount ?? result?.hotels.length ?? 0;
-  const placesFoundLabel =
-    placesFoundCount > 0 ? formatPlural(placesFoundCount, t.results.placesFound) : null;
   const nightsLabel =
     nightsCount && nightsCount > 0
       ? formatPlural(nightsCount, t.common.night)
@@ -182,6 +207,38 @@ export default function ResultsClient({
     children: room.childrenAges.length,
     childAges: room.childrenAges,
   }));
+  const [searchRoomCount, setSearchRoomCount] = useState(
+    () => initialRooms?.length ?? 1
+  );
+  const [searchExpanded, setSearchExpanded] = useState(true);
+  const searchStickyRef = useRef(false);
+  const showSearchCompactToggle = isSearchSticky && searchRoomCount > 1;
+  const isSearchCompact = showSearchCompactToggle && !searchExpanded;
+  const handleSearchToggle = useCallback(() => {
+    setSearchExpanded((prev) => !prev);
+  }, []);
+  const handleRoomCountChange = useCallback((count: number) => {
+    setSearchRoomCount(count);
+  }, []);
+
+  useEffect(() => {
+    let nextExpanded: boolean | null = null;
+
+    if (!isSearchSticky) {
+      searchStickyRef.current = false;
+      nextExpanded = true;
+    } else {
+      if (!searchStickyRef.current && searchRoomCount > 1) {
+        nextExpanded = false;
+      }
+      searchStickyRef.current = true;
+    }
+
+    if (nextExpanded === null || nextExpanded === searchExpanded) return;
+    queueMicrotask(() => {
+      setSearchExpanded(nextExpanded);
+    });
+  }, [isSearchSticky, searchRoomCount, searchExpanded]);
 
   const hotelsWithPricing = useMemo<HotelWithPricing[]>(() => {
     return (result?.hotels ?? []).map((hotel) => {
@@ -307,6 +364,8 @@ export default function ResultsClient({
     }
     return filteredHotels;
   }, [hotelsWithPricing, priceBounds, priceRange, selectedRatings, sortBy]);
+  const filteredPlacesLabel =
+    sortedHotels.length > 0 ? formatPlural(sortedHotels.length, t.results.placesFound) : null;
 
   return (
     <main className="results">
@@ -458,6 +517,12 @@ export default function ResultsClient({
               initialRooms={initialRooms}
               isSearchPending={isSearching}
               onSubmitSearch={handleSearchSubmit}
+              showRoomCount
+              compact={isSearchCompact}
+              showCompactToggle={showSearchCompactToggle}
+              onToggleCompact={handleSearchToggle}
+              onRoomCountChange={handleRoomCountChange}
+              useGuestAbbreviations
             />
           </div>
           {isSearching ? (
@@ -472,9 +537,9 @@ export default function ResultsClient({
               <div className="results-top">
                 <h1>
                   {destinationFromList?.name ?? result?.destination?.name ?? t.results.fallbackTitle}
-                  {placesFoundLabel && (
+                  {filteredPlacesLabel && (
                     <span>
-                      • {placesFoundLabel}
+                      • {filteredPlacesLabel}
                     </span>
                   )}
                 </h1>
@@ -591,6 +656,18 @@ export default function ResultsClient({
           )}
         </div>
       )}
+      {showScrollTop ? (
+        <button
+          type="button"
+          className="results-scroll-top"
+          aria-label={t.common.scrollTop}
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          <span className="material-symbols-rounded" aria-hidden="true">arrow_upward</span>
+        </button>
+      ) : null}
     </main>
   );
 }

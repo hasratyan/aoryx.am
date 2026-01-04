@@ -3,6 +3,7 @@ import type { AoryxBookingPayload, AoryxBookingResult } from "@/types/aoryx";
 import { calculateBookingTotal } from "@/lib/booking-total";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { defaultLocale, Locale, locales } from "@/lib/i18n";
+import { getAoryxHotelPlatformFee } from "@/lib/pricing";
 
 type BookingEmailInput = {
   to: string;
@@ -74,7 +75,8 @@ export async function sendBookingConfirmationEmail({
   const bookingId = payload.customerRefNumber ?? "—";
   const hotelName = payload.hotelName ?? payload.hotelCode ?? "Hotel";
   const dateRange = formatDateRange(payload.checkInDate, payload.checkOutDate);
-  const total = calculateBookingTotal(payload);
+  const hotelMarkup = await getAoryxHotelPlatformFee();
+  const total = calculateBookingTotal(payload, { hotelMarkup });
   const totalLabel = formatCurrencyAmount(total, payload.currency, "en-GB") ?? `${total} ${payload.currency}`;
   const confirmation =
     result?.hotelConfirmationNumber ??

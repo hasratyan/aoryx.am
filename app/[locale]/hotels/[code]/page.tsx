@@ -5,7 +5,8 @@ import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env"
 import { parseSearchParams } from "@/lib/search-query";
 import { obfuscateRoomOptions } from "@/lib/aoryx-rate-tokens";
 import { buildLocalizedMetadata } from "@/lib/metadata";
-import { getEffectiveAmdRates, type AmdRates } from "@/lib/pricing";
+import { getAmdRates, getAoryxHotelPlatformFee, type AmdRates } from "@/lib/pricing";
+import { applyMarkup } from "@/lib/pricing-utils";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import { fetchExcursions, fetchTransferRates } from "@/lib/aoryx-addons";
 import type {
@@ -107,12 +108,19 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
     payload.hotelCode = hotelCode;
   }
   const ratesPromise: Promise<AmdRates | null> = hotelCode
-    ? getEffectiveAmdRates().catch((error) => {
+    ? getAmdRates().catch((error) => {
         console.error("[ExchangeRates] Failed to load rates", error);
         return null;
       })
     : Promise.resolve(null);
+  const markupPromise: Promise<number | null> = hotelCode
+    ? getAoryxHotelPlatformFee().catch((error) => {
+        console.error("[Pricing] Failed to load hotel platform fee", error);
+        return null;
+      })
+    : Promise.resolve(null);
   const initialAmdRates = await ratesPromise;
+  const hotelMarkup = await markupPromise;
 
   let hotelInfoResult: AoryxHotelInfoResult | null = null;
   let hotelError: string | null = null;
@@ -170,6 +178,19 @@ export default async function HotelPage({ params, searchParams }: PageProps) {
         roomsError = t.hotel.errors.loadRoomOptionsFailed;
       }
     }
+  }
+
+  if (roomDetailsResult && typeof hotelMarkup === "number") {
+    roomDetailsResult = {
+      ...roomDetailsResult,
+      rooms: roomDetailsResult.rooms.map((room) => ({
+        ...room,
+        displayTotalPrice:
+          typeof room.totalPrice === "number" && Number.isFinite(room.totalPrice)
+            ? applyMarkup(room.totalPrice, hotelMarkup) ?? room.totalPrice
+            : room.totalPrice,
+      })),
+    };
   }
 
   const infoLat = toFinite(hotelInfoResult?.geoCode?.lat);

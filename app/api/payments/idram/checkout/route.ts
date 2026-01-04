@@ -5,7 +5,8 @@ import { getDb } from "@/lib/db";
 import { getPrebookState, getSessionFromCookie } from "@/app/api/aoryx/_shared";
 import { parseBookingPayload, validatePrebookState } from "@/lib/aoryx-booking";
 import { calculateBookingTotal } from "@/lib/booking-total";
-import { convertToAmd, getAmdRates, getEffectiveAmdRates } from "@/lib/pricing";
+import { applyMarkup } from "@/lib/pricing-utils";
+import { convertToAmd, getAmdRates, getAoryxHotelPlatformFee } from "@/lib/pricing";
 import type { AoryxBookingPayload } from "@/types/aoryx";
 
 export const runtime = "nodejs";
@@ -72,7 +73,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const baseAmount = calculateBookingTotal(payload);
+    const hotelMarkup = await getAoryxHotelPlatformFee();
+    const baseAmount = calculateBookingTotal(payload, { hotelMarkup });
     if (!Number.isFinite(baseAmount) || baseAmount <= 0) {
       return NextResponse.json({ error: "Invalid booking total." }, { status: 400 });
     }
@@ -88,6 +90,7 @@ export async function POST(request: NextRequest) {
             : 0;
       return sum + price;
     }, 0);
+    const roomsTotalWithMarkup = applyMarkup(roomsTotal, hotelMarkup) ?? roomsTotal;
     const transferTotal =
       typeof payload.transferSelection?.totalPrice === "number" &&
       Number.isFinite(payload.transferSelection.totalPrice)
@@ -111,13 +114,10 @@ export async function POST(request: NextRequest) {
     let amountCurrency = payload.currency;
 
     try {
-      const [baseRates, hotelRates] = await Promise.all([
-        getAmdRates(),
-        getEffectiveAmdRates(),
-      ]);
-      const convertAmount = (amount: number, currency: string | null | undefined, rates: typeof baseRates) => {
+      const rates = await getAmdRates();
+      const convertAmount = (amount: number, currency: string | null | undefined, ratesValue: typeof rates) => {
         if (!Number.isFinite(amount) || amount <= 0) return 0;
-        const converted = convertToAmd(amount, currency, rates);
+        const converted = convertToAmd(amount, currency, ratesValue);
         if (converted === null) {
           throw new Error("Missing exchange rate");
         }
@@ -128,11 +128,11 @@ export async function POST(request: NextRequest) {
       const insuranceCurrency = payload.insurance?.currency ?? payload.currency;
       const flightsCurrency = payload.airTickets?.currency ?? payload.currency;
       const totalAmd =
-        convertAmount(roomsTotal, payload.currency, hotelRates) +
-        convertAmount(transferTotal, transferCurrency, baseRates) +
-        convertAmount(excursionsTotal, excursionsCurrency, baseRates) +
-        convertAmount(insuranceTotal, insuranceCurrency, baseRates) +
-        convertAmount(flightsTotal, flightsCurrency, baseRates);
+        convertAmount(roomsTotalWithMarkup, payload.currency, rates) +
+        convertAmount(transferTotal, transferCurrency, rates) +
+        convertAmount(excursionsTotal, excursionsCurrency, rates) +
+        convertAmount(insuranceTotal, insuranceCurrency, rates) +
+        convertAmount(flightsTotal, flightsCurrency, rates);
       amountValue = Math.round(totalAmd);
       amountCurrency = "AMD";
     } catch (error) {

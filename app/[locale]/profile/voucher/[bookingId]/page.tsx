@@ -6,6 +6,9 @@ import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { calculateBookingTotal } from "@/lib/booking-total";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { applyMarkup } from "@/lib/pricing-utils";
+import { getAoryxHotelPlatformFee } from "@/lib/pricing";
+import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import type { AoryxBookingPayload, AoryxBookingResult } from "@/types/aoryx";
 
@@ -17,6 +20,18 @@ type PageProps = {
 
 const resolveLocale = (value: string | undefined) =>
   locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+
+export async function generateMetadata({ params }: { params: { locale: string; bookingId: string } }) {
+  const resolvedLocale = resolveLocale(params.locale);
+  const t = getTranslations(resolvedLocale);
+  const bookingId = params.bookingId?.trim();
+  return buildLocalizedMetadata({
+    locale: resolvedLocale,
+    title: t.profile.voucher.title,
+    description: t.profile.voucher.subtitle,
+    path: bookingId ? `/profile/voucher/${bookingId}` : "/profile/voucher",
+  });
+}
 
 const parseSearchDate = (value?: string | null) => {
   if (!value) return null;
@@ -105,6 +120,7 @@ export default async function VoucherPage({ params }: PageProps) {
   const payload = bookingRecord.payload as AoryxBookingPayload;
   const booking = (bookingRecord.booking ?? null) as AoryxBookingResult | null;
   const createdAt = bookingRecord.createdAt ? new Date(bookingRecord.createdAt) : null;
+  const hotelMarkup = await getAoryxHotelPlatformFee();
 
   const statusKey = getStatusKey(booking?.status ?? null);
   const statusLabel = t.profile.bookings.status[statusKey];
@@ -130,13 +146,14 @@ export default async function VoucherPage({ params }: PageProps) {
           : 0;
     return sum + price;
   }, 0);
-  const totalLabel = formatPrice(calculateBookingTotal(payload), payload.currency);
+  const roomsTotalWithMarkup = applyMarkup(roomsTotal, hotelMarkup) ?? roomsTotal;
+  const totalLabel = formatPrice(calculateBookingTotal(payload, { hotelMarkup }), payload.currency);
 
   const serviceCards = [
     {
       id: "hotel",
       title: t.packageBuilder.services.hotel,
-      price: formatPrice(roomsTotal, payload.currency),
+      price: formatPrice(roomsTotalWithMarkup, payload.currency),
       details: [
         payload.hotelName ?? payload.hotelCode ?? t.profile.bookings.labels.hotelCode,
         payload.destinationCode

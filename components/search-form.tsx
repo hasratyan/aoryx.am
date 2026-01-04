@@ -37,10 +37,14 @@ export type SearchCopy = {
   loadingDestinations: string;
   noLocations: string;
   adultsLabel: string;
+  adultsShort: string;
   childrenLabel: string;
+  childrenShort: string;
   childrenAges: string;
   submitIdle: string;
   submitLoading: string;
+  expandSearch: string;
+  collapseSearch: string;
   roomLabel: string;
   roomsLabel: string;
   datePlaceholder: string;
@@ -180,6 +184,11 @@ type Props = {
   initialRooms?: RoomConfig[];
   showRoomCount?: boolean;
   isSearchPending?: boolean;
+  compact?: boolean;
+  showCompactToggle?: boolean;
+  onToggleCompact?: () => void;
+  onRoomCountChange?: (count: number) => void;
+  useGuestAbbreviations?: boolean;
   onSubmitSearch?: (
     payload: AoryxSearchParams,
     params: URLSearchParams
@@ -195,6 +204,11 @@ export default function SearchForm({
   initialRooms,
   showRoomCount = false,
   isSearchPending = false,
+  compact = false,
+  showCompactToggle = false,
+  onToggleCompact,
+  onRoomCountChange,
+  useGuestAbbreviations = false,
   onSubmitSearch,
 }: Props) {
   const defaults = useMemo(() => buildDefaultDates(), []);
@@ -274,6 +288,12 @@ export default function SearchForm({
   });
   const [searchError, setSearchError] = useState<string | null>(null);
   const isFormDisabled = isSubmitting || isSearchPending;
+  const isCompact = compact === true;
+  const canToggleCompact = showCompactToggle && typeof onToggleCompact === "function";
+  const compactToggleLabel = isCompact ? copy.expandSearch : copy.collapseSearch;
+  const useAbbreviations = useGuestAbbreviations && !canToggleCompact;
+  const adultsLabel = useAbbreviations ? copy.adultsShort : copy.adultsLabel;
+  const childrenLabel = useAbbreviations ? copy.childrenShort : copy.childrenLabel;
 
   // Load destinations from API on mount
   useEffect(() => {
@@ -411,7 +431,7 @@ export default function SearchForm({
       .finally(() => {
         setHotelsLoading(false);
       });
-  }, [hideLocationFields]);
+  }, [hideLocationFields, copy.unknownHotel]);
 
   // Load hotels when destination is selected (after destinations are initialized)
     useEffect(() => {
@@ -583,6 +603,9 @@ export default function SearchForm({
       onSubmitSearch,
       appLocale,
       isFormDisabled,
+      copy.errors.submit,
+      copy.errors.missingLocation,
+      copy.errors.missingDates,
     ]
   );
 
@@ -623,6 +646,16 @@ export default function SearchForm({
     setShowChildAges(false);
   }, [isFormDisabled]);
 
+  useEffect(() => {
+    if (!isCompact) return;
+    setShowDatePicker(false);
+    setShowChildAges(false);
+  }, [isCompact]);
+
+  useEffect(() => {
+    onRoomCountChange?.(rooms.length);
+  }, [rooms.length, onRoomCountChange]);
+
   const combinedOptions = useMemo(() => {
     const merged = [...destinations, ...hotels];
     if (
@@ -635,7 +668,25 @@ export default function SearchForm({
   }, [destinations, hotels, selectedLocation]);
 
   return (
-    <form onSubmit={handleSubmit} className="search-form">
+    <form
+      onSubmit={handleSubmit}
+      className="search-form"
+      data-compact={isCompact ? "true" : undefined}
+      data-collapsible={canToggleCompact ? "true" : undefined}
+    >
+      {canToggleCompact ? (
+        <button
+          type="button"
+          className="search-form__toggle"
+          onClick={onToggleCompact}
+          aria-label={compactToggleLabel}
+          title={compactToggleLabel}
+        >
+          <span className="material-symbols-rounded">
+            {isCompact ? "expand_more" : "expand_less"}
+          </span>
+        </button>
+      ) : null}
       {!hideLocationFields && (
         <div className="field">
           <Select<LocationOption>
@@ -762,6 +813,26 @@ export default function SearchForm({
           )}
       </div>
 
+      {showRoomCount && (
+        <div className="field">
+          <div className="rooms">
+              <label>
+                <span className="material-symbols-rounded">hotel</span>
+                {copy.roomsLabel}
+                <input
+                  type="number"
+                  name="rooms"
+                  min={1}
+                  max={4}
+                  value={rooms.length}
+                  disabled={isFormDisabled}
+                  onChange={(e) => updateRoomCount(parseInt(e.target.value) || 1)}
+                />
+              </label>
+            </div>
+        </div>
+      )}
+
       {/* Guests */}
       <div className="field">
         {showRoomCount && rooms.length > 1 ? (
@@ -775,7 +846,7 @@ export default function SearchForm({
                 <div className="guest-room__inputs">
                   <label>
                     <span className="material-symbols-rounded">person</span>
-                    {copy.adultsLabel}
+                    {adultsLabel}
                     <input
                       type="number"
                       name={`adults-${roomIndex}`}
@@ -790,7 +861,7 @@ export default function SearchForm({
                   </label>
                   <label>
                     <span className="material-symbols-rounded">child_friendly</span>
-                    {copy.childrenLabel}
+                    {childrenLabel}
                     <input
                       type="number"
                       name={`children-${roomIndex}`}
@@ -835,7 +906,7 @@ export default function SearchForm({
             <div className="guests">
               <label>
                 <span className="material-symbols-rounded">person</span>
-                {copy.adultsLabel}
+                {adultsLabel}
                 <input
                   type="number"
                   name="adults"
@@ -850,7 +921,7 @@ export default function SearchForm({
               </label>
               <label>
                 <span className="material-symbols-rounded">child_friendly</span>
-                {copy.childrenLabel}
+                {childrenLabel}
                 <input
                   type="number"
                   name="children"
@@ -893,25 +964,6 @@ export default function SearchForm({
           </>
         )}
       </div>
-      {showRoomCount && (
-        <div className="field">
-          <div className="rooms">
-              <label>
-                <span className="material-symbols-rounded">hotel</span>
-                {copy.roomsLabel}
-                <input
-                  type="number"
-                  name="rooms"
-                  min={1}
-                  max={4}
-                  value={rooms.length}
-                  disabled={isFormDisabled}
-                  onChange={(e) => updateRoomCount(parseInt(e.target.value) || 1)}
-                />
-              </label>
-            </div>
-        </div>
-      )}
 
       {/* Submit */}
       <button
