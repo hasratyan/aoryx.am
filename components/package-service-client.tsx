@@ -12,6 +12,7 @@ import { postJson } from "@/lib/api-helpers";
 import StarBorder from "@/components/StarBorder";
 import type { AoryxExcursionTicket, AoryxTransferRate } from "@/types/aoryx";
 import type { FlydubaiFlightOffer, FlydubaiSearchResponse } from "@/types/flydubai";
+import type { EfesQuoteResult } from "@/types/efes";
 import {
   PackageBuilderService,
   PackageBuilderState,
@@ -79,6 +80,25 @@ const hasMinAgeRestriction = (policy?: string | null) => {
   return /not allowed|below/i.test(policy);
 };
 
+const normalizeOptional = (value: string | null | undefined) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const calculateTripDays = (checkIn?: string | null, checkOut?: string | null) => {
+  if (!checkIn || !checkOut) return null;
+  const start = new Date(`${checkIn}T00:00:00`);
+  const end = new Date(`${checkOut}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  const diffMs = end.getTime() - start.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  return Math.max(1, diffDays);
+};
+
+const DEFAULT_INSURANCE_ADULT_AGE = 30;
+const DEFAULT_INSURANCE_CHILD_AGE = 8;
+
 const serializeGuestExcursions = (value: Record<string, string[]>) => {
   const keys = Object.keys(value).sort();
   return JSON.stringify(keys.map((key) => [key, [...value[key]].sort()]));
@@ -92,6 +112,21 @@ type ExcursionGuest = {
 };
 
 type TransferType = "INDIVIDUAL" | "GROUP";
+
+type InsurancePlan = {
+  id: string;
+  title: string;
+  description: string;
+  riskAmount: number;
+  riskCurrency: string;
+  riskLabel: string;
+};
+
+type InsuranceTerritory = {
+  code: string;
+  label: string;
+  policyLabel: string;
+};
 
 const normalizeTransferType = (value: string | null | undefined): TransferType | null => {
   const normalized = value?.trim().toUpperCase();
@@ -188,6 +223,8 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const [flightError, setFlightError] = useState<string | null>(null);
   const [flightSearched, setFlightSearched] = useState(false);
   const [flightMocked, setFlightMocked] = useState(false);
+  const [insuranceQuoteLoading, setInsuranceQuoteLoading] = useState(false);
+  const [insuranceQuoteError, setInsuranceQuoteError] = useState<string | null>(null);
   const transferSyncRef = useRef<{
     selectionId: string;
     includeReturn: boolean;
@@ -195,6 +232,9 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     currency: string | null;
     vehicleQuantity: number | null;
   } | null>(null);
+  const insuranceQuoteKeyRef = useRef<string | null>(null);
+  const insuranceQuoteRequestIdRef = useRef(0);
+  const insuranceQuoteTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const unsubscribe = subscribePackageBuilderState(() => {
       setBuilderState(readPackageBuilderState());
@@ -209,6 +249,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const selectedHotelName = hotelSelection?.hotelName?.trim() ?? null;
   const selectedTransferId = builderState.transfer?.selectionId ?? null;
   const selectedFlightId = builderState.flight?.selectionId ?? null;
+  const insuranceSelection = builderState.insurance ?? null;
   const nonHotelSelection =
     serviceKey === "hotel"
       ? undefined
@@ -304,6 +345,184 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     passengerCounts.children,
     t.search.adultsLabel,
     t.search.childrenLabel,
+  ]);
+
+  const insurancePlans = useMemo<InsurancePlan[]>(
+    () => [
+      {
+        id: "standard",
+        title: t.packageBuilder.insurance.plans.standard.title,
+        description: t.packageBuilder.insurance.plans.standard.description,
+        riskAmount: 15000,
+        riskCurrency: "EUR",
+        riskLabel: "STANDARD",
+      },
+    ],
+    [t.packageBuilder.insurance.plans.standard]
+  );
+
+  const insuranceTerritories = useMemo<InsuranceTerritory[]>(
+    () => [
+      {
+        code: "whole_world_exc_uk_sch_us_ca_au_jp",
+        label: t.packageBuilder.insurance.territories.worldwideExcluding,
+        policyLabel: t.packageBuilder.insurance.territories.worldwideExcludingPolicy,
+      },
+    ],
+    [t.packageBuilder.insurance.territories]
+  );
+
+  const buildInsuranceQuoteTravelers = useCallback(() => {
+    const rooms = hotelSelection?.rooms ?? [];
+    const travelers: Array<{ id: string; age: number }> = [];
+    if (rooms.length === 0) {
+      const total =
+        typeof hotelSelection?.guestCount === "number" ? hotelSelection.guestCount : 0;
+      for (let i = 0; i < total; i += 1) {
+        travelers.push({
+          id: `guest-${i + 1}`,
+          age: DEFAULT_INSURANCE_ADULT_AGE,
+        });
+      }
+      return travelers;
+    }
+
+    rooms.forEach((room, roomIndex) => {
+      const roomIdentifier =
+        typeof room.roomIdentifier === "number" ? room.roomIdentifier : roomIndex + 1;
+      const adultCount = typeof room.adults === "number" && room.adults > 0 ? room.adults : 1;
+      for (let i = 0; i < adultCount; i += 1) {
+        travelers.push({
+          id: `room-${roomIdentifier}-adult-${i + 1}`,
+          age: DEFAULT_INSURANCE_ADULT_AGE,
+        });
+      }
+      const childAges = Array.isArray(room.childrenAges) ? room.childrenAges : [];
+      childAges.forEach((age, index) => {
+        travelers.push({
+          id: `room-${roomIdentifier}-child-${index + 1}`,
+          age: Number.isFinite(age) ? age : DEFAULT_INSURANCE_CHILD_AGE,
+        });
+      });
+    });
+
+    return travelers;
+  }, [hotelSelection?.guestCount, hotelSelection?.rooms]);
+
+  const insuranceQuoteRequest = useMemo(() => {
+    if (!insuranceSelection?.selected) return null;
+    const startDate = hotelSelection?.checkInDate ?? insuranceSelection.startDate ?? null;
+    const endDate = hotelSelection?.checkOutDate ?? insuranceSelection.endDate ?? null;
+    if (!startDate || !endDate) return null;
+    const territoryCode = normalizeOptional(insuranceSelection.territoryCode) ?? "";
+    const riskAmount = insuranceSelection.riskAmount ?? null;
+    const riskCurrency = normalizeOptional(insuranceSelection.riskCurrency) ?? "";
+    if (!territoryCode || !riskAmount || !riskCurrency) return null;
+    const travelers = buildInsuranceQuoteTravelers();
+    if (travelers.length === 0) return null;
+    const days =
+      insuranceSelection.days ?? calculateTripDays(startDate, endDate) ?? undefined;
+    const payload = {
+      startDate,
+      endDate,
+      territoryCode,
+      riskAmount,
+      riskCurrency,
+      riskLabel: insuranceSelection.riskLabel ?? undefined,
+      days,
+      subrisks: insuranceSelection.subrisks ?? undefined,
+      travelers,
+    };
+    return {
+      key: JSON.stringify(payload),
+      payload,
+      startDate,
+      endDate,
+      days: typeof days === "number" ? days : null,
+    };
+  }, [
+    buildInsuranceQuoteTravelers,
+    hotelSelection?.checkInDate,
+    hotelSelection?.checkOutDate,
+    insuranceSelection?.days,
+    insuranceSelection?.riskAmount,
+    insuranceSelection?.riskCurrency,
+    insuranceSelection?.riskLabel,
+    insuranceSelection?.selected,
+    insuranceSelection?.startDate,
+    insuranceSelection?.endDate,
+    insuranceSelection?.subrisks,
+    insuranceSelection?.territoryCode,
+  ]);
+
+  useEffect(() => {
+    if (!insuranceSelection?.selected) {
+      setInsuranceQuoteError(null);
+      setInsuranceQuoteLoading(false);
+      insuranceQuoteKeyRef.current = null;
+      if (insuranceQuoteTimerRef.current !== null) {
+        window.clearTimeout(insuranceQuoteTimerRef.current);
+        insuranceQuoteTimerRef.current = null;
+      }
+      return;
+    }
+    if (!insuranceQuoteRequest) return;
+    if (insuranceQuoteRequest.key === insuranceQuoteKeyRef.current) return;
+    if (insuranceQuoteTimerRef.current !== null) {
+      window.clearTimeout(insuranceQuoteTimerRef.current);
+    }
+    insuranceQuoteTimerRef.current = window.setTimeout(async () => {
+      const requestId = (insuranceQuoteRequestIdRef.current += 1);
+      insuranceQuoteKeyRef.current = insuranceQuoteRequest.key;
+      setInsuranceQuoteLoading(true);
+      setInsuranceQuoteError(null);
+      try {
+        const quote = await postJson<EfesQuoteResult>(
+          "/api/insurance/efes/quote",
+          insuranceQuoteRequest.payload
+        );
+        if (requestId !== insuranceQuoteRequestIdRef.current) return;
+        updatePackageBuilderState((prev) => {
+          if (!prev.insurance?.selected) return prev;
+          return {
+            ...prev,
+            insurance: {
+              ...prev.insurance,
+              price: quote.totalPremium,
+              currency: quote.currency,
+              startDate: insuranceQuoteRequest.startDate,
+              endDate: insuranceQuoteRequest.endDate,
+              days:
+                typeof prev.insurance.days === "number"
+                  ? prev.insurance.days
+                  : insuranceQuoteRequest.days,
+            },
+            updatedAt: Date.now(),
+          };
+        });
+      } catch (error) {
+        if (requestId !== insuranceQuoteRequestIdRef.current) return;
+        const message =
+          error instanceof Error
+            ? error.message
+            : t.packageBuilder.checkout.errors.insuranceQuoteFailed;
+        setInsuranceQuoteError(message);
+      } finally {
+        if (requestId === insuranceQuoteRequestIdRef.current) {
+          setInsuranceQuoteLoading(false);
+        }
+      }
+    }, 400);
+    return () => {
+      if (insuranceQuoteTimerRef.current !== null) {
+        window.clearTimeout(insuranceQuoteTimerRef.current);
+        insuranceQuoteTimerRef.current = null;
+      }
+    };
+  }, [
+    insuranceQuoteRequest,
+    insuranceSelection?.selected,
+    t.packageBuilder.checkout.errors.insuranceQuoteFailed,
   ]);
   const transferGuestCounts = useMemo(() => {
     const rooms = hotelSelection?.rooms ?? [];
@@ -1044,6 +1263,92 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     }));
     openPackageBuilder();
   };
+
+  const updateInsuranceSelection = useCallback(
+    (updates: Partial<NonNullable<PackageBuilderState["insurance"]>>) => {
+      updatePackageBuilderState((prev) => {
+        const current = prev.insurance ?? { selected: false };
+        const selectionId = current.selectionId ?? `insurance-${Date.now()}`;
+        return {
+          ...prev,
+          insurance: {
+            ...current,
+            selected: true,
+            selectionId,
+            provider: "efes",
+            ...updates,
+          },
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    []
+  );
+
+  const handleSelectInsurancePlan = useCallback(
+    (plan: InsurancePlan) => {
+      const territory = insuranceTerritories[0];
+      updateInsuranceSelection({
+        label: plan.title,
+        planId: plan.id,
+        planLabel: plan.title,
+        riskAmount: plan.riskAmount,
+        riskCurrency: plan.riskCurrency,
+        riskLabel: plan.riskLabel,
+        price: null,
+        currency: null,
+        startDate: hotelSelection?.checkInDate ?? null,
+        endDate: hotelSelection?.checkOutDate ?? null,
+        territoryCode: insuranceSelection?.territoryCode ?? territory?.code ?? "",
+        territoryLabel: insuranceSelection?.territoryLabel ?? territory?.label ?? "",
+        territoryPolicyLabel:
+          insuranceSelection?.territoryPolicyLabel ?? territory?.policyLabel ?? "",
+        travelCountries:
+          insuranceSelection?.travelCountries ?? destinationName ?? destinationCode ?? "",
+      });
+      openPackageBuilder();
+    },
+    [
+      destinationName,
+      insuranceSelection?.territoryCode,
+      insuranceSelection?.territoryLabel,
+      insuranceSelection?.territoryPolicyLabel,
+      insuranceSelection?.travelCountries,
+      insuranceTerritories,
+      hotelSelection?.checkInDate,
+      hotelSelection?.checkOutDate,
+      updateInsuranceSelection,
+    ]
+  );
+
+  const handleUpdateInsuranceTerritory = useCallback(
+    (code: string) => {
+      const match = insuranceTerritories.find((item) => item.code === code);
+      updateInsuranceSelection({
+        territoryCode: code,
+        territoryLabel: match?.label ?? "",
+        territoryPolicyLabel: match?.policyLabel ?? "",
+        price: null,
+        currency: null,
+      });
+    },
+    [insuranceTerritories, updateInsuranceSelection]
+  );
+
+  const handleUpdateInsuranceCountries = useCallback(
+    (value: string) => {
+      updateInsuranceSelection({ travelCountries: value, price: null, currency: null });
+    },
+    [updateInsuranceSelection]
+  );
+
+  const handleRemoveInsurance = useCallback(() => {
+    updatePackageBuilderState((prev) => ({
+      ...prev,
+      insurance: undefined,
+      updatedAt: Date.now(),
+    }));
+  }, []);
 
   const updateFlightField = useCallback((field: keyof FlightSearchForm, value: string) => {
     setFlightForm((prev) => ({ ...prev, [field]: value }));
@@ -1851,6 +2156,124 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     );
   };
 
+  const renderInsurancePanel = () => {
+    if (!hasHotel) {
+      return (
+        <div className="package-service__empty">
+          <p>{t.packageBuilder.warningSelectHotel}</p>
+          <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
+            {t.packageBuilder.services.hotel}
+          </Link>
+        </div>
+      );
+    }
+
+    const selectedPlanId = insuranceSelection?.planId ?? null;
+    const selectedTerritory =
+      insuranceSelection?.territoryCode ?? insuranceTerritories[0]?.code ?? "";
+    const travelCountries = insuranceSelection?.travelCountries ?? "";
+    const formatter = new Intl.NumberFormat(intlLocale);
+    const insurancePriceLabel =
+      typeof insuranceSelection?.price === "number" && insuranceSelection.currency
+        ? formatCurrencyAmount(
+            insuranceSelection.price,
+            insuranceSelection.currency,
+            intlLocale
+          )
+        : null;
+
+    return (
+      <>
+        <p className="service-builder__note">{t.packageBuilder.insurance.note}</p>
+        <div className="insurance-options">
+          {insurancePlans.map((plan) => {
+            const isSelected = plan.id === selectedPlanId;
+            const coverage = `${formatter.format(plan.riskAmount)} ${plan.riskCurrency}`;
+            return (
+              <button
+                key={plan.id}
+                type="button"
+                className={`insurance-card${isSelected ? " selected" : ""}`}
+                onClick={() => handleSelectInsurancePlan(plan)}
+              >
+                <h5>{plan.title}</h5>
+                <p>{plan.description}</p>
+                <p>{t.packageBuilder.insurance.coverageLabel.replace("{amount}", coverage)}</p>
+              </button>
+            );
+          })}
+        </div>
+        <div className="checkout-field-grid">
+          <label className="checkout-field">
+            <span>{t.packageBuilder.insurance.territoryLabel}</span>
+            <select
+              className="checkout-input"
+              value={selectedTerritory}
+              onChange={(event) => handleUpdateInsuranceTerritory(event.target.value)}
+              disabled={!insuranceSelection?.selected}
+            >
+              {insuranceTerritories.map((territory) => (
+                <option key={territory.code} value={territory.code}>
+                  {territory.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="checkout-field">
+            <span>{t.packageBuilder.insurance.travelCountriesLabel}</span>
+            <input
+              className="checkout-input"
+              value={travelCountries}
+              onChange={(event) => handleUpdateInsuranceCountries(event.target.value)}
+              placeholder={t.packageBuilder.insurance.travelCountriesPlaceholder}
+              disabled={!insuranceSelection?.selected}
+            />
+          </label>
+          <label className="checkout-field">
+            <span>{t.packageBuilder.insurance.startDateLabel}</span>
+            <input
+              className="checkout-input"
+              value={hotelSelection?.checkInDate ?? ""}
+              readOnly
+            />
+          </label>
+          <label className="checkout-field">
+            <span>{t.packageBuilder.insurance.endDateLabel}</span>
+            <input
+              className="checkout-input"
+              value={hotelSelection?.checkOutDate ?? ""}
+              readOnly
+            />
+          </label>
+        </div>
+        {insuranceSelection?.selected ? (
+          <>
+            {insuranceQuoteLoading ? (
+              <p className="service-builder__note">{t.packageBuilder.insurance.quoteLoading}</p>
+            ) : null}
+            {insurancePriceLabel ? (
+              <p className="service-builder__note">
+                {t.packageBuilder.insurance.quoteLabel}: {insurancePriceLabel}
+              </p>
+            ) : null}
+            {insuranceQuoteError ? (
+              <p className="checkout-error" role="alert">
+                {insuranceQuoteError}
+              </p>
+            ) : null}
+          </>
+        ) : null}
+        {insuranceSelection?.selected ? (
+          <button type="button" className="service-builder__cta" onClick={handleRemoveInsurance}>
+            {t.packageBuilder.removeTag}
+          </button>
+        ) : (
+          <p className="service-builder__note">{t.packageBuilder.insurance.selectPlanNote}</p>
+        )}
+      </>
+    );
+  };
+
   return (
     <main className="service-builder">
       <div className="container">
@@ -1879,6 +2302,8 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           </>
         ) : serviceKey === "excursion" ? (
           <div className="service-builder__panel">{renderExcursionList()}</div>
+        ) : serviceKey === "insurance" ? (
+          <div className="service-builder__panel">{renderInsurancePanel()}</div>
         ) : (
           <div className="service-builder__panel">
             {!hasHotel ? (

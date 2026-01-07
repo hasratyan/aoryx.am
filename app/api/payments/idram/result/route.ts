@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { getDb } from "@/lib/db";
 import { book } from "@/lib/aoryx-client";
+import { createEfesPoliciesFromBooking } from "@/lib/efes-client";
 import { recordUserBooking } from "@/lib/user-data";
 import { sendBookingConfirmationEmail } from "@/lib/email";
 import type { AoryxBookingPayload, AoryxBookingResult } from "@/types/aoryx";
@@ -197,6 +198,33 @@ export async function POST(request: NextRequest) {
         },
       }
     );
+
+    try {
+      const policies = await createEfesPoliciesFromBooking(payload);
+      if (policies.length > 0) {
+        await collection.updateOne(
+          { billNo },
+          {
+            $set: {
+              insurancePolicies: policies,
+              insuranceUpdatedAt: new Date(),
+            },
+          }
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create EFES policies";
+      await collection.updateOne(
+        { billNo },
+        {
+          $set: {
+            insuranceError: message,
+            insuranceUpdatedAt: new Date(),
+          },
+        }
+      );
+      console.error("[Idram][result] EFES policy creation failed", error);
+    }
 
     if (lockedRecord.userId) {
       try {

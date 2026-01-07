@@ -9,7 +9,7 @@ export const DEFAULT_SERVICE_FLAGS: ServiceFlags = {
   insurance: true,
 };
 
-import type { AoryxRoomSearch } from "@/types/aoryx";
+import type { AoryxRoomSearch, BookingInsuranceTraveler } from "@/types/aoryx";
 
 export type PackageBuilderHotelSelection = {
   selected: boolean;
@@ -23,6 +23,7 @@ export type PackageBuilderHotelSelection = {
   checkOutDate?: string | null;
   roomCount?: number | null;
   guestCount?: number | null;
+  mealPlan?: string | null;
   rooms?: AoryxRoomSearch[] | null;
   roomSelections?: Array<{
     roomIdentifier: number;
@@ -44,6 +45,24 @@ export type PackageBuilderServiceSelection = {
   label?: string | null;
   price?: number | null;
   currency?: string | null;
+};
+
+export type PackageBuilderInsuranceSelection = PackageBuilderServiceSelection & {
+  provider?: "efes" | null;
+  planId?: string | null;
+  planLabel?: string | null;
+  riskAmount?: number | null;
+  riskCurrency?: string | null;
+  riskLabel?: string | null;
+  territoryCode?: string | null;
+  territoryLabel?: string | null;
+  territoryPolicyLabel?: string | null;
+  travelCountries?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  days?: number | null;
+  subrisks?: string[] | null;
+  travelers?: BookingInsuranceTraveler[] | null;
 };
 
 export type PackageBuilderFlightSelection = PackageBuilderServiceSelection & {
@@ -70,7 +89,7 @@ export type PackageBuilderState = {
   excursion?: PackageBuilderServiceSelection & {
     selections?: Record<string, string[]>;
   };
-  insurance?: PackageBuilderServiceSelection;
+  insurance?: PackageBuilderInsuranceSelection;
   flight?: PackageBuilderFlightSelection;
   sessionExpiresAt?: number;
   updatedAt?: number;

@@ -19,6 +19,11 @@ const sanitizeString = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const normalizeGender = (value: unknown): "M" | "F" | null => {
+  const normalized = sanitizeString(value)?.toUpperCase();
+  return normalized === "M" || normalized === "F" ? normalized : null;
+};
+
 const isTransferType = (value: string): value is AoryxTransferType =>
   value === "INDIVIDUAL" || value === "GROUP";
 
@@ -187,12 +192,90 @@ const parseInsurance = (
   const record = input as UnknownRecord;
   const planId = sanitizeString(record.planId);
   if (!planId) return undefined;
+
+  const parseBoolean = (value: unknown): boolean | null => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "1" || normalized === "true" || normalized === "yes") return true;
+      if (normalized === "0" || normalized === "false" || normalized === "no") return false;
+    }
+    return null;
+  };
+
+  const parseTravelers = (value: unknown) => {
+    if (!Array.isArray(value)) return undefined;
+    const travelers = value
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        const traveler = entry as UnknownRecord;
+        const firstName = sanitizeString(traveler.firstName);
+        const lastName = sanitizeString(traveler.lastName);
+        if (!firstName || !lastName) return null;
+        const addressRaw = traveler.address as UnknownRecord | undefined;
+        const address = addressRaw
+          ? {
+              full: sanitizeString(addressRaw.full),
+              fullEn: sanitizeString(addressRaw.fullEn),
+              country: sanitizeString(addressRaw.country),
+              region: sanitizeString(addressRaw.region),
+              city: sanitizeString(addressRaw.city),
+            }
+          : undefined;
+        const gender = normalizeGender(traveler.gender);
+        return {
+          id: sanitizeString(traveler.id),
+          firstName,
+          lastName,
+          firstNameEn: sanitizeString(traveler.firstNameEn),
+          lastNameEn: sanitizeString(traveler.lastNameEn),
+          gender,
+          birthDate: sanitizeString(traveler.birthDate),
+          residency: parseBoolean(traveler.residency),
+          socialCard: sanitizeString(traveler.socialCard),
+          passportNumber: sanitizeString(traveler.passportNumber),
+          passportAuthority: sanitizeString(traveler.passportAuthority),
+          passportIssueDate: sanitizeString(traveler.passportIssueDate),
+          passportExpiryDate: sanitizeString(traveler.passportExpiryDate),
+          phone: sanitizeString(traveler.phone),
+          mobilePhone: sanitizeString(traveler.mobilePhone),
+          email: sanitizeString(traveler.email),
+          address,
+          citizenship: sanitizeString(traveler.citizenship),
+          premium: toNumber(traveler.premium),
+          premiumCurrency: sanitizeString(traveler.premiumCurrency),
+        };
+      })
+      .filter((traveler): traveler is NonNullable<typeof traveler> => Boolean(traveler));
+    return travelers.length > 0 ? travelers : undefined;
+  };
+
   return {
     planId,
     planName: sanitizeString(record.planName),
+    planLabel: sanitizeString(record.planLabel),
     note: sanitizeString(record.note),
     price: toNumber(record.price),
     currency: sanitizeString(record.currency),
+    provider:
+      sanitizeString(record.provider)?.toLowerCase() === "efes" ? "efes" : null,
+    riskAmount: toNumber(record.riskAmount),
+    riskCurrency: sanitizeString(record.riskCurrency),
+    riskLabel: sanitizeString(record.riskLabel),
+    territoryCode: sanitizeString(record.territoryCode),
+    territoryLabel: sanitizeString(record.territoryLabel),
+    territoryPolicyLabel: sanitizeString(record.territoryPolicyLabel),
+    travelCountries: sanitizeString(record.travelCountries),
+    startDate: sanitizeString(record.startDate),
+    endDate: sanitizeString(record.endDate),
+    days: toNumber(record.days),
+    subrisks: Array.isArray(record.subrisks)
+      ? record.subrisks
+          .map((entry) => sanitizeString(entry))
+          .filter((entry): entry is string => Boolean(entry))
+      : undefined,
+    travelers: parseTravelers(record.travelers),
   };
 };
 

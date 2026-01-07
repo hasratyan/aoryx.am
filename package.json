@@ -16,7 +16,8 @@
     "clsx": "^2.1.1",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^12.23.26",
+    "framer-motion": "^12.24.10",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
     "material-symbols": "^0.40.2",
     "mathjs": "^15.1.0",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^25",
     "@types/nodemailer": "^7.0.4",
     "@types/react": "^19.2.1",

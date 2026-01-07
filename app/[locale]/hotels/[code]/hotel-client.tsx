@@ -50,6 +50,74 @@ const toNumberValue = (value: unknown): number | null => {
 
 const normalizeMealLabel = (value: string) => value.trim().toLowerCase();
 
+type MealPlanLabels = {
+  roomOnly: string;
+  breakfast: string;
+  halfBoard: string;
+  fullBoard: string;
+  allInclusive: string;
+  ultraAllInclusive: string;
+};
+
+type RefundabilityLabels = {
+  refundable: string;
+  nonRefundable: string;
+};
+
+const localizeMealPlan = (value: string | null, labels: MealPlanLabels) => {
+  if (!value) return null;
+  const tokens = value
+    .trim()
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  if (tokens.length === 0) return value;
+  const tokenSet = new Set(tokens);
+
+  const has = (token: string) => tokenSet.has(token);
+
+  if (has("uai") || has("ultraallinclusive") || (has("ultra") && has("all") && has("inclusive"))) {
+    return labels.ultraAllInclusive;
+  }
+  if (has("ai") || has("allinclusive") || (has("all") && has("inclusive"))) {
+    return labels.allInclusive;
+  }
+  if (has("fb") || has("fullboard") || (has("full") && has("board"))) {
+    return labels.fullBoard;
+  }
+  if (has("hb") || has("halfboard") || (has("half") && has("board"))) {
+    return labels.halfBoard;
+  }
+  if (has("breakfast") && has("lunch") && has("dinner")) {
+    return labels.fullBoard;
+  }
+  if ((has("breakfast") && has("dinner")) || (has("lunch") && has("dinner"))) {
+    return labels.halfBoard;
+  }
+  if (
+    has("bb") ||
+    has("bedbreakfast") ||
+    has("bedandbreakfast") ||
+    (has("bed") && has("breakfast")) ||
+    has("breakfast")
+  ) {
+    return labels.breakfast;
+  }
+  if (has("ro") || has("roomonly") || (has("room") && has("only"))) {
+    return labels.roomOnly;
+  }
+
+  return value;
+};
+
+const localizeRefundability = (value: string | null, labels: RefundabilityLabels) => {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, "");
+  if (normalized === "refundable") return labels.refundable;
+  if (normalized === "nonrefundable") return labels.nonRefundable;
+  return value;
+};
+
 const buildHotelSelectionKey = (selection?: PackageBuilderHotelSelection | null) =>
   selection
     ? [
@@ -875,7 +943,10 @@ export default function HotelClient({
   const mealOptions = useMemo(() => {
     const map = new Map<string, string>();
     groupedRoomOptions.forEach((group) => {
-      const label = getGroupMealLabel(group);
+      const label = localizeMealPlan(
+        getGroupMealLabel(group),
+        t.hotel.roomOptions.mealPlans
+      );
       if (!label) return;
       const normalized = normalizeMealLabel(label);
       if (!map.has(normalized)) {
@@ -885,7 +956,7 @@ export default function HotelClient({
     return Array.from(map.entries())
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [groupedRoomOptions]);
+  }, [groupedRoomOptions, t.hotel.roomOptions.mealPlans]);
   useEffect(() => {
     if (mealFilter !== "all" && !mealOptions.some((option) => option.value === mealFilter)) {
       setMealFilter("all");
@@ -895,7 +966,10 @@ export default function HotelClient({
     let filtered = groupedRoomOptions;
     if (mealFilter !== "all") {
       filtered = filtered.filter((group) => {
-        const label = getGroupMealLabel(group);
+        const label = localizeMealPlan(
+          getGroupMealLabel(group),
+          t.hotel.roomOptions.mealPlans
+        );
         return label ? normalizeMealLabel(label) === mealFilter : false;
       });
     }
@@ -920,7 +994,7 @@ export default function HotelClient({
       return priceSort === "asc" ? aPrice - bPrice : bPrice - aPrice;
     });
     return sorted;
-  }, [groupedRoomOptions, mealFilter, priceSort]);
+  }, [groupedRoomOptions, mealFilter, priceSort, t.hotel.roomOptions.mealPlans]);
   const isFiltered = mealFilter !== "all" || priceSort !== "default";
   const bookingCurrency =
     activePrebook?.currency ??
@@ -1640,6 +1714,7 @@ export default function HotelClient({
       const selectionCountryCode = parsed.payload?.countryCode ?? null;
       const selectionNationality = parsed.payload?.nationality ?? null;
       const selectionRooms = parsed.payload?.rooms ?? null;
+      const selectionMealPlan = getGroupMealLabel(group);
       const selectionKey = rateKeys.join("|");
       const selectionBasePrice =
         typeof group.totalPrice === "number" && Number.isFinite(group.totalPrice)
@@ -1707,6 +1782,7 @@ export default function HotelClient({
         checkOutDate,
         roomCount,
         guestCount,
+        mealPlan: selectionMealPlan,
         rooms: selectionRooms,
         roomSelections: selectionRoomSelections,
         price: selectionPrice,
@@ -2175,7 +2251,6 @@ export default function HotelClient({
                 </div>
               ) : null}
               <div className="search">
-                <h2>{t.hotel.searchTitle}</h2>
                 <SearchForm
                   copy={t.search}
                   hideLocationFields
@@ -2262,6 +2337,14 @@ export default function HotelClient({
                             group.displayTotalPrice ?? group.totalPrice,
                             group.currency ?? fallbackCurrency
                           );
+                          const mealPlanLabel = localizeMealPlan(
+                            getGroupMealLabel(group),
+                            t.hotel.roomOptions.mealPlans
+                          );
+                          const cancellationPolicyLabel = localizeRefundability(
+                            group.option.cancellationPolicy,
+                            t.hotel.roomOptions
+                          );
                           const rateKeys = group.items
                             .map((item) => item.rateKey)
                             .filter((key): key is string => typeof key === "string" && key.length > 0);
@@ -2272,8 +2355,8 @@ export default function HotelClient({
                               <div className="room-card-main">
                                 <h3>{group.option.name ?? t.hotel.roomOptions.roomOptionFallback}</h3>
                                 <div className="room-meta">
-                                  {group.option.boardType && (
-                                    <span className="room-chip">{group.option.boardType}</span>
+                                  {mealPlanLabel && (
+                                    <span className="room-chip">{mealPlanLabel}</span>
                                   )}
                                   {group.option.refundable !== null && (
                                     <span
@@ -2292,8 +2375,8 @@ export default function HotelClient({
                                     </span>
                                   )}
                                 </div>
-                                {group.option.cancellationPolicy && (
-                                  <p className="room-policy">{group.option.cancellationPolicy}</p>
+                                {cancellationPolicyLabel && (
+                                  <p className="room-policy">{cancellationPolicyLabel}</p>
                                 )}
                               </div>
                               <div className="room-card-price">
@@ -2388,8 +2471,17 @@ export default function HotelClient({
                       </div>
                     </div>
                   )}
-                  {bookingGuests.map((room) => (
-                    <fieldset key={room.roomIdentifier} className="booking-room">
+                  {bookingGuests.map((room) => {
+                    const mealPlanLabel = localizeMealPlan(
+                      room.meal,
+                      t.hotel.roomOptions.mealPlans
+                    );
+                    const rateTypeLabel = localizeRefundability(
+                      room.rateType,
+                      t.hotel.roomOptions
+                    );
+                    return (
+                      <fieldset key={room.roomIdentifier} className="booking-room">
                       <legend>
                         Room {room.roomIdentifier}
                         {room.roomName ? ` · ${room.roomName}` : ""}
@@ -2406,8 +2498,8 @@ export default function HotelClient({
                               ) ?? t.common.contact}
                             </span>
                           )}
-                          {room.meal && <span><span className="material-symbols-rounded" aria-hidden="true">restaurant</span>{t.hotel.booking.mealPlanLabel}: {room.meal}</span>}
-                          {room.rateType && <span><span className="material-symbols-rounded" aria-hidden="true">star</span>{t.hotel.booking.rateTypeLabel}: {room.rateType}</span>}
+                          {mealPlanLabel && <span><span className="material-symbols-rounded" aria-hidden="true">restaurant</span>{t.hotel.booking.mealPlanLabel}: {mealPlanLabel}</span>}
+                          {rateTypeLabel && <span><span className="material-symbols-rounded" aria-hidden="true">star</span>{t.hotel.booking.rateTypeLabel}: {rateTypeLabel}</span>}
                           {room.refundable !== null && (
                             <span>
                               <span className="material-symbols-rounded" aria-hidden="true">refund</span>
@@ -2477,7 +2569,12 @@ export default function HotelClient({
                                 })}
                               </div>
                             ) : (
-                              <p className="policy-summary">{room.cancellationPolicy}</p>
+                              <p className="policy-summary">
+                                {localizeRefundability(
+                                  room.cancellationPolicy,
+                                  t.hotel.roomOptions
+                                )}
+                              </p>
                             )}
                           </div>
                         )}
@@ -2514,9 +2611,10 @@ export default function HotelClient({
                           </div>
                         )}
                       </div>
-                    </fieldset>
-                  ))}
-                  
+                      </fieldset>
+                    );
+                  })}
+
                   <div className="booking-summary">
                     <div className="booking-summary-lines">
                       <div>

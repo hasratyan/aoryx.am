@@ -31,10 +31,11 @@ const resolveServiceKey = (value: string | undefined): PackageBuilderService | n
     : null;
 };
 
-export async function generateMetadata({ params }: { params: { locale: string; service: string } }) {
-  const resolvedLocale = resolveLocale(params.locale);
+export async function generateMetadata({ params }: PageProps) {
+  const { locale, service } = await params;
+  const resolvedLocale = resolveLocale(locale);
   const t = getTranslations(resolvedLocale);
-  const serviceKey = resolveServiceKey(params.service);
+  const serviceKey = resolveServiceKey(service);
   const pageCopy = serviceKey ? t.packageBuilder.pages[serviceKey] : null;
   return buildLocalizedMetadata({
     locale: resolvedLocale,

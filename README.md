@@ -23,6 +23,14 @@ MONGODB_DB=megatours_am
 IDRAM_REC_ACCOUNT=your-idram-id
 IDRAM_SECRET_KEY=your-idram-secret
 IDRAM_LANGUAGE=EN
+EFES_ENV=staging
+EFES_BASE_URL=https://stagingimex.efes.am
+EFES_BASE_URL_PROD=https://imex.efes.am
+EFES_USER=your-efes-user
+EFES_PASSWORD=your-efes-password
+EFES_COMPANY_ID=your-efes-company-id
+EFES_POLICY_TEMPLATE_DESCRIPTION=229
+EFES_TIMEOUT_MS_RAW=15000
 ```
 
 3) Start dev server  

@@ -484,10 +484,53 @@ export interface AoryxExcursionsPayload {
 export interface BookingInsuranceSelection {
   planId: string;
   planName?: string | null;
+  planLabel?: string | null;
   note?: string | null;
   price?: number | null;
   currency?: string | null;
+  provider?: "efes" | null;
+  riskAmount?: number | null;
+  riskCurrency?: string | null;
+  riskLabel?: string | null;
+  territoryCode?: string | null;
+  territoryLabel?: string | null;
+  territoryPolicyLabel?: string | null;
+  travelCountries?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  days?: number | null;
+  subrisks?: string[] | null;
+  travelers?: BookingInsuranceTraveler[] | null;
 }
+
+export type BookingInsuranceTraveler = {
+  id?: string | null;
+  firstName: string;
+  lastName: string;
+  firstNameEn?: string | null;
+  lastNameEn?: string | null;
+  gender?: "M" | "F" | null;
+  birthDate?: string | null;
+  residency?: boolean | null;
+  socialCard?: string | null;
+  passportNumber?: string | null;
+  passportAuthority?: string | null;
+  passportIssueDate?: string | null;
+  passportExpiryDate?: string | null;
+  phone?: string | null;
+  mobilePhone?: string | null;
+  email?: string | null;
+  address?: {
+    full?: string | null;
+    fullEn?: string | null;
+    country?: string | null;
+    region?: string | null;
+    city?: string | null;
+  } | null;
+  citizenship?: string | null;
+  premium?: number | null;
+  premiumCurrency?: string | null;
+};
 
 export interface BookingAirTicketRequest {
   origin?: string | null;

@@ -120,6 +120,25 @@ export type Translation = {
       excursion: { title: string; body: string; note: string; cta: string };
       insurance: { title: string; body: string; note: string; cta: string };
     };
+    insurance: {
+      note: string;
+      quoteLabel: string;
+      quoteLoading: string;
+      selectPlanNote: string;
+      coverageLabel: string;
+      territoryLabel: string;
+      travelCountriesLabel: string;
+      travelCountriesPlaceholder: string;
+      startDateLabel: string;
+      endDateLabel: string;
+      territories: {
+        worldwideExcluding: string;
+        worldwideExcludingPolicy: string;
+      };
+      plans: {
+        standard: { title: string; description: string };
+      };
+    };
     checkout: {
       title: string;
       subtitle: string;
@@ -147,6 +166,34 @@ export type Translation = {
       city: string;
       address: string;
       zip: string;
+      insuranceTitle: string;
+      insuranceHint: string;
+      insuranceEmpty: string;
+      insuranceTravelerLabel: string;
+      insuranceFields: {
+        firstNameEn: string;
+        lastNameEn: string;
+        gender: string;
+        genderPlaceholder: string;
+        genderMale: string;
+        genderFemale: string;
+        birthDate: string;
+        passportNumber: string;
+        passportAuthority: string;
+        passportIssueDate: string;
+        passportExpiryDate: string;
+        residency: string;
+        citizenship: string;
+        socialCard: string;
+        mobilePhone: string;
+        phone: string;
+        email: string;
+        address: string;
+        addressEn: string;
+        country: string;
+        region: string;
+        city: string;
+      };
       couponTitle: string;
       couponPlaceholder: string;
       applyCoupon: string;
@@ -169,6 +216,8 @@ export type Translation = {
         missingHotel: string;
         missingDetails: string;
         missingGuestDetails: string;
+        insuranceDetailsRequired: string;
+        insuranceQuoteFailed: string;
         cardUnavailable: string;
         paymentFailed: string;
       };
@@ -233,6 +282,11 @@ export type Translation = {
       alt: string;
     };
     flydubai: {
+      title: string;
+      body: string;
+      alt: string;
+    };
+    yas: {
       title: string;
       body: string;
       alt: string;
@@ -740,6 +794,14 @@ export type Translation = {
       lowestPrice: string;
       highestPrice: string;
       roomOptionFallback: string;
+      mealPlans: {
+        roomOnly: string;
+        breakfast: string;
+        halfBoard: string;
+        fullBoard: string;
+        allInclusive: string;
+        ultraAllInclusive: string;
+      };
       refundable: string;
       nonRefundable: string;
       roomsLeft: PluralForms;
@@ -846,7 +908,7 @@ const translations: Record<Locale, Translation> = {
     hero: {
       title: "ԱՄԷ-ի հյուրանոցների բացառիկ արժեքներ՝ ուղիղ տուրօպերատորից",
       subtitle:
-        "Ամրագրեք հյուրանոցներ, տրանսֆերներ, էքսկուրսիաներ և թեմատիկ պարկերի տոմսեր մեկ հարթակում՝ առանց միջնորդների և թաքնված վճարների:",
+        "Ամրագրեք հյուրանոց, տրանսֆեր, ավիատոմս, ապահովագրություն, էքսկուրսիաներ և թեմատիկ պարկերի տոմսեր մեկ հարթակում՝ առանց միջնորդների և թաքնված վճարների:",
       purpose:
         "Megatours-ը ԱՄԷ-ի առաջատար ճանապարհորդական հարթակն է, որտեղ կարող եք որոնել, համեմատել և ամրագրել ամեն ինչ մեկ վայրում:",
       marquee: " ՀՅՈՒՐԱՆՈՑՆԵՐ  ✦  ՏՐԱՆՍՖԵՐՆԵՐ  ✦  ԹԵՄԱՏԻԿ ՊԱՐԿԵՐԻ ՏՈՄՍԵՐ  ✦  ԷՔՍԿՈՒՐՍԻԱՆԵՐ  ✦  ԱՎԻԱՏՈՄՍԵՐ  ✦  ԱՊԱՀՈՎԱԳՐՈՒԹՅՈՒՆ  ✦ ",
@@ -1012,9 +1074,33 @@ const translations: Record<Locale, Translation> = {
         },
         insurance: {
           title: "Ապահովագրություն",
-          body: "Ապահովագրությունը կարելի է ավելացնել ամրագրման ընթացքում։",
-          note: "Սկզբում ընտրեք հյուրանոցը։",
+          body: "Ընտրեք EFES ճանապարհորդական ապահովագրության պլանը ձեր փաթեթի համար։",
+          note: "Պրեմիումը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
           cta: "Գտնել հյուրանոց",
+        },
+      },
+      insurance: {
+        note: "Պրեմիումը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
+        quoteLabel: "Կանխատեսվող պրեմիում",
+        quoteLoading: "Պրեմիումը հաշվարկվում է...",
+        selectPlanNote: "Ընտրեք ապահովագրության պլանը՝ փաթեթին ավելացնելու համար։",
+        coverageLabel: "Ծածկույթ՝ {amount}",
+        territoryLabel: "Ապահովագրության տարածք",
+        travelCountriesLabel: "Ճանապարհորդության երկիր",
+        travelCountriesPlaceholder: "օր․ Արաբական Միացյալ Էմիրություն",
+        startDateLabel: "Սկիզբ",
+        endDateLabel: "Ավարտ",
+        territories: {
+          worldwideExcluding:
+            "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
+          worldwideExcludingPolicy:
+            "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
+        },
+        plans: {
+          standard: {
+            title: "Ստանդարտ",
+            description: "Հիմնական ճանապարհորդական ծածկույթ EFES-ից։",
+          },
         },
       },
       checkout: {
@@ -1044,6 +1130,34 @@ const translations: Record<Locale, Translation> = {
         city: "Քաղաք",
         address: "Հասցե",
         zip: "Փոստային ինդեքս",
+        insuranceTitle: "Ապահովագրության տվյալներ",
+        insuranceHint: "Լրացրեք յուրաքանչյուր ճանապարհորդի անձնագրային և կոնտակտային տվյալները։",
+        insuranceEmpty: "Ապահովագրությունը ընտրելուց հետո կլրացվեն տվյալները։",
+        insuranceTravelerLabel: "Ճանապարհորդ {index}",
+        insuranceFields: {
+          firstNameEn: "Անուն (լատինատառ)",
+          lastNameEn: "Ազգանուն (լատինատառ)",
+          gender: "Սեռ",
+          genderPlaceholder: "Ընտրել",
+          genderMale: "Արական",
+          genderFemale: "Իգական",
+          birthDate: "Ծննդյան ամսաթիվ",
+          passportNumber: "Անձնագրի համար",
+          passportAuthority: "Տրման մարմին",
+          passportIssueDate: "Տրման ամսաթիվ",
+          passportExpiryDate: "Վավերականություն մինչև",
+          residency: "Ռեզիդենտություն",
+          citizenship: "Քաղաքացիություն",
+          socialCard: "Սոց․ քարտ",
+          mobilePhone: "Բջջային հեռ․",
+          phone: "Հեռախոս",
+          email: "Էլ․ հասցե",
+          address: "Գրանցման հասցե",
+          addressEn: "Հասցե (լատինատառ)",
+          country: "Երկիր",
+          region: "Տարածաշրջան",
+          city: "Քաղաք",
+        },
         couponTitle: "Կտրոնի կամ նվեր քարտի կոդ",
         couponPlaceholder: "Մուտքագրեք կոդը",
         applyCoupon: "Կիրառել",
@@ -1066,6 +1180,8 @@ const translations: Record<Locale, Translation> = {
           missingHotel: "Խնդրում ենք ընտրել հյուրանոցը շարունակելու համար։",
           missingDetails: "Սենյակների տվյալները բացակայում են։ Խնդրում ենք կրկին ընտրել հյուրանոցը։",
           missingGuestDetails: "Խնդրում ենք լրացնել բոլոր հյուրերի տվյալները։",
+          insuranceDetailsRequired: "Լրացրեք ապահովագրության բոլոր անհրաժեշտ տվյալները։",
+          insuranceQuoteFailed: "Չհաջողվեց հաշվարկել ապահովագրության արժեքը։",
           cardUnavailable: "Քարտով վճարումը դեռ հասանելի չէ։",
           paymentFailed: "Չհաջողվեց սկսել վճարումը։ Խնդրում ենք կրկին փորձել։",
         },
@@ -1183,7 +1299,12 @@ const translations: Record<Locale, Translation> = {
         title: "Ավիատոմսեր՝ լավագույն գներով",
         body: "Ամրագրեք ուղիղ թռիչքներ flydubai-ի հետ և վայելեք հատուկ զեղչեր՝ միայն megatours.am-ում։",
         alt: "flydubai"
-      }
+      },
+      yas:{
+        title: "Yas Island-ի տոմսեր",
+        body: "Գտեք և ամրագրեք տոմսեր՝ աշխարհի լավագույն թեմատիկ պարկեր այցելելու համար՝ սկսած ընդամենը 15$-ից։",
+        alt: "yas island"
+      },
     },
     payment: {
       success: {
@@ -1207,95 +1328,124 @@ const translations: Record<Locale, Translation> = {
       refund: {
         title: "Վերադարձի քաղաքականություն",
         intro:
-          "Թափանցիկ ու արդար պայմաններ. վերադարձի իրավունքը կախված է ընտրած սակագնից և հյուրանոցի կանոններից, որոնք տեսնում եք վճարումից առաջ։",
+          "Այս Վերադարձի քաղաքականությունը սահմանում է ամրագրման չեղարկման, փոփոխման, վերադարձների հաշվարկի, մշակման ժամկետների և վեճերի լուծման կարգը՝ համակարգի կայքի միջոցով իրականացված ծառայությունների համար։ Ամրագրման պահին ցուցադրված կոնկրետ պայմաններն ունեն գերակայող ուժ այս ընդհանուր քաղաքականության նկատմամբ։",
         sections: [
           {
-            title: "Երբ հնարավոր է վերադարձ",
+            title: "Սահմանումներ",
             items: [
-              "Ամրագրումը չեղարկվում է անվճար չեղարկման ժամկետի ընթացքում, որը նշված է վճարման պահին։",
-              "Ընտրված սակագինը վերադարձվող է։",
-              "Չեղարկման հայտը ստանում ենք մինչև հյուրանոցի վերջնաժամկետը։",
+              "Համակարգ — սույն կայքի միջոցով ծառայություններ մատուցող գործակալ։",
+              "Ամրագրում — կայքի միջոցով կատարված հյուրանոցային ամրագրում և/կամ հավելյալ ծառայությունների (տրանսֆեր, էքսկուրսիա, ավիատոմս, ապահովագրություն) պատվեր կամ գնում։",
+              "Ծառայություն — հյուրանոցային կացություն, տրանսֆեր, էքսկուրսիա կամ տոմս, ավիատոմս, ապահովագրություն կամ այլ ուղևորական ծառայություն։",
+              "Սակագին — ծառայության գինը և դրա կանոնները (վերադարձվող կամ չվերադարձվող, վերջնաժամկետներ, տույժեր և այլն)։",
+              "Անվճար չեղարկման ժամկետ — այն ժամանակահատվածը, որի ընթացքում չեղարկումը չի ենթադրում տույժ, եթե դա նախատեսված է սակագնով։",
+              "No-show — հյուրի չներկայանալը ծառայությունից օգտվելու համար։",
+              "Վերադարձ — վճարված գումարի վերադարձը նույն վճարման եղանակին՝ օրենքով կամ վճարային գործընկերների կանոններով նախատեսված բացառություններով։",
             ],
           },
           {
-            title: "Ինչպես է հաշվարկվում վերադարձը",
-            body: "Վերադարձը կատարվում է հյուրանոցի կանոններով և կարող է չներառել չվերադարձվող վճարներ կամ տույժեր։",
+            title: "Ընդհանուր դրույթներ",
             items: [
-              "Գումարը վերադարձվում է նույն վճարային եղանակին։",
-              "Բանկի կամ փոխարժեքի միջնորդավճարները կախված են քարտի թողարկողից։",
-              "Եթե կա տույժ, այն կերևա չեղարկման ամփոփման մեջ։",
+              "Ամրագրման կամ գնման իրականացմամբ դուք հաստատում եք, որ ընդունում եք ամրագրման պահին ցուցադրված կոնկրետ պայմանները։",
+              "Եթե կոնկրետ պայմանները հակասում են այս քաղաքականությանը, կիրառվում են տվյալ ամրագրման պայմանները։",
+              "Որոշ սակագներ կարող են ներառել չվերադարձվող բաղադրիչներ, որոնք վերադարձման ենթակա չեն նույնիսկ թույլատրելի դեպքերում։",
+              "Մասնակի չեղարկումները կամ փոփոխությունները կարող են համարվել ամբողջական չեղարկում և ենթարկվել նույն տույժերին։",
+              "Բանկային միջնորդավճարները և արժույթի փոխարժեքը սահմանվում են քարտի թողարկողի կողմից և կարող են ազդել վերադարձվող գումարի վրա։",
             ],
           },
           {
-            title: "Տիպիկ ժամկետներ",
+            title: "Հյուրանոցային ամրագրումներ",
             items: [
-              "Չեղարկման հաստատումը՝ մինչև 24 ժամում։",
-              "Գումարի վերադարձը բանկի կողմից՝ 5-ից 15 աշխատանքային օրում։",
-              "Եթե վճարային գործընկերը հավելյալ ստուգում պահանջի, մենք տեղեկացնում ենք ձեզ։",
+              "Վերադարձը հնարավոր է, եթե չեղարկումը կատարվել է անվճար չեղարկման ժամկետում կամ սակագինը վերադարձվող է։",
+              "Վերադարձ չի կատարվում չվերադարձվող սակագների, no-show-ի կամ վերջնաժամկետից հետո չեղարկման դեպքում։",
+              "Թույլատրելի վերադարձի դեպքում գումարը հաշվարկվում է հյուրանոցի քաղաքականությամբ՝ նվազեցված տույժերով կամ չվերադարձվող վճարներով։",
             ],
           },
           {
-            title: "Ինչպես դիմել",
+            title: "Տրանսֆերներ և էքսկուրսիաներ",
             items: [
-              "Օգտվեք հաստատման նամակում գտնվող չեղարկման հղումից կամ կապվեք աջակցությանը։",
-              "Նշեք ամրագրման համարը և հյուրի անունը՝ արագացման համար։",
-              "Փոփոխությունները կամ մասամբ չեղարկումները կիրառվում են նույն կանոններով։",
+              "Տրանսֆերներն ու էքսկուրսիաները ենթակա են առանձին կանոնների, որոնք կարող են տարբերվել հյուրանոցային պայմաններից։",
+              "Վերադարձը հնարավոր է միայն այն դեպքերում, երբ դա հստակ թույլատրված է տվյալ ծառայության պայմաններով։",
+              "Սովորաբար վերադարձ չի կատարվում ուշ չեղարկման, no-show-ի կամ անվանական տոմսերի դեպքում։",
             ],
           },
           {
-            title: "Չվերադարձվող դեպքեր",
+            title: "Ավիատոմսեր (Flydubai)",
             items: [
-              "Չվերադարձվող կամ ակցիոն սակագներ։",
-              "Չեկած հյուր (no-show) կամ վերջնաժամկետից հետո չեղարկում։",
-              "Երրորդ կողմի ծառայություններ՝ տրանսֆերներ, տոմսեր, էքսկուրսիաներ՝ սեփական կանոններով։",
+              "Ավիատոմսերի վերադարձը և փոփոխությունը կարգավորվում են բացառապես ավիաընկերության սակագնային կանոններով։",
+              "Վճարումից առաջ անհրաժեշտ է ծանոթանալ Flydubai-ի կիրառելի պայմաններին կայքում տեղադրված հղումով։",
+              "Վերադարձը հնարավոր է միայն Flydubai-ից համակարգին վերադարձ կատարելուց հետո և սակագնի թույլատրելիության շրջանակում։",
+            ],
+          },
+          {
+            title: "Ճանապարհորդական ապահովագրություն",
+            items: [
+              "Ապահովագրական փաթեթների վճարները չեն վերադարձվում՝ անկախ ամրագրման հետագա չեղարկումից կամ փոփոխությունից։",
+              "Ապահովագրության պայմաններն ու պահանջների կարգը սահմանվում են ապահովագրական պայմանագրով։",
+            ],
+          },
+          {
+            title: "Դիմումների և ժամկետների կարգ",
+            items: [
+              "Չեղարկման կամ վերադարձի դիմումները ներկայացվում են հաստատման նամակում նշված հղումով կամ աջակցությանը դիմելու միջոցով։",
+              "Դիմումների նախնական մշակումը սովորաբար իրականացվում է մինչև 48 ժամում։",
+              "Ֆինանսական հաստատությունների կողմից վերադարձը կարող է տևել 5–15 աշխատանքային օր։",
+            ],
+          },
+          {
+            title: "Վեճեր և պատասխանատվություն",
+            items: [
+              "Վեճերի դեպքում նախ անհրաժեշտ է դիմել համակարգի աջակցությանը գրավոր։",
+              "Chargeback-ի դեպքում կարող են կիրառվել լրացուցիչ ստուգումներ և ժամկետներ։",
+              "Մենք չենք պատասխանատու բանկային միջնորդավճարների, փոխարժեքների կամ երրորդ կողմի կանոնների համար՝ օրենքով թույլատրելի սահմաններում։",
             ],
           },
         ],
-        note: "Եթե ունեք հարցեր, մեր աջակցությունը պատրաստ է օգնել և պարզաբանել ընթացակարգը։",
+        note:
+          "Հարցերի դեպքում մեր աջակցությունը պատրաստ է օգնել և պարզաբանել վերադարձի կամ չեղարկման պայմանները յուրաքանչյուր կոնկրետ ամրագրման շրջանակում։",
       },
       security: {
         title: "Գաղտնիության քաղաքականություն",
-        intro: "Ձեր տվյալներն ու վճարումները պաշտպանված են ժամանակակից անվտանգության պրակտիկայով և վերահսկվող մուտքով։",
+        intro: "Ձեր անձնական տվյալներն ու վճարումները պաշտպանված են ժամանակակից անվտանգության միջոցներով և վերահսկվող մուտքով։",
         sections: [
           {
             title: "Տվյալների պաշտպանություն",
             items: [
-              "Տվյալները փոխանցման ընթացքում կոդավորված են։",
-              "Մուտքը սահմանափակ է միայն լիազորված աշխատակիցների համար։",
-              "Հավաքում ենք միայն ամրագրման համար անհրաժեշտ տվյալները։",
+              "Բոլոր տվյալները կոդավորված են փոխանցման ընթացքում։",
+              "Մուտքը սահմանափակ է միայն լիազորված անձանց։",
+              "Հավաքում ենք միայն ամրագրման համար անհրաժեշտ նվազագույն տվյալները։",
             ],
           },
           {
             title: "Վճարումների անվտանգություն",
-            body: "Վճարումները կատարվում են վստահելի գործընկերների միջոցով, իսկ քարտային տվյալները մշակվում են նրանց կողմից։",
+            body: "Վճարումները կատարվում են վստահելի գործընկերների միջոցով, իսկ քարտային տվյալները մշակվում են բացառապես նրանց կողմից։",
             items: [
-              "Անվտանգ վճարման էջ և խարդախության վերահսկում։",
-              "3-D Secure կամ համարժեք հաստատում, եթե հասանելի է։",
-              "Հաստատումները ուղարկվում են ձեր նշած էլ. հասցեին։",
+              "Անվտանգ վճարման միջավայր և խարդախության մշտադիտարկում։",
+              "3-D Secure կամ համարժեք հաստատում՝ հնարավորության դեպքում։",
+              "Հաստատման փաստաթղթերը ուղարկվում են ձեր նշած էլ. հասցեին։",
             ],
           },
           {
             title: "Հաշվի պաշտպանություն",
             items: [
-              "Մուտք վստահելի ծառայություններով, օրինակ՝ Google։",
-              "Կարևոր փոփոխությունների մասին արագ ծանուցումներ։",
-              "Կասկածելի ակտիվության դեպքում օգնում ենք ստուգել։",
+              "Մուտք՝ վստահելի ծառայությունների միջոցով (օր.՝ Google)։",
+              "Կարևոր փոփոխությունների դեպքում՝ արագ ծանուցումներ։",
+              "Կասկածելի ակտիվության դեպքում աջակցությունը կօգնի ստուգել և պաշտպանել հաշիվը։",
             ],
           },
           {
-            title: "Խորհուրդներ ձեր անվտանգության համար",
+            title: "Ձեր անվտանգության խորհուրդները",
             items: [
               "Օգտագործեք ուժեղ և եզակի գաղտնաբառ ձեր էլ. փոստի համար։",
               "Չկիսվեք հաստատման կոդերով կամ վճարային տվյալներով։",
-              "Օգտագործեք միայն պաշտոնական megatours.am տիրույթը։",
+              "Օգտագործեք միայն պաշտոնական megatours.am կայքը։",
             ],
           },
           {
-            title: "Եթե կասկածում եք խնդիր",
-            body: "Անմիջապես կապվեք մեր աջակցությանը, և մենք կօգնենք պաշտպանել ձեր հաշիվը։",
+            title: "Խնդրի դեպքում",
+            body: "Կասկածի դեպքում անմիջապես կապվեք մեր աջակցությանը՝ ձեր հաշիվը պաշտպանելու համար։",
           },
         ],
-        note: "Մենք մշտապես բարելավում ենք պաշտպանությունը՝ ձեր վստահությունը պահպանելու համար։",
+        note: "Մենք շարունակաբար բարելավում ենք մեր անվտանգության համակարգերը՝ ձեր վստահությունը պահպանելու համար։",
       },
     },
     profile: {
@@ -1799,6 +1949,14 @@ const translations: Record<Locale, Translation> = {
         lowestPrice: "Ամենացածր գին",
         highestPrice: "Ամենաբարձր գին",
         roomOptionFallback: "Սենյակի տարբերակ",
+        mealPlans: {
+          roomOnly: "Առանց սննդի",
+          breakfast: "Նախաճաշ",
+          halfBoard: "Կիսապանսիոն",
+          fullBoard: "Լիարժեք պանսիոն",
+          allInclusive: "Ամեն ինչ ներառված",
+          ultraAllInclusive: "Ուլտրա ամեն ինչ ներառված",
+        },
         refundable: "Վերադարձվող",
         nonRefundable: "Չվերադարձվող",
         roomsLeft: {
@@ -1914,8 +2072,7 @@ const translations: Record<Locale, Translation> = {
 
     hero: {
       title: "Exclusive UAE Hotel Rates — Direct from a Tour Operator",
-      subtitle:
-        "Discover the UAE through a refined travel platform built on direct partnerships, negotiated hotel rates, and concierge-level service.",
+      subtitle: "Book hotel, transfer, flights, insurance, excursions, and theme park tickets all in one place without intermediaries and hidden fees.",
       purpose:
         "Plan and book hotels, transfers, excursions, theme parks, flights, and insurance in one elegant journey — without intermediaries and without hidden costs.",
       marquee:
@@ -2091,9 +2248,33 @@ const translations: Record<Locale, Translation> = {
         },
         insurance: {
           title: "Insurance",
-          body: "Insurance is selected during the hotel booking flow.",
-          note: "Start with a hotel to continue your package.",
+          body: "Select an EFES travel insurance plan for your package.",
+          note: "Premiums are estimated using traveler ages and update at checkout.",
           cta: "Find a hotel",
+        },
+      },
+      insurance: {
+        note: "Premiums are estimated using traveler ages and update at checkout.",
+        quoteLabel: "Estimated premium",
+        quoteLoading: "Calculating premium...",
+        selectPlanNote: "Choose a plan to add insurance to your package.",
+        coverageLabel: "Coverage: {amount}",
+        territoryLabel: "Coverage territory",
+        travelCountriesLabel: "Travel country",
+        travelCountriesPlaceholder: "e.g. United Arab Emirates",
+        startDateLabel: "Start date",
+        endDateLabel: "End date",
+        territories: {
+          worldwideExcluding:
+            "Worldwide (excluding USA, Canada, Australia, Japan, Schengen countries, United Kingdom)",
+          worldwideExcludingPolicy:
+            "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
+        },
+        plans: {
+          standard: {
+            title: "Standard",
+            description: "Core travel coverage from EFES.",
+          },
         },
       },
       checkout: {
@@ -2123,6 +2304,34 @@ const translations: Record<Locale, Translation> = {
         city: "City",
         address: "Street address",
         zip: "ZIP / Postal code",
+        insuranceTitle: "Insurance details",
+        insuranceHint: "Provide passport and contact details for each traveler.",
+        insuranceEmpty: "Insurance travelers will appear after you select insurance.",
+        insuranceTravelerLabel: "Traveler {index}",
+        insuranceFields: {
+          firstNameEn: "First name (Latin)",
+          lastNameEn: "Last name (Latin)",
+          gender: "Gender",
+          genderPlaceholder: "Select",
+          genderMale: "Male",
+          genderFemale: "Female",
+          birthDate: "Date of birth",
+          passportNumber: "Passport number",
+          passportAuthority: "Issuing authority",
+          passportIssueDate: "Issue date",
+          passportExpiryDate: "Expiry date",
+          residency: "Residency",
+          citizenship: "Citizenship",
+          socialCard: "Social card",
+          mobilePhone: "Mobile phone",
+          phone: "Phone",
+          email: "Email",
+          address: "Registered address",
+          addressEn: "Address (Latin)",
+          country: "Country",
+          region: "Region",
+          city: "City",
+        },
         couponTitle: "Coupon or gift card code",
         couponPlaceholder: "Enter code",
         applyCoupon: "Apply",
@@ -2146,6 +2355,8 @@ const translations: Record<Locale, Translation> = {
           missingHotel: "Select a hotel to continue.",
           missingDetails: "Room details are missing. Please reselect the hotel.",
           missingGuestDetails: "Please complete the guest details for all travelers.",
+          insuranceDetailsRequired: "Please complete all required insurance details.",
+          insuranceQuoteFailed: "Failed to calculate the insurance premium.",
           cardUnavailable: "Card payments are not available yet.",
           paymentFailed: "Failed to start payment. Please try again.",
         },
@@ -2269,6 +2480,11 @@ const translations: Record<Locale, Translation> = {
         body: "Book direct flights with flydubai and enjoy exclusive discounts—only on megatours.am.",
         alt: "flydubai"
       },
+      yas:{
+        title: "Yas Island Theme Parks",
+        body: "Experience thrilling adventures and unforgettable moments at Yas Island's world-class theme parks.",
+        alt: "Yas Island"
+      }
     },
     payment: {
       success: {
@@ -2291,95 +2507,125 @@ const translations: Record<Locale, Translation> = {
     policies: {
       refund: {
         title: "Refund Policy",
-        intro: "Clear, fair, and transparent. Refund eligibility depends on the specific rate and hotel rules displayed at the time of booking.",
+        intro:
+          "This Refund Policy governs (i) booking cancellations and modifications, (ii) refund eligibility and calculation, (iii) refund processing timelines, and (iv) dispute resolution for services booked through the Platform. The specific terms displayed at the time of booking shall prevail over this general policy in case of any discrepancy.",
         sections: [
           {
-            title: "Eligibility for Refunds",
+            title: "Definitions",
             items: [
-              "Bookings canceled within the free cancellation window.",
-              "Rates specifically marked as refundable.",
-              "Cancellation requests received before the hotel's designated deadline.",
+              "Platform — the booking system acting as an intermediary for travel services.",
+              "Booking — a reservation or purchase of accommodation and/or ancillary services (transfers, excursions, flights, insurance) made through the Platform.",
+              "Service — accommodation, transfer, excursion or ticket, flight, insurance, or other travel-related service.",
+              "Rate — the price of a Service together with its applicable rules (refundable or non-refundable, deadlines, penalties, etc.).",
+              "Free Cancellation Period — the period during which cancellation is allowed without penalty, if provided by the applicable Rate.",
+              "No-show — failure of the traveler to use the booked Service in accordance with its rules.",
+              "Refund — the return of paid funds to the original payment method, subject to legal and payment provider requirements.",
             ],
           },
           {
-            title: "Refund Calculations",
-            body: "Refunds are processed according to the hotel's policy and may exclude non-refundable fees or penalties.",
+            title: "General Provisions",
             items: [
-              "Funds will be returned to the original payment method.",
-              "Bank or currency conversion fees are determined by your card issuer.",
-              "Any applicable penalties will be clearly shown in your cancellation summary.",
+              "By completing a booking, you confirm that you have reviewed and accepted the applicable Rate and Service rules displayed at checkout.",
+              "If the specific booking terms conflict with this Policy, the booking-specific terms shall apply.",
+              "Certain Rates may include non-refundable components which are not subject to refund even where cancellation is otherwise permitted.",
+              "Partial cancellations or modifications may be treated as full cancellations and subject to the same penalties.",
+              "Bank fees, card issuer charges, and currency exchange differences are determined by your financial institution and are not refundable.",
             ],
           },
           {
-            title: "Typical Timelines",
+            title: "Hotel Bookings",
             items: [
-              "Cancellations are typically confirmed within 24 hours.",
-              "Banks usually process refunds within 5-15 business days.",
-              "We will keep you updated if additional verification is required by our payment partners.",
+              "Refunds may be permitted if cancellation is made within the Free Cancellation Period or if the selected Rate is marked as refundable.",
+              "No refunds are issued for non-refundable Rates, no-shows, or cancellations made after the applicable deadline.",
+              "Where permitted, refunds are calculated in accordance with the hotel’s rules and may be reduced by penalties, non-refundable fees, or the value of services already rendered.",
             ],
           },
           {
-            title: "How to Request a Refund",
+            title: "Transfers and Excursions",
             items: [
-              "Use the cancellation link in your confirmation email or contact our support team.",
-              "Please provide your booking number and guest name for faster processing.",
-              "Changes or partial cancellations are subject to the same policy rules.",
+              "Transfers, excursions, tickets, and similar services are subject to their own specific terms, which may differ from hotel policies.",
+              "Refunds are allowed only where expressly permitted by the applicable Service conditions.",
+              "Typically, refunds are not available for late cancellations, no-shows, promotional tickets, or time-slot-based or named-entry services.",
             ],
           },
           {
-            title: "Non-Refundable Cases",
+            title: "Flights (flydubai)",
             items: [
-              "Non-refundable or special promotional rates.",
-              "No-shows or cancellations made after the deadline.",
-              "Third-party services (transfers, tickets, tours) with their own specific terms.",
+              "Flight refunds, changes, name corrections, baggage rules, and no-show conditions are governed exclusively by the airline’s fare rules.",
+              "You are required to review the applicable flydubai fare conditions via the link provided on the Platform prior to payment.",
+              "Where permitted, refunds can be processed only after the airline has refunded the Platform, and within the limits of the selected fare.",
+            ],
+          },
+          {
+            title: "Travel Insurance",
+            items: [
+              "Insurance premiums are non-refundable regardless of subsequent booking cancellation, modification, or non-use.",
+              "Coverage, exclusions, and claim procedures are governed solely by the insurance policy terms made available on the Platform.",
+            ],
+          },
+          {
+            title: "Requests and Processing Timelines",
+            items: [
+              "Cancellation or refund requests must be submitted via the cancellation link in the confirmation email or by contacting support.",
+              "Initial request review is typically completed within 48 hours.",
+              "Approved refunds are processed by financial institutions within approximately 5–15 business days.",
+            ],
+          },
+          {
+            title: "Disputes and Liability",
+            items: [
+              "In case of disagreement regarding refund eligibility or calculation, you should first contact Platform support with written justification.",
+              "Initiating a chargeback may result in transaction suspension and extended review timelines.",
+              "The Platform is not liable for bank fees, exchange rate differences, or limitations imposed by third-party Service providers, to the extent permitted by law.",
             ],
           },
         ],
-        note: "Have questions? Our support team is here to guide you through every step of the process.",
+        note:
+          "Our support team is available to assist with refund and cancellation inquiries based on the specific terms applicable to each booking.",
       },
       security: {
         title: "Privacy Policy",
-        intro: "Your personal data and payments are protected by industry-leading security practices and strictly controlled access.",
+        intro: "Your personal data and payments are protected through modern security measures and strictly controlled access.",
         sections: [
           {
             title: "Data Protection",
             items: [
-              "All data is encrypted in transit.",
-              "Access is strictly limited to authorized personnel on a need-to-know basis.",
-              "We only collect the information necessary to facilitate your booking.",
+              "All data is encrypted during transmission using industry-standard protocols.",
+              "Access to personal data is restricted to authorized personnel on a strict need-to-know basis.",
+              "We collect only the minimum information required to process bookings and provide services.",
             ],
           },
           {
             title: "Payment Security",
-            body: "Payments are processed by trusted, PCI-compliant providers who handle all sensitive card data.",
+            body: "Payments are processed via trusted, PCI-compliant payment providers. Card details are handled exclusively by these providers and are never stored by us.",
             items: [
-              "Secure checkout with continuous fraud monitoring.",
-              "3-D Secure or equivalent verification for enhanced protection.",
-              "Receipts and confirmations are sent directly to your provided email address.",
+              "Secure checkout environment with continuous fraud monitoring.",
+              "3-D Secure or equivalent authentication where supported.",
+              "Payment and booking confirmations are sent to the email address you provide.",
             ],
           },
           {
-            title: "Account Safety",
+            title: "Account Protection",
             items: [
-              "Secure sign-in via trusted services like Google.",
-              "Instant alerts for any significant booking changes.",
-              "Proactive verification of any suspicious account activity.",
+              "Secure sign-in via trusted identity providers such as Google.",
+              "Automatic notifications for significant account or booking changes.",
+              "Proactive review and verification in case of suspicious activity.",
             ],
           },
           {
-            title: "Security Best Practices",
+            title: "User Security Responsibilities",
             items: [
-              "Use a strong, unique password for your primary email account.",
-              "Never share your verification codes or payment details with anyone.",
-              "Ensure you are always using the official megatours.am domain.",
+              "Use a strong and unique password for your primary email account.",
+              "Do not share verification codes, login credentials, or payment details with third parties.",
+              "Always ensure you are using the official megatours.am domain.",
             ],
           },
           {
-            title: "Reporting Issues",
-            body: "If you suspect any unauthorized activity, please contact support immediately so we can secure your account.",
+            title: "Reporting Security Issues",
+            body: "If you suspect unauthorized access or a data security issue, contact our support team immediately so we can take appropriate protective measures.",
           },
         ],
-        note: "We are committed to continuously enhancing our security measures to maintain your trust.",
+        note: "We continuously enhance our security practices to protect your data and maintain your trust.",
       },
     },
     profile: {
@@ -2883,6 +3129,14 @@ const translations: Record<Locale, Translation> = {
         lowestPrice: "Lowest Price",
         highestPrice: "Highest Price",
         roomOptionFallback: "Room Option",
+        mealPlans: {
+          roomOnly: "Room Only",
+          breakfast: "Breakfast",
+          halfBoard: "Half Board",
+          fullBoard: "Full Board",
+          allInclusive: "All Inclusive",
+          ultraAllInclusive: "Ultra All Inclusive",
+        },
         refundable: "Refundable",
         nonRefundable: "Non-Refundable",
         roomsLeft: {
@@ -2995,7 +3249,7 @@ const translations: Record<Locale, Translation> = {
     hero: {
       title: "Эксклюзивные цены на отели ОАЭ — напрямую от туроператора",
       subtitle:
-        "Премиальная платформа для путешествий по ОАЭ, основанная на прямых контрактах, согласованных тарифах и сервисе уровня консьерж.",
+        "Бронируйте отел, трансфер, авиабилеты, страховку, экскурсии и билеты в тематические парки в одном месте без посредников и скрытых комиссий.",
       purpose:
         "Отели, трансферы, экскурсии, тематические парки, авиабилеты и страховка — в одном продуманном бронировании, без посредников и скрытых условий.",
       marquee:
@@ -3175,9 +3429,33 @@ const translations: Record<Locale, Translation> = {
         },
         insurance: {
           title: "Страховка",
-          body: "Страхование выбирается во время бронирования отеля.",
-          note: "Начните с выбора отеля, чтобы продолжить.",
+          body: "Выберите план туристической страховки EFES для вашего пакета.",
+          note: "Стоимость рассчитывается по возрасту путешественников и обновляется при оплате.",
           cta: "Найти отель",
+        },
+      },
+      insurance: {
+        note: "Стоимость рассчитывается по возрасту путешественников и обновляется при оплате.",
+        quoteLabel: "Ориентировочная стоимость",
+        quoteLoading: "Рассчитываем стоимость...",
+        selectPlanNote: "Выберите план, чтобы добавить страховку в пакет.",
+        coverageLabel: "Покрытие: {amount}",
+        territoryLabel: "Территория покрытия",
+        travelCountriesLabel: "Страна поездки",
+        travelCountriesPlaceholder: "например, Объединенные Арабские Эмираты",
+        startDateLabel: "Дата начала",
+        endDateLabel: "Дата окончания",
+        territories: {
+          worldwideExcluding:
+            "Весь мир (кроме США, Канады, Австралии, Японии, стран Шенгена, Великобритании)",
+          worldwideExcludingPolicy:
+            "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
+        },
+        plans: {
+          standard: {
+            title: "Стандарт",
+            description: "Базовое туристическое покрытие от EFES.",
+          },
         },
       },
       checkout: {
@@ -3207,6 +3485,34 @@ const translations: Record<Locale, Translation> = {
         city: "Город",
         address: "Адрес",
         zip: "Индекс",
+        insuranceTitle: "Данные страховки",
+        insuranceHint: "Укажите паспортные и контактные данные каждого путешественника.",
+        insuranceEmpty: "Путешественники для страховки появятся после выбора страховки.",
+        insuranceTravelerLabel: "Путешественник {index}",
+        insuranceFields: {
+          firstNameEn: "Имя (латиница)",
+          lastNameEn: "Фамилия (латиница)",
+          gender: "Пол",
+          genderPlaceholder: "Выберите",
+          genderMale: "Мужской",
+          genderFemale: "Женский",
+          birthDate: "Дата рождения",
+          passportNumber: "Номер паспорта",
+          passportAuthority: "Кем выдан",
+          passportIssueDate: "Дата выдачи",
+          passportExpiryDate: "Срок действия",
+          residency: "Резидент",
+          citizenship: "Гражданство",
+          socialCard: "Соц. карта",
+          mobilePhone: "Мобильный телефон",
+          phone: "Телефон",
+          email: "Эл. почта",
+          address: "Адрес регистрации",
+          addressEn: "Адрес (латиница)",
+          country: "Страна",
+          region: "Регион",
+          city: "Город",
+        },
         couponTitle: "Код купона или подарочной карты",
         couponPlaceholder: "Введите код",
         applyCoupon: "Применить",
@@ -3230,6 +3536,8 @@ const translations: Record<Locale, Translation> = {
           missingHotel: "Выберите отель, чтобы продолжить.",
           missingDetails: "Данные по номерам отсутствуют. Пожалуйста, выберите отель заново.",
           missingGuestDetails: "Пожалуйста, заполните данные всех гостей.",
+          insuranceDetailsRequired: "Пожалуйста, заполните все обязательные данные страховки.",
+          insuranceQuoteFailed: "Не удалось рассчитать стоимость страховки.",
           cardUnavailable: "Оплата картой пока недоступна.",
           paymentFailed: "Не удалось начать оплату. Пожалуйста, попробуйте снова.",
         },
@@ -3352,6 +3660,11 @@ const translations: Record<Locale, Translation> = {
         title: "Авиабилеты по лучшим ценам",
         body: "Бронируйте прямые рейсы flydubai и получайте эксклюзивные скидки — только на megatours.am.",
         alt: "flydubai"
+      },
+      yas:{
+        title: "Yas Island — остров приключений",
+        body: "Откройте для себя Yas Island в Абу-Даби с приоритетным доступом к тематическим паркам и аттракционам.",
+        alt: "Yas Island"
       }
     },
     payment: {
@@ -3373,97 +3686,127 @@ const translations: Record<Locale, Translation> = {
       },
     },
     policies: {
-      refund: {
+     refund: {
         title: "Политика возврата",
-        intro: "Прозрачно и честно: право на возврат зависит от тарифа и правил отеля, которые вы видите до оплаты.",
+        intro:
+          "Настоящая Политика возврата регулирует (i) отмену и изменение бронирований, (ii) условия и расчет возвратов, (iii) сроки обработки возвратов, а также (iv) порядок разрешения споров по услугам, забронированным через Платформу. Конкретные условия, отображаемые при бронировании, имеют приоритет над настоящей политикой.",
         sections: [
           {
-            title: "Когда возможен возврат",
+            title: "Определения",
             items: [
-              "Бронирование отменено в период бесплатной отмены, указанный при оплате.",
-              "Выбранный тариф отмечен как возвратный.",
-              "Запрос на отмену поступил до дедлайна отеля.",
+              "Платформа — система бронирования, действующая в качестве посредника туристических услуг.",
+              "Бронирование — резервирование или покупка размещения и/или дополнительных услуг (трансферы, экскурсии, авиабилеты, страхование) через Платформу.",
+              "Услуга — размещение, трансфер, экскурсия или билет, авиабилет, страхование либо иная туристическая услуга.",
+              "Тариф — стоимость Услуги и применимые к ней правила (возвратный или невозвратный, сроки, штрафы и т.д.).",
+              "Период бесплатной отмены — срок, в течение которого отмена возможна без штрафа, если это предусмотрено тарифом.",
+              "No-show — неявка туриста для получения Услуги в соответствии с ее правилами.",
+              "Возврат — возврат оплаченных средств на исходный способ оплаты с учетом требований закона и платежных систем.",
             ],
           },
           {
-            title: "Как рассчитывается сумма возврата",
-            body: "Возврат выполняется по правилам отеля и может исключать невозвратные сборы или штрафы.",
+            title: "Общие положения",
             items: [
-              "Средства возвращаются на исходный способ оплаты.",
-              "Комиссии банка или конвертация зависят от эмитента карты.",
-              "Если применяется штраф, он будет показан в подтверждении отмены.",
+              "Оформляя бронирование, вы подтверждаете, что ознакомились и приняли условия тарифа и услуги, указанные при оплате.",
+              "В случае расхождений применяются условия конкретного бронирования.",
+              "Некоторые тарифы могут включать невозвратные элементы, которые не подлежат возврату даже при допустимой отмене.",
+              "Частичная отмена или изменение могут рассматриваться как полная отмена с применением соответствующих штрафов.",
+              "Банковские комиссии и курсовые разницы определяются финансовым учреждением и не подлежат компенсации.",
             ],
           },
           {
-            title: "Типичные сроки",
+            title: "Бронирование отелей",
             items: [
-              "Подтверждаем отмену в течение 24 часов.",
-              "Банк обычно зачисляет средства за 5-15 рабочих дней.",
-              "Если платежному провайдеру нужна дополнительная проверка, мы сообщим.",
+              "Возврат возможен при отмене в период бесплатной отмены или при выборе возвратного тарифа.",
+              "Возврат не производится при невозвратных тарифах, no-show или отмене после дедлайна.",
+              "Допустимые возвраты рассчитываются по правилам отеля и могут быть уменьшены на сумму штрафов или фактически оказанных услуг.",
             ],
           },
           {
-            title: "Как запросить возврат",
+            title: "Трансферы и экскурсии",
             items: [
-              "Используйте ссылку отмены в письме подтверждения или обратитесь в поддержку.",
-              "Укажите номер бронирования и имя гостя для ускорения.",
-              "Изменения или частичные отмены обрабатываются по тем же правилам.",
+              "Трансферы, экскурсии и билеты регулируются собственными правилами, отличающимися от гостиничных условий.",
+              "Возврат допускается только при прямом разрешении условиями соответствующей услуги.",
+              "Как правило, возврат невозможен при поздней отмене, no-show, акционных билетах или услугах с фиксированным временем.",
             ],
           },
           {
-            title: "Невозвратные случаи",
+            title: "Авиабилеты (flydubai)",
             items: [
-              "Невозвратные или промо-тарифы.",
-              "Неявка (no-show) или отмена после дедлайна.",
-              "Сервисы третьих сторон (трансферы, билеты, экскурсии) со своими правилами.",
+              "Возвраты и изменения авиабилетов регулируются исключительно тарифными правилами авиакомпании.",
+              "До оплаты вы обязаны ознакомиться с условиями flydubai по ссылке, размещенной на Платформе.",
+              "Возврат возможен только после получения средств от авиакомпании и в рамках выбранного тарифа.",
+            ],
+          },
+          {
+            title: "Туристическое страхование",
+            items: [
+              "Страховые взносы не подлежат возврату независимо от последующих изменений или отмены бронирования.",
+              "Условия покрытия и порядок урегулирования требований регулируются страховым договором.",
+            ],
+          },
+          {
+            title: "Порядок обращений и сроки",
+            items: [
+              "Запросы на отмену или возврат подаются через ссылку в письме подтверждения или через службу поддержки.",
+              "Предварительное рассмотрение запросов обычно занимает до 48 часов.",
+              "Фактический возврат средств банками занимает в среднем 5–15 рабочих дней.",
+            ],
+          },
+          {
+            title: "Споры и ответственность",
+            items: [
+              "При несогласии с расчетом возврата рекомендуется в первую очередь обратиться в службу поддержки в письменной форме.",
+              "Инициирование chargeback может привести к блокировке операции и увеличению сроков рассмотрения.",
+              "Платформа не несет ответственности за банковские комиссии, курсовые разницы и ограничения третьих лиц в пределах, допускаемых законом.",
             ],
           },
         ],
-        note: "Если нужна помощь, служба поддержки подскажет лучший вариант.",
+        note:
+          "Служба поддержки готова помочь с вопросами отмены и возврата в рамках условий каждого конкретного бронирования.",
       },
       security: {
         title: "Политика конфиденциальности",
-        intro: "Ваши данные и платежи защищены современными практиками безопасности и контролируемым доступом.",
+        intro: "Ваши персональные данные и платежи защищены современными мерами безопасности и строго контролируемым доступом.",
         sections: [
           {
             title: "Защита данных",
             items: [
-              "Шифрование данных при передаче.",
-              "Доступ только у уполномоченных сотрудников.",
-              "Собираем лишь данные, необходимые для бронирования.",
+              "Все данные шифруются при передаче с использованием отраслевых стандартов.",
+              "Доступ к персональным данным имеют только уполномоченные сотрудники по принципу необходимости.",
+              "Мы собираем только те данные, которые необходимы для оформления бронирования и оказания услуг.",
             ],
           },
           {
             title: "Безопасность платежей",
-            body: "Платежи проходят через надежных провайдеров, а данные карт обрабатываются ими.",
+            body: "Платежи обрабатываются надежными провайдерами, соответствующими стандарту PCI DSS. Данные банковских карт обрабатываются исключительно ими и не хранятся у нас.",
             items: [
-              "Безопасная страница оплаты и мониторинг мошенничества.",
-              "3-D Secure или аналогичная проверка, если доступна.",
-              "Подтверждения отправляем на указанный email.",
+              "Защищенная страница оплаты и постоянный мониторинг мошенничества.",
+              "3-D Secure или аналогичная проверка, если она доступна.",
+              "Подтверждения платежей и бронирований отправляются на указанный вами email.",
             ],
           },
           {
             title: "Защита аккаунта",
             items: [
-              "Вход через доверенные сервисы, например Google.",
-              "Оповещения о важных изменениях бронирования.",
-              "Помогаем проверить подозрительную активность.",
+              "Безопасный вход через доверенные сервисы, такие как Google.",
+              "Автоматические уведомления о важных изменениях в аккаунте или бронировании.",
+              "Проверка и подтверждение в случае подозрительной активности.",
             ],
           },
           {
-            title: "Как защитить себя",
+            title: "Обязанности пользователя",
             items: [
-              "Используйте надежный пароль для email.",
-              "Никому не сообщайте коды подтверждения и платежные данные.",
-              "Проверяйте, что вы на официальном домене megatours.am.",
+              "Используйте надежный и уникальный пароль для вашей электронной почты.",
+              "Не передавайте коды подтверждения, данные входа или платежную информацию третьим лицам.",
+              "Всегда используйте только официальный домен megatours.am.",
             ],
           },
           {
-            title: "Если заметили проблему",
-            body: "Свяжитесь со службой поддержки, и мы поможем защитить аккаунт.",
+            title: "Сообщение о проблемах безопасности",
+            body: "При подозрении на несанкционированный доступ или утечку данных незамедлительно свяжитесь со службой поддержки для принятия защитных мер.",
           },
         ],
-        note: "Мы постоянно улучшаем защиту, чтобы сохранить ваше доверие.",
+        note: "Мы постоянно совершенствуем меры безопасности для защиты ваших данных и сохранения вашего доверия.",
       },
     },
     profile: {
@@ -3973,6 +4316,14 @@ const translations: Record<Locale, Translation> = {
         lowestPrice: "Самая низкая цена",
         highestPrice: "Самая высокая цена",
         roomOptionFallback: "Вариант номера",
+        mealPlans: {
+          roomOnly: "Без питания",
+          breakfast: "Завтрак",
+          halfBoard: "Полупансион",
+          fullBoard: "Полный пансион",
+          allInclusive: "Все включено",
+          ultraAllInclusive: "Ультра все включено",
+        },
         refundable: "С возвратом",
         nonRefundable: "Невозвратный",
         roomsLeft: {
