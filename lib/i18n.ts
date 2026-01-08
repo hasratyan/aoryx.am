@@ -933,8 +933,8 @@ const translations: Record<Locale, Translation> = {
       expandSearch: "Բացել որոնումը",
       collapseSearch: "Թաքցնել որոնումը",
       unknownHotel: "Անհայտ հյուրանոց",
-      pickOnMap: " Delays delays delays delays delays",
-      closeMap: "delays",
+      pickOnMap: "Ընտրել քարտեզից",
+      closeMap: "Փակել քարտեզը",
       errors: {
         missingLocation: "Խնդրում ենք ընտրել ուղղություն կամ հյուրանոց։",
         missingDates: "Խնդրում ենք ընտրել մուտքի և ելքի ամսաթվերը։",
@@ -3288,8 +3288,8 @@ const translations: Record<Locale, Translation> = {
       expandSearch: "Развернуть поиск",
       collapseSearch: "Свернуть поиск",
       unknownHotel: "Неизвестный отель",
-      pickOnMap: "Delays delays delays delays",
-      closeMap: "Delays delays delays delays",
+      pickOnMap: "Выбрать на карте",
+      closeMap: "Закрыть карту",
       errors: {
         missingLocation: "Пожалуйста, выберите направление или отель.",
         missingDates: "Пожалуйста, выберите даты заезда и выезда.",

@@ -15,11 +15,11 @@ import StarBorder from '@/components/StarBorder'
 import { postJson } from "@/lib/api-helpers";
 import type { AoryxSearchParams, HotelInfo } from "@/types/aoryx";
 import type { Locale as AppLocale } from "@/lib/i18n";
-import type { HotelMapPickerProps } from "@/components/hotel-map-picker";
+import type { HotelMapPickerProps } from "./hotel-map-picker";
 
 // Dynamically import the Map Picker to avoid SSR issues with Leaflet
 const HotelMapPicker = dynamic<HotelMapPickerProps>(
-  () => import("@/components/hotel-map-picker"),
+  () => import("./hotel-map-picker"),
   {
     ssr: false,
     loading: () => (
@@ -793,25 +793,26 @@ export default function SearchForm({
               },
             }}
           />
+          {!hideLocationFields && hotels.length > 0 && (
+            <button
+              type="button"
+              className="map-picker"
+              popoverTarget={mapPopoverId}
+              disabled={isFormDisabled || hotelsLoading}
+              aria-label={copy.pickOnMap ?? "Pick on map"}
+              title={copy.pickOnMap ?? "Pick on map"}
+            >
+              <span className="material-symbols-rounded">map</span>
+              <span className="map-picker-label">
+                {copy.pickOnMap ?? "Pick on map"}
+              </span>
+            </button>
+          )}
         </div>
       )}
 
-      {/* Pick on Map Button - only show when not hiding location fields */}
       {!hideLocationFields && hotels.length > 0 && (
         <>
-          {/* <button
-            type="button"
-            className="map-picker-btn"
-            popoverTarget={mapPopoverId}
-            disabled={isFormDisabled || hotelsLoading}
-            aria-label={copy.pickOnMap ?? "Pick on map"}
-            title={copy.pickOnMap ?? "Pick on map"}
-          >
-            <span className="material-symbols-rounded">map</span>
-            <span className="map-picker-btn__label">
-              {copy.pickOnMap ?? "Pick on map"}
-            </span>
-          </button> */}
           <div
             id={mapPopoverId}
             popover="auto"

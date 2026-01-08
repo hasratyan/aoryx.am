@@ -752,6 +752,13 @@ main {
 
       .field:first-of-type{
         min-width: 300px;
+        position: relative;
+
+        &:has(.map-picker){
+          .css-1cxnmry-control, .css-882nl4-control{
+            border-bottom-left-radius: 0!important;
+          }
+        }
       }
 
       .field:has(.guests), .field:has(.rooms){
@@ -912,28 +919,40 @@ main {
     }
 
     /* Map Picker Styles */
-    .map-picker-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.5em;
-      padding: 0.75em 1em;
-      min-height: 50px;
-      height: 100%;
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.15));
-      border: 1px solid rgba(52, 211, 153, 0.4);
-      border-radius: 1em;
+    .map-picker {
       color: #fff;
-      font-weight: 600;
-      font-size: inherit;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
+      background-clip: text;
+      z-index: 0;
+      background: linear-gradient(135deg, #10b981, #34d399);
+      padding: 0.5em 1.25em 0.5em 1em;
+      position: absolute;
+      bottom: -1.9em;
+      left: 0;
+      font-size: 0.8rem;
+      border-radius: 1em;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      padding-top: 0.1em;
+
+      &::after{
+        content: "";
+        width: 100%;
+        height: 15px;
+        position: absolute;
+        top: 0;
+        margin: auto;
+        left: 0;
+        background: linear-gradient(#0007, transparent);
+        transition: inherit;
+      }
 
       &:hover:not(:disabled) {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(52, 211, 153, 0.25));
-        border-color: rgba(124, 242, 212, 0.6);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        padding-top: 0.5em;
+        bottom: -30px;
+        text-shadow: 0 0 15px #000;
+        &::after{
+          opacity: 0.5;
+        }
       }
 
       &:disabled {
@@ -1246,14 +1265,14 @@ main {
       mix-blend-mode: screen;
       color: #000;
       font-weight: bold;
-      padding: 0.5em 0.8em;
+      padding: 0.7em 1em;
       border-radius: 1em;
       justify-self: self-end;
+      align-items: center;
+      gap: 0.5em;
       display: none;
       @media screen and (min-width: 1024px) {
         display: inline-flex;
-        align-items: center;
-        gap: 0.5em;
       }
     }
   }
@@ -1529,122 +1548,6 @@ main {
     padding-left: var(--slide-spacing);
   }
 
-  #idram {
-    background: url("/images/icons/mobile-payment.png") right 7% bottom 10% / auto no-repeat, linear-gradient(145deg, #e9401b, #f5821e, #ffab45) border-box;
-    background-size: 180px, cover;
-    box-shadow: 0 0 100px #f5832059;
-    @media screen and (max-width: 1024px) {
-      background: linear-gradient(145deg, #e9401b, #f5821e, #ffab45) border-box;
-    }
-    .background{
-      &:after{
-        background: linear-gradient(180deg, #fff0, #ee601e);
-      }
-      &:before{
-        background: linear-gradient(90deg, #ee601e, transparent);
-      }
-      .shape{
-        border-left: 3px solid #ee601e;
-        border-bottom: 3px solid #ee601e;
-      }
-    }
-  }
-
-  #flydubai {
-    background: url("/images/icons/flydubai-airplane.png") right 5% bottom 40% / auto no-repeat, linear-gradient(145deg, #004a99, #0056b3, #007bff) border-box;
-    background-size: 400px, cover;
-    box-shadow: 0 0 100px #0056b359;
-    @media screen and (max-width: 1024px) {
-      background: linear-gradient(145deg, #004a99, #0056b3, #007bff) border-box;
-    }
-    .header{
-      .logos{
-        svg{
-          max-width: 170px!important;
-          @media screen and (max-width: 500px) {
-            max-width: 130px!important;
-          }
-        }
-      }
-    }
-    .background{
-      &:after{
-        background: linear-gradient(180deg, #fff0, #0056b3);
-      }
-      &:before{
-        background: linear-gradient(90deg, #0056b3, transparent);
-      }
-      .shape{
-        border-left: 3px solid #0056b3;
-        border-bottom: 3px solid #0056b3;
-      }
-    }
-  }
-
-  #efes {
-    background: url("/images/icons/suitcase.png") right 10% bottom / auto no-repeat, linear-gradient(145deg, #d71921, #ed1c24, #f25c63) border-box;
-    background-size: 200px, cover;
-    box-shadow: 0 0 100px #ed1c2459;
-    @media screen and (max-width: 1024px) {
-      background: linear-gradient(145deg, #d71921, #ed1c24, #f25c63) border-box;
-    }
-    .background{
-      &:after{
-        background: linear-gradient(180deg, #fff0, #ed1c24);
-      }
-      &:before{
-        background: linear-gradient(90deg, #ed1c24, transparent);
-      }
-      .shape{
-        border-left: 3px solid #ed1c24;
-        border-bottom: 3px solid #ed1c24;
-      }
-    }
-  }
-
-  #yas {
-    background: 
-      url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
-      url("/images/logos/seaworld.svg") right 28% bottom 10% / 130px no-repeat, 
-      url("/images/logos/ferrari-world.svg") right 15% bottom 5% / 105px no-repeat, 
-      url("/images/logos/yas-waterworld.svg") right 43% bottom 10% / 130px no-repeat, 
-      linear-gradient(145deg, #fff, #ccc) center / cover border-box;
-    box-shadow: 0 0 100px #ccc9;
-
-    @media screen and (min-width: 1024px) and (max-width: 1350) {
-      background: 
-      url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
-      url("/images/logos/seaworld.svg") right 40% bottom 10% / 130px no-repeat, 
-      url("/images/logos/ferrari-world.svg") right 21% bottom 5% / 105px no-repeat, 
-      url("/images/logos/yas-waterworld.svg") right 63% bottom 10% / 130px no-repeat, 
-      linear-gradient(145deg, #fff, #ccc) center / cover border-box;
-    }
-
-    @media screen and (max-width: 1024px) {
-      background: linear-gradient(145deg, #fff, #ccc) center / cover border-box;
-    }
-    .container{
-      h2, p{
-        color: #333!important;
-      }
-      p{
-        /* max-width: 55%!important; */
-      }
-    }
-    .background{
-      &:after{
-        background: linear-gradient(180deg, #fff0, #fff);
-      }
-      &:before{
-        background: linear-gradient(90deg, #fff, transparent);
-      }
-      .shape{
-        border-left: 3px solid #fff;
-        border-bottom: 3px solid #fff;
-      }
-    }
-  }
-
   #idram, #efes, #flydubai, #yas {
     z-index: 2;
     margin-top: 1em;
@@ -1660,6 +1563,7 @@ main {
 
     @media screen and (max-width: 1024px) {
       padding-block: 7em 5em;
+
       .background{
         display: none;
       }
@@ -1671,7 +1575,7 @@ main {
 
     @media screen and (max-width: 450px) {
       padding-block: 6em 2em;
-            align-content: start;
+      align-content: start;
     }
 
     .header{
@@ -1835,6 +1739,152 @@ main {
         width: 20%;
         height: 20%;
         border-bottom-left-radius: 3em;
+      }
+    }
+  }
+
+  #idram {
+    background: url("/images/icons/mobile-payment.png") right 7% bottom 10% / auto no-repeat, linear-gradient(145deg, #e9401b, #f5821e, #ffab45) border-box;
+    background-size: 180px, cover;
+    box-shadow: 0 0 100px #f5832059;
+    @media screen and (max-width: 1024px) {
+      background: linear-gradient(145deg, #e9401b, #f5821e, #ffab45) border-box;
+    }
+    .background{
+      &:after{
+        background: linear-gradient(180deg, #fff0, #ee601e);
+      }
+      &:before{
+        background: linear-gradient(90deg, #ee601e, transparent);
+      }
+      .shape{
+        border-left: 3px solid #ee601e;
+        border-bottom: 3px solid #ee601e;
+      }
+    }
+  }
+
+  #flydubai {
+    background: url("/images/icons/flydubai-airplane.png") right 5% bottom 40% / auto no-repeat, linear-gradient(145deg, #004a99, #0056b3, #007bff) border-box;
+    background-size: 400px, cover;
+    box-shadow: 0 0 100px #0056b359;
+    @media screen and (max-width: 1024px) {
+      background: linear-gradient(145deg, #004a99, #0056b3, #007bff) border-box;
+    }
+    .header{
+      .logos{
+        svg{
+          max-width: 170px!important;
+          @media screen and (max-width: 500px) {
+            max-width: 130px!important;
+          }
+        }
+      }
+    }
+    .background{
+      &:after{
+        background: linear-gradient(180deg, #fff0, #0056b3);
+      }
+      &:before{
+        background: linear-gradient(90deg, #0056b3, transparent);
+      }
+      .shape{
+        border-left: 3px solid #0056b3;
+        border-bottom: 3px solid #0056b3;
+      }
+    }
+  }
+
+  #efes {
+    background: url("/images/icons/suitcase.png") right 10% bottom / auto no-repeat, linear-gradient(145deg, #d71921, #ed1c24, #f25c63) border-box;
+    background-size: 200px, cover;
+    box-shadow: 0 0 100px #ed1c2459;
+    @media screen and (max-width: 1024px) {
+      background: linear-gradient(145deg, #d71921, #ed1c24, #f25c63) border-box;
+    }
+    .background{
+      &:after{
+        background: linear-gradient(180deg, #fff0, #ed1c24);
+      }
+      &:before{
+        background: linear-gradient(90deg, #ed1c24, transparent);
+      }
+      .shape{
+        border-left: 3px solid #ed1c24;
+        border-bottom: 3px solid #ed1c24;
+      }
+    }
+  }
+
+  #yas {
+    background: 
+      url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
+      url("/images/logos/seaworld.svg") right 28% bottom 10% / 130px no-repeat, 
+      url("/images/logos/ferrari-world.svg") right 15% bottom 5% / 105px no-repeat, 
+      url("/images/logos/yas-waterworld.svg") right 43% bottom 10% / 130px no-repeat, 
+      linear-gradient(145deg, #eee, #fff) center / cover border-box;
+    box-shadow: 0 0 100px #ccc4;
+
+    &::after{
+      content: "";
+      background: url(/images/yas-island.png) center / cover border-box;
+      border-radius: 2em;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      mask-image: linear-gradient(170deg, #000 35%, #0000 65%);
+      mask-size: 100% 100%;
+      mask-repeat: no-repeat;
+    }
+
+    @media screen and (min-width: 1024px) and (max-width: 1350) {
+      background: 
+      url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
+      url("/images/logos/seaworld.svg") right 40% bottom 10% / 130px no-repeat, 
+      url("/images/logos/ferrari-world.svg") right 21% bottom 5% / 105px no-repeat, 
+      url("/images/logos/yas-waterworld.svg") right 63% bottom 10% / 130px no-repeat, 
+      linear-gradient(145deg, #eee, #fff) center / cover border-box;
+    }
+
+    @media screen and (max-width: 1024px) {
+      background: linear-gradient(145deg, #eee, #fff) center / cover border-box;
+
+      &::after{
+        mask-image: none;
+      }
+    }
+
+    .container{
+      grid-template-areas:
+        "title" "text";
+      grid-template-columns: auto;
+
+      h2{
+        text-shadow: 0 0 50px #000, 0 0 40px #000, 0 0 30px #000, 0 0 20px #000, 0 0 10px #000;
+        filter: brightness(2);
+      }
+      p{
+        text-shadow: 0 0 70px #000, 0 0 60px #000, 0 0 50px #000, 0 0 40px #000, 0 0 30px #000, 0 0 20px #000, 0 0 10px #000;
+        filter: brightness(2);
+
+      @media screen and (max-width: 1024px) {
+          text-shadow: 0 0 40px #000, 0 0 35px #000, 0 0 30px #000, 0 0 25px #000, 0 0 20px #000, 0 0 15px #000, 0 0 10px #000;
+        }
+      }
+    }
+    .background{
+      &:after{
+        background: linear-gradient(180deg, #fff0, #fff);
+      }
+      &:before{
+        background: linear-gradient(90deg, #fff, transparent);
+      }
+      .shape{
+        border-left: 3px solid #fff;
+        border-bottom: 3px solid #fff;
       }
     }
   }

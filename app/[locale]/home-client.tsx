@@ -233,7 +233,7 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
               </div>
             </div>
             <div className="container">
-              <Image height={100} width={100} src={"/images/icons/tickets.png"} unoptimized alt={t.home.yas.alt}/>
+              {/* <Image height={100} width={100} src={"/images/icons/tickets.png"} unoptimized alt={t.home.yas.alt}/> */}
               <h2>{t.home.yas.title}</h2>
               <p>{t.home.yas.body}</p>
             </div>
