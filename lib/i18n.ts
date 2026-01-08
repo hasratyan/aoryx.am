@@ -49,6 +49,8 @@ export type Translation = {
     expandSearch: string;
     collapseSearch: string;
     unknownHotel: string;
+    pickOnMap: string;
+    closeMap: string;
     errors: {
       missingLocation: string;
       missingDates: string;
@@ -129,6 +131,7 @@ export type Translation = {
       territoryLabel: string;
       travelCountriesLabel: string;
       travelCountriesPlaceholder: string;
+      defaultTravelCountry: string;
       startDateLabel: string;
       endDateLabel: string;
       territories: {
@@ -930,6 +933,8 @@ const translations: Record<Locale, Translation> = {
       expandSearch: "Բացել որոնումը",
       collapseSearch: "Թաքցնել որոնումը",
       unknownHotel: "Անհայտ հյուրանոց",
+      pickOnMap: " Delays delays delays delays delays",
+      closeMap: "delays",
       errors: {
         missingLocation: "Խնդրում ենք ընտրել ուղղություն կամ հյուրանոց։",
         missingDates: "Խնդրում ենք ընտրել մուտքի և ելքի ամսաթվերը։",
@@ -1088,6 +1093,7 @@ const translations: Record<Locale, Translation> = {
         territoryLabel: "Ապահովագրության տարածք",
         travelCountriesLabel: "Ճանապարհորդության երկիր",
         travelCountriesPlaceholder: "օր․ Արաբական Միացյալ Էմիրություն",
+        defaultTravelCountry: "Արաբական Միացյալ Էմիրություն",
         startDateLabel: "Սկիզբ",
         endDateLabel: "Ավարտ",
         territories: {
@@ -1234,27 +1240,31 @@ const translations: Record<Locale, Translation> = {
       subtitle: "Ճկուն չեղարկում, հավելյալ բոնուսներ և ակնթարթային հաստատում։",
       cta: "Դիտել բոլոր առաջարկները",
     },
-    faq: {
-      title: "Հաճախ տրվող հարցեր",
-      items: [
-        {
-          title: "Լավագույն ուղղությունները ԱՄԷ-ում",
-          body: "Դուբայ, Աբու Դաբի և Հյուսիսային Էմիրաթներ՝ ձեր ոճին համապատասխան ընտրված տարբերակներով։",
-        },
-        {
-          title: "Թափանցիկ պայմաններ",
-          body: "Տեսնում եք վերջնական արժեքը նախքան վճարումը՝ առանց թաքնված վճարների։",
-        },
-        {
-          title: "Աջակցություն հայերեն, ռուսերեն, անգլերեն",
-          body: "Օգնություն՝ տրանսֆերներից մինչև հատուկ ցանկություններ ու հարցումներ։",
-        },
-        {
-          title: "Արագ վերադառնալ ձեր որոնումներին",
-          body: "Պահպանեք նախընտրությունները և շարունակեք այնտեղից, որտեղ կանգնել էիք։",
-        },
-      ],
-    },
+  faq: {
+    title: "Հաճախ տրվող հարցեր",
+    items: [
+      {
+        title: "Ինչ ծառայություններ կարող եմ ամրագրել Megatours-ում՞",
+        body: "Megatours-ում կարող եք ամրագրել հյուրանոցներ ԱՄԷ-ում, ավիատոմսեր, օդանավակայանային տրանսֆերներ, էքսկուրսիաներ, ճանապարհորդական ապահովագրություն և թեմատիկ պարկերի տոմսեր՝ մեկ հարթակում։",
+      },
+      {
+        title: "Արդյո՞ք ցուցադրված գները վերջնական են",
+        body: "Այո՛։ Դուք տեսնում եք վերջնական գինը մինչև վճարումը՝ առանց թաքնված վճարների կամ լրացուցիչ միջնորդավճարների։",
+      },
+      {
+        title: "Կարո՞ղ եմ միավորել մի քանի ծառայություն մեկ ամրագրման մեջ",
+        body: "Այո՛։ Դուք կարող եք կազմել ձեր անհատական փաթեթը՝ միավորելով հյուրանոցը, տրանսֆերը, ավիատոմսը, ապահովագրությունը և այլ ծառայություններ մեկ ամրագրման շրջանակում։",
+      },
+      {
+        title: "Ինչպե՞ս է իրականացվում վճարումը",
+        body: "Վճարումը կարող եք կատարել բանկային քարտի, կամ Idram-ի միջոցով, ինչպես նաև օգտվել RocketLine-ից՝ վճարումը բաժանելով մինչև 60 ամսվա ընթացքում։ Վճարումները կատարվում են անվտանգ միջավայրում։",
+      },
+      {
+        title: "Ինչպե՞ս կարող եմ կապ հաստատել աջակցության հետ",
+        body: "Մեր աջակցման թիմը հասանելի է շուրջօրյա՝ հայերեն, ռուսերեն և անգլերեն լեզուներով՝ օգնելու ամրագրման, փոփոխությունների կամ ցանկացած հարցի դեպքում։",
+      },
+    ],
+  },
     card: {
       from: "Սկսած",
       perNight: "/ գիշեր",
@@ -1287,22 +1297,22 @@ const translations: Record<Locale, Translation> = {
     home: {
       idram: {
         title: "Հանգստացեք հիմա, վճարեք հետո",
-        body: "Օգտվեք RocketLine-ից և վճարեք հանգիստը մինչև 60 ամիս՝ հարմար ամսականով։",
+        body: "Օգտվե՛ք RocketLine-ից և վճարեք մինչև 60 ամսվա ընթացքում։",
         alt: "idram",
       },
       efes:{
         title: "Ապահովագրություն՝ ձեր հանգստի համար",
-        body: "Ընտրեք ճանապարհորդական ապահովագրություն՝ ձեր հանգիստը պաշտպանելու համար՝ սկսած ընդամենը 3,500 դրամից։",
+        body: "Ընտրե՛ք ճանապարհորդական ապահովագրություն՝ ձեր հանգիստը լիարժեք անցկացնելու համար՝ սկսած օրական 300 դրամից։",
         alt: "efes"
       },
       flydubai:{
-        title: "Ավիատոմսեր՝ լավագույն գներով",
-        body: "Ամրագրեք ուղիղ թռիչքներ flydubai-ի հետ և վայելեք հատուկ զեղչեր՝ միայն megatours.am-ում։",
+        title: "Ավիատոմսերի ակնթարթային ամրագրում",
+        body: "Ամրագրե՛ք flydubai-ի ուղիղ թռիչքները մի քանի քայլով՝ խնայելով ժամանակ և գումար։",
         alt: "flydubai"
       },
       yas:{
-        title: "Yas Island-ի տոմսեր",
-        body: "Գտեք և ամրագրեք տոմսեր՝ աշխարհի լավագույն թեմատիկ պարկեր այցելելու համար՝ սկսած ընդամենը 15$-ից։",
+        title: "Անմոռանալի զգացումներ՝ Yas Island-ում",
+        body: "Բացահայտե՛ք աշխարհի առաջատար թեմատիկ պարկերը՝ տոմսեր սկսած ընդամենը 30,000 դրամից։",
         alt: "yas island"
       },
     },
@@ -2095,6 +2105,8 @@ const translations: Record<Locale, Translation> = {
       expandSearch: "Expand search",
       collapseSearch: "Collapse search",
       unknownHotel: "Unknown hotel",
+      pickOnMap: "Pick on map",
+      closeMap: "Close map",
       errors: {
         missingLocation: "Please select a destination or hotel.",
         missingDates: "Please choose your check-in and check-out dates.",
@@ -2262,6 +2274,7 @@ const translations: Record<Locale, Translation> = {
         territoryLabel: "Coverage territory",
         travelCountriesLabel: "Travel country",
         travelCountriesPlaceholder: "e.g. United Arab Emirates",
+        defaultTravelCountry: "Արաբական Միացյալ Էմիրություն",
         startDateLabel: "Start date",
         endDateLabel: "End date",
         territories: {
@@ -2414,24 +2427,24 @@ const translations: Record<Locale, Translation> = {
       title: "Frequently Asked Questions",
       items: [
         {
-          title: "Iconic Destinations",
-          body:
-            "Dubai, Abu Dhabi, and the Northern Emirates — thoughtfully curated for every travel style.",
+          title: "What services can I book with Megatours?",
+          body: "You can book hotels in the UAE, flights, airport transfers, excursions, travel insurance, and theme park tickets — all in one seamless platform.",
         },
         {
-          title: "Transparent, All-Inclusive Pricing",
-          body:
-            "Clear rates with full visibility before payment and no hidden fees.",
+          title: "Are the displayed prices final?",
+          body: "Yes. All prices are shown transparently before payment, with no hidden fees or unexpected charges.",
         },
         {
-          title: "Multilingual Concierge Support",
-          body:
-            "Assistance in Armenian, English, and Russian — from transfers to special requests.",
+          title: "Can I combine multiple services into one booking?",
+          body: "Absolutely. You can build a personalized travel package by combining your hotel stay with transfers, flights, insurance, excursions, and attractions.",
         },
         {
-          title: "Effortless Rebooking",
-          body:
-            "Save your preferences and return to your journey with ease.",
+          title: "What payment options are available?",
+          body: "You can pay securely via Idram or use RocketLine to spread your payment over up to 60 months.",
+        },
+        {
+          title: "How can I contact customer support?",
+          body: "Our support team is available 24/7 in Armenian, English, and Russian to assist with bookings, changes, and any inquiries.",
         },
       ],
     },
@@ -2467,24 +2480,27 @@ const translations: Record<Locale, Translation> = {
     home: {
       idram: {
         title: "Travel Now, Pay Later",
-        body: "Spread the cost of your dream trip over up to 60 months with RocketLine.",
-        alt: "Vacation Escape",
+        body: "Use RocketLine and spread your payment over up to 60 months.",
+        alt: "idram",
       },
-      efes:{
-        title: "Insurance for Your Trip",
-        body: "Choose travel insurance to protect your vacation, starting from just 3,500 AMD.",
-        alt: "Travel Insurance"
+
+      efes: {
+        title: "Travel Insurance for Your Peace of Mind",
+        body: "Choose reliable travel insurance to fully enjoy your trip, starting from just 300 AMD per day.",
+        alt: "efes",
       },
-      flydubai:{
-        title: "Flights at the Best Prices",
-        body: "Book direct flights with flydubai and enjoy exclusive discounts—only on megatours.am.",
-        alt: "flydubai"
+
+      flydubai: {
+        title: "Instant Flight Booking",
+        body: "Book flydubai direct flights in just a few steps while saving time and money.",
+        alt: "flydubai",
       },
-      yas:{
-        title: "Yas Island Theme Parks",
-        body: "Experience thrilling adventures and unforgettable moments at Yas Island's world-class theme parks.",
-        alt: "Yas Island"
-      }
+
+      yas: {
+        title: "Unforgettable Experiences at Yas Island",
+        body: "Discover world-class theme parks with tickets starting from just 30,000 AMD.",
+        alt: "Yas Island",
+      },
     },
     payment: {
       success: {
@@ -3272,6 +3288,8 @@ const translations: Record<Locale, Translation> = {
       expandSearch: "Развернуть поиск",
       collapseSearch: "Свернуть поиск",
       unknownHotel: "Неизвестный отель",
+      pickOnMap: "Delays delays delays delays",
+      closeMap: "Delays delays delays delays",
       errors: {
         missingLocation: "Пожалуйста, выберите направление или отель.",
         missingDates: "Пожалуйста, выберите даты заезда и выезда.",
@@ -3443,6 +3461,7 @@ const translations: Record<Locale, Translation> = {
         territoryLabel: "Территория покрытия",
         travelCountriesLabel: "Страна поездки",
         travelCountriesPlaceholder: "например, Объединенные Арабские Эмираты",
+        defaultTravelCountry: "Արաբական Միացյալ Էմիրություն",
         startDateLabel: "Дата начала",
         endDateLabel: "Дата окончания",
         territories: {
@@ -3595,24 +3614,24 @@ const translations: Record<Locale, Translation> = {
       title: "Часто задаваемые вопросы",
       items: [
         {
-          title: "Иконические направления",
-          body:
-            "Дубай, Абу-Даби и Северные Эмираты — продуманная подборка для любого формата отдыха.",
+          title: "Какие услуги доступны на Megatours?",
+          body: "На Megatours вы можете забронировать отели в ОАЭ, авиабилеты, аэропортовые трансферы, экскурсии, туристическую страховку и билеты в тематические парки — на одной платформе.",
         },
         {
-          title: "Прозрачное ценообразование",
-          body:
-            "Четкие тарифы, полная видимость условий и никаких скрытых платежей.",
+          title: "Являются ли указанные цены окончательными?",
+          body: "Да. Все цены отображаются прозрачно до оплаты — без скрытых комиссий и дополнительных платежей.",
         },
         {
-          title: "Многоязычная поддержка",
-          body:
-            "Помощь на русском, английском и армянском — от трансферов до особых запросов.",
+          title: "Можно ли объединить несколько услуг в одном бронировании?",
+          body: "Да. Вы можете собрать индивидуальный пакет, объединив проживание в отеле с трансферами, авиабилетами, страховкой, экскурсиями и развлечениями.",
         },
         {
-          title: "Быстрое повторное бронирование",
-          body:
-            "Сохраняйте предпочтения и возвращайтесь к поездке без лишних шагов.",
+          title: "Какие способы оплаты доступны?",
+          body: "Вы можете оплатить бронирование через Idram или воспользоваться RocketLine и распределить оплату на срок до 60 месяцев.",
+        },
+        {
+          title: "Как связаться со службой поддержки?",
+          body: "Наша служба поддержки доступна 24/7 на армянском, русском и английском языках и готова помочь с бронированиями, изменениями и любыми вопросами.",
         },
       ],
     },
@@ -3647,25 +3666,28 @@ const translations: Record<Locale, Translation> = {
     },
     home: {
       idram: {
-        title: "Отдыхайте сейчас, платите позже",
-        body: "Оплачивайте поездку через RocketLine и распределяйте платежи до 60 месяцев.",
-        alt: "Отдых",
+        title: "Путешествуйте сейчас — платите позже",
+        body: "Воспользуйтесь RocketLine и распределите оплату на срок до 60 месяцев.",
+        alt: "idram",
       },
-      efes:{
-        title: "Страховка для вашей поездки",
-        body: "Выберите туристическую страховку, чтобы защитить свой отдых, начиная всего от 3 500 драм.",
-        alt: "Туристическая страховка"
+
+      efes: {
+        title: "Туристическая страховка для вашего спокойствия",
+        body: "Выберите надежную туристическую страховку и наслаждайтесь поездкой — от 300 драмов в день.",
+        alt: "efes",
       },
-      flydubai:{
-        title: "Авиабилеты по лучшим ценам",
-        body: "Бронируйте прямые рейсы flydubai и получайте эксклюзивные скидки — только на megatours.am.",
-        alt: "flydubai"
+
+      flydubai: {
+        title: "Мгновенное бронирование авиабилетов",
+        body: "Бронируйте прямые рейсы flydubai всего за несколько шагов, экономя время и деньги.",
+        alt: "flydubai",
       },
-      yas:{
-        title: "Yas Island — остров приключений",
-        body: "Откройте для себя Yas Island в Абу-Даби с приоритетным доступом к тематическим паркам и аттракционам.",
-        alt: "Yas Island"
-      }
+
+      yas: {
+        title: "Незабываемые впечатления на Yas Island",
+        body: "Откройте для себя лучшие тематические парки мира — билеты от 30 000 драмов.",
+        alt: "Yas Island",
+      },
     },
     payment: {
       success: {

@@ -910,6 +910,270 @@ main {
       color: #fff;
       text-align: center;
     }
+
+    /* Map Picker Styles */
+    .map-picker-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      padding: 0.75em 1em;
+      min-height: 50px;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.15));
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      border-radius: 1em;
+      color: #fff;
+      font-weight: 600;
+      font-size: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(52, 211, 153, 0.25));
+        border-color: rgba(124, 242, 212, 0.6);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .material-symbols-rounded {
+        font-size: 1.3em;
+        font-variation-settings: 'FILL' 1;
+      }
+    }
+
+    .map-picker-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75em;
+      padding: 3em 2em;
+      color: #7cf2d4;
+      font-weight: 500;
+
+      .material-symbols-rounded {
+        font-size: 1.5em;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+    }
+  }
+
+  /* Map Picker Popover (full page) */
+  .map-picker-popover {
+    width: min(800px, 90vw);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-bottom: 0.75em;
+
+      &::before {
+        content: "map";
+        font-family: "Material Symbols Rounded";
+        font-size: 1em;
+        font-variation-settings: 'FILL' 1;
+        color: #7cf2d4;
+      }
+    }
+
+    .hotel-map-picker {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-radius: 1em;
+      overflow: hidden;
+      border: 1px solid rgba(124, 242, 212, 0.2);
+    }
+
+    .hotel-map-picker__map {
+      flex: 1;
+      min-height: 400px;
+      height: 100%;
+
+      @media screen and (max-width: 768px) {
+        min-height: 50vh;
+      }
+    }
+
+    .hotel-map-picker__info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5em;
+      padding: 0.75em 1em;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(52, 211, 153, 0.08));
+      border-bottom: 1px solid rgba(124, 242, 212, 0.15);
+      color: #94a3b8;
+      font-size: 0.9rem;
+
+      .material-symbols-rounded {
+        font-size: 1.2em;
+        color: #7cf2d4;
+        font-variation-settings: 'FILL' 1;
+      }
+    }
+
+    .hotel-map-picker--empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1em;
+      padding: 3em 2em;
+      color: #94a3b8;
+      text-align: center;
+
+      .material-symbols-rounded {
+        font-size: 3em;
+        opacity: 0.5;
+      }
+
+      p {
+        font-size: 0.95rem;
+      }
+    }
+  }
+
+  /* Hotel Map Picker Component */
+  .hotel-map-picker {
+    background: rgba(2, 6, 23, 0.98);
+  }
+
+  /* Hotel Marker Styles */
+  .hotel-marker {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .hotel-marker__pin {
+    cursor: pointer;
+    position: relative;
+  }
+
+  /* Hotel Marker Popup */
+  .hotel-marker-popup .leaflet-popup-content-wrapper {
+    background: rgba(2, 6, 23, 0.98) !important;
+    border: 1px solid rgba(124, 242, 212, 0.3) !important;
+    border-radius: 1em !important;
+    box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.5) !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .hotel-marker-popup .leaflet-popup-content {
+    margin: 0 !important;
+    min-width: 200px;
+  }
+
+  .hotel-marker-popup .leaflet-popup-tip {
+    background: rgba(2, 6, 23, 0.98) !important;
+    border: 1px solid rgba(124, 242, 212, 0.3) !important;
+    box-shadow: none !important;
+  }
+
+  .hotel-popup {
+    padding: 1em;
+    color: #e2e8f0;
+  }
+
+  .hotel-popup__header {
+    margin-bottom: 0.75em;
+  }
+
+  .hotel-popup__name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 0.35em 0;
+    line-height: 1.3;
+  }
+
+  .hotel-popup__rating {
+    display: flex;
+    gap: 0.15em;
+
+    .star-icon {
+      font-size: 0.9em;
+      color: #fbbf24;
+      font-variation-settings: 'FILL' 1;
+    }
+  }
+
+  .hotel-popup__select {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    width: 100%;
+    padding: 0.65em 1em;
+    background: linear-gradient(135deg, #10b981, #34d399);
+    border: none;
+    border-radius: 0.75em;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: linear-gradient(135deg, #059669, #10b981);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .material-symbols-rounded {
+      font-size: 1.2em;
+      font-variation-settings: 'FILL' 1;
+    }
+  }
+
+  /* Leaflet overrides for dark theme */
+  .leaflet-container {
+    background: #0f172a !important;
+  }
+
+  .leaflet-control-zoom {
+    border: 1px solid rgba(124, 242, 212, 0.3) !important;
+    border-radius: 0.75em !important;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .leaflet-control-zoom a {
+    background: rgba(2, 6, 23, 0.95) !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(124, 242, 212, 0.2) !important;
+    width: 32px !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    font-size: 1.1em !important;
+
+    &:hover {
+      background: rgba(16, 185, 129, 0.2) !important;
+      color: #7cf2d4 !important;
+    }
+  }
+
+  .leaflet-control-attribution {
+    background: rgba(2, 6, 23, 0.8) !important;
+    color: #64748b !important;
+    font-size: 0.7rem !important;
+    padding: 0.25em 0.5em !important;
+
+    a {
+      color: #7cf2d4 !important;
+    }
   }
 
   /* ==================== */
@@ -3479,6 +3743,26 @@ main.details{
     gap: 0.75em;
   }
 
+  .insurance-badges{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .insurance-badges .package-service__badge{
+    margin-top: 0;
+  }
+
+  .insurance-summary{
+    align-items: flex-start;
+    margin: 1.25rem 0;
+  }
+
+  .insurance-summary .package-service__meta.rate{
+    align-self: flex-start;
+  }
+
   .insurance-card{
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 1em;
@@ -5461,6 +5745,11 @@ input:focus-visible,
 select:focus-visible {
   outline-offset: 1px;
   outline: 2px solid #34d399e6;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 @keyframes pulse-glow {

@@ -1304,12 +1304,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         territoryPolicyLabel:
           insuranceSelection?.territoryPolicyLabel ?? territory?.policyLabel ?? "",
         travelCountries:
-          insuranceSelection?.travelCountries ?? destinationName ?? destinationCode ?? "",
+          insuranceSelection?.travelCountries ??
+          t.packageBuilder.insurance.defaultTravelCountry ??
+          "",
       });
       openPackageBuilder();
     },
     [
-      destinationName,
       insuranceSelection?.territoryCode,
       insuranceSelection?.territoryLabel,
       insuranceSelection?.territoryPolicyLabel,
@@ -1317,6 +1318,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       insuranceTerritories,
       hotelSelection?.checkInDate,
       hotelSelection?.checkOutDate,
+      t.packageBuilder.insurance.defaultTravelCountry,
       updateInsuranceSelection,
     ]
   );
@@ -1335,12 +1337,18 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     [insuranceTerritories, updateInsuranceSelection]
   );
 
-  const handleUpdateInsuranceCountries = useCallback(
-    (value: string) => {
-      updateInsuranceSelection({ travelCountries: value, price: null, currency: null });
-    },
-    [updateInsuranceSelection]
-  );
+  useEffect(() => {
+    if (!insuranceSelection?.selected) return;
+    const forcedCountry = t.packageBuilder.insurance.defaultTravelCountry;
+    if (!forcedCountry) return;
+    if (insuranceSelection.travelCountries === forcedCountry) return;
+    updateInsuranceSelection({ travelCountries: forcedCountry });
+  }, [
+    insuranceSelection?.selected,
+    insuranceSelection?.travelCountries,
+    t.packageBuilder.insurance.defaultTravelCountry,
+    updateInsuranceSelection,
+  ]);
 
   const handleRemoveInsurance = useCallback(() => {
     updatePackageBuilderState((prev) => ({
@@ -2171,7 +2179,12 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     const selectedPlanId = insuranceSelection?.planId ?? null;
     const selectedTerritory =
       insuranceSelection?.territoryCode ?? insuranceTerritories[0]?.code ?? "";
-    const travelCountries = insuranceSelection?.travelCountries ?? "";
+    const selectedPlan =
+      insurancePlans.find((plan) => plan.id === selectedPlanId) ?? null;
+    const selectedTerritoryLabel =
+      insuranceTerritories.find((territory) => territory.code === selectedTerritory)?.label ?? "";
+    const travelCountries = t.packageBuilder.insurance.defaultTravelCountry ?? "";
+    const showInsuranceDetails = insuranceSelection?.selected === true;
     const formatter = new Intl.NumberFormat(intlLocale);
     const insurancePriceLabel =
       typeof insuranceSelection?.price === "number" && insuranceSelection.currency
@@ -2181,9 +2194,49 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             intlLocale
           )
         : null;
+    const selectedCoverage = selectedPlan
+      ? `${formatter.format(selectedPlan.riskAmount)} ${selectedPlan.riskCurrency}`
+      : null;
+    const startLabel = formatFlightDate(hotelSelection?.checkInDate ?? null);
+    const endLabel = formatFlightDate(hotelSelection?.checkOutDate ?? null);
+    const hotelDateRange =
+      startLabel && endLabel
+        ? `${startLabel} — ${endLabel}`
+        : startLabel ?? endLabel ?? null;
+    const summaryTitle = selectedPlan?.title ?? t.packageBuilder.services.insurance;
+    const summaryDescription = showInsuranceDetails ? selectedPlan?.description ?? null : null;
+    const summaryQuote = showInsuranceDetails
+      ? insuranceQuoteLoading
+        ? t.packageBuilder.insurance.quoteLoading
+        : `${t.packageBuilder.insurance.quoteLabel}: ${insurancePriceLabel ?? "—"}`
+      : `${t.packageBuilder.insurance.quoteLabel}: —`;
 
     return (
       <>
+        <div className="insurance-badges">
+          <span className="package-service__badge">
+            <span className="material-symbols-rounded" aria-hidden="true">
+              shield_with_heart
+            </span>
+            EFES {t.packageBuilder.services.insurance}
+          </span>
+          {passengerSummary ? (
+            <span className="package-service__badge">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                group
+              </span>
+              {passengerSummary}
+            </span>
+          ) : null}
+          {hotelDateRange ? (
+            <span className="package-service__badge">
+              <span className="material-symbols-rounded" aria-hidden="true">
+                calendar_month
+              </span>
+              {hotelDateRange}
+            </span>
+          ) : null}
+        </div>
         <p className="service-builder__note">{t.packageBuilder.insurance.note}</p>
         <div className="insurance-options">
           {insurancePlans.map((plan) => {
@@ -2195,7 +2248,11 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                 type="button"
                 className={`insurance-card${isSelected ? " selected" : ""}`}
                 onClick={() => handleSelectInsurancePlan(plan)}
+                aria-pressed={isSelected}
               >
+                {isSelected ? (
+                  <span className="pill">{t.packageBuilder.selectedTag}</span>
+                ) : null}
                 <h5>{plan.title}</h5>
                 <p>{plan.description}</p>
                 <p>{t.packageBuilder.insurance.coverageLabel.replace("{amount}", coverage)}</p>
@@ -2224,8 +2281,8 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             <input
               className="checkout-input"
               value={travelCountries}
-              onChange={(event) => handleUpdateInsuranceCountries(event.target.value)}
-              placeholder={t.packageBuilder.insurance.travelCountriesPlaceholder}
+              readOnly
+              aria-readonly="true"
               disabled={!insuranceSelection?.selected}
             />
           </label>
@@ -2246,22 +2303,56 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             />
           </label>
         </div>
-        {insuranceSelection?.selected ? (
-          <>
-            {insuranceQuoteLoading ? (
-              <p className="service-builder__note">{t.packageBuilder.insurance.quoteLoading}</p>
+        <div className={`package-service__card insurance-summary${showInsuranceDetails ? " is-selected" : ""}`}>
+          <div>
+            <div className="package-service__route">{summaryTitle}</div>
+            {summaryDescription ? (
+              <div className="package-service__meta">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  info
+                </span>
+                {summaryDescription}
+              </div>
             ) : null}
-            {insurancePriceLabel ? (
-              <p className="service-builder__note">
-                {t.packageBuilder.insurance.quoteLabel}: {insurancePriceLabel}
-              </p>
+            {showInsuranceDetails && selectedCoverage ? (
+              <div className="package-service__meta">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  verified
+                </span>
+                {t.packageBuilder.insurance.coverageLabel.replace("{amount}", selectedCoverage)}
+              </div>
             ) : null}
-            {insuranceQuoteError ? (
-              <p className="checkout-error" role="alert">
-                {insuranceQuoteError}
-              </p>
+            {showInsuranceDetails && selectedTerritoryLabel ? (
+              <div className="package-service__meta">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  public
+                </span>
+                {t.packageBuilder.insurance.territoryLabel}: {selectedTerritoryLabel}
+              </div>
             ) : null}
-          </>
+            {showInsuranceDetails && travelCountries ? (
+              <div className="package-service__meta">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  flag
+                </span>
+                {t.packageBuilder.insurance.travelCountriesLabel}: {travelCountries}
+              </div>
+            ) : null}
+            {showInsuranceDetails && hotelDateRange ? (
+              <div className="package-service__meta">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  calendar_month
+                </span>
+                {hotelDateRange}
+              </div>
+            ) : null}
+          </div>
+          <div className="package-service__meta rate">{summaryQuote}</div>
+        </div>
+        {insuranceQuoteError ? (
+          <p className="checkout-error" role="alert">
+            {insuranceQuoteError}
+          </p>
         ) : null}
         {insuranceSelection?.selected ? (
           <button type="button" className="service-builder__cta" onClick={handleRemoveInsurance}>

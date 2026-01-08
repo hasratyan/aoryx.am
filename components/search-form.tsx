@@ -2,6 +2,7 @@
 
 import { FormEvent, useState, useMemo, useCallback, useEffect, useRef, useId } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Select, { StylesConfig, CSSObjectWithLabel, components as selectComponents } from "react-select";
 import type { SingleValue } from "react-select";
 import { DateRange, type Range, type RangeKeyDict } from "react-date-range";
@@ -14,6 +15,21 @@ import StarBorder from '@/components/StarBorder'
 import { postJson } from "@/lib/api-helpers";
 import type { AoryxSearchParams, HotelInfo } from "@/types/aoryx";
 import type { Locale as AppLocale } from "@/lib/i18n";
+import type { HotelMapPickerProps } from "@/components/hotel-map-picker";
+
+// Dynamically import the Map Picker to avoid SSR issues with Leaflet
+const HotelMapPicker = dynamic<HotelMapPickerProps>(
+  () => import("@/components/hotel-map-picker"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="map-picker-loading">
+        <span className="material-symbols-rounded">map</span>
+        <span>Loading map...</span>
+      </div>
+    ),
+  }
+);
 
 // Types
 type LocationOption = {
@@ -49,6 +65,8 @@ export type SearchCopy = {
   roomsLabel: string;
   datePlaceholder: string;
   unknownHotel: string;
+  pickOnMap?: string;
+  closeMap?: string;
   errors: {
     missingLocation: string;
     missingDates: string;
@@ -269,6 +287,11 @@ export default function SearchForm({
   const datePickerRef = useRef<HTMLDivElement | null>(null);
   const [showChildAges, setShowChildAges] = useState(false);
   const childAgesRef = useRef<HTMLDivElement | null>(null);
+  const mapPopoverRef = useRef<HTMLDivElement | null>(null);
+  const mapPopoverId = useMemo(
+    () => `map-picker-${reactSelectId.replace(/[^a-zA-Z0-9_-]/g, "")}`,
+    [reactSelectId],
+  );
   const [rooms, setRooms] = useState<RoomConfig[]>(() => {
     if (initialRooms && initialRooms.length > 0) {
       return initialRooms.map((room) => {
@@ -644,13 +667,24 @@ export default function SearchForm({
     if (!isFormDisabled) return;
     setShowDatePicker(false);
     setShowChildAges(false);
+    // Close map popover when form is disabled
+    mapPopoverRef.current?.hidePopover?.();
   }, [isFormDisabled]);
 
   useEffect(() => {
     if (!isCompact) return;
     setShowDatePicker(false);
     setShowChildAges(false);
+    // Close map popover when compact
+    mapPopoverRef.current?.hidePopover?.();
   }, [isCompact]);
+
+  // Handle hotel selection from map
+  const handleMapHotelSelect = useCallback((hotel: LocationOption) => {
+    setSelectedLocation(hotel);
+    // Close the popover after selection
+    mapPopoverRef.current?.hidePopover?.();
+  }, []);
 
   useEffect(() => {
     onRoomCountChange?.(rooms.length);
@@ -760,6 +794,49 @@ export default function SearchForm({
             }}
           />
         </div>
+      )}
+
+      {/* Pick on Map Button - only show when not hiding location fields */}
+      {!hideLocationFields && hotels.length > 0 && (
+        <>
+          {/* <button
+            type="button"
+            className="map-picker-btn"
+            popoverTarget={mapPopoverId}
+            disabled={isFormDisabled || hotelsLoading}
+            aria-label={copy.pickOnMap ?? "Pick on map"}
+            title={copy.pickOnMap ?? "Pick on map"}
+          >
+            <span className="material-symbols-rounded">map</span>
+            <span className="map-picker-btn__label">
+              {copy.pickOnMap ?? "Pick on map"}
+            </span>
+          </button> */}
+          <div
+            id={mapPopoverId}
+            popover="auto"
+            className="popover map-picker-popover"
+            ref={mapPopoverRef}
+          >
+            <h2>{copy.pickOnMap ?? "Pick on map"}</h2>
+            <HotelMapPicker
+              hotels={hotels}
+              selectedHotel={selectedLocation?.type === "hotel" ? selectedLocation : null}
+              onSelectHotel={handleMapHotelSelect}
+            />
+            <button
+              type="button"
+              className="close"
+              popoverTarget={mapPopoverId}
+              popoverTargetAction="hide"
+              aria-label={copy.closeMap ?? "Close map"}
+            >
+              <span className="material-symbols-rounded" aria-hidden="true">
+                close
+              </span>
+            </button>
+          </div>
+        </>
       )}
 
       {/* Date range */}
