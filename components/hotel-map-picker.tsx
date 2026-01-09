@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -24,33 +24,23 @@ export type HotelMapPickerProps = {
   onSelectHotel: (hotel: MapLocationOption) => void;
 };
 
-// Custom marker icons
-const createMarkerIcon = (isSelected: boolean, isHovered: boolean) => {
-  const color = isSelected ? "#10b981" : isHovered ? "#34d399" : "#1e40af";
-  const size = isSelected || isHovered ? 36 : 28;
+// Marker colors
+const MARKER_COLOR_DEFAULT = "#1e40af";
+const MARKER_COLOR_HOVER = "#34d399";
+const MARKER_COLOR_SELECTED = "#10b981";
+const MARKER_SIZE_DEFAULT = 28;
+const MARKER_SIZE_ACTIVE = 36;
+
+// Custom marker icons - uses CSS classes for state to avoid recreating icons
+const createMarkerIcon = (isSelected: boolean) => {
+  const color = isSelected ? MARKER_COLOR_SELECTED : MARKER_COLOR_DEFAULT;
+  const size = isSelected ? MARKER_SIZE_ACTIVE : MARKER_SIZE_DEFAULT;
   
   return L.divIcon({
-    className: "hotel-marker",
+    className: `hotel-marker ${isSelected ? "hotel-marker--selected" : ""}`,
     html: `
-      <div class="hotel-marker__pin" style="
-        width: ${size}px;
-        height: ${size}px;
-        background: ${color};
-        border: 3px solid white;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <span class="material-symbols-rounded" style="
-          transform: rotate(45deg);
-          color: white;
-          font-size: ${size * 0.5}px;
-          font-variation-settings: 'FILL' 1;
-        ">hotel</span>
+      <div class="hotel-marker__pin">
+        <span class="material-symbols-rounded">hotel</span>
       </div>
     `,
     iconSize: [size, size],
@@ -79,7 +69,7 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
-  const [hoveredHotel, setHoveredHotel] = useState<string | null>(null);
+  const hotelsRef = useRef<Map<string, MapLocationOption>>(new Map());
 
   // Filter hotels with valid coordinates
   const validHotels = useMemo(() => {
@@ -97,6 +87,22 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
     });
   }, [hotels]);
 
+  // Build a lookup map for hotels
+  useEffect(() => {
+    hotelsRef.current.clear();
+    validHotels.forEach((hotel) => {
+      hotelsRef.current.set(hotel.value, hotel);
+    });
+  }, [validHotels]);
+
+  // Stable callback for hotel selection
+  const handleHotelSelect = useCallback((hotelId: string) => {
+    const hotel = hotelsRef.current.get(hotelId);
+    if (hotel) {
+      onSelectHotel(hotel);
+    }
+  }, [onSelectHotel]);
+
   // Calculate map bounds from hotels
   const bounds = useMemo(() => {
     if (validHotels.length === 0) return null;
@@ -110,7 +116,7 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
     );
   }, [validHotels]);
 
-  // Initialize map
+  // Initialize map (only once)
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
     if (validHotels.length === 0) return;
@@ -125,8 +131,8 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
       scrollWheelZoom: true,
     });
 
-    // Add tile layer (OpenStreetMap)
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    // Add tile layer (OpenStreetMap light theme)
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       subdomains: "abcd",
       maxZoom: 19,
@@ -139,18 +145,15 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
 
     mapInstanceRef.current = map;
 
-    // Capture ref for cleanup
-    const currentMarkers = markersRef.current;
-
     return () => {
       map.remove();
       mapInstanceRef.current = null;
-      currentMarkers.clear();
+      markersRef.current.clear();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validHotels.length > 0]);
 
-  // Add/update markers
+  // Add markers (only when hotels change, not on hover/selection)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -162,61 +165,45 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
     // Add markers for each hotel
     validHotels.forEach((hotel) => {
       const isSelected = selectedHotel?.value === hotel.value;
-      const isHovered = hoveredHotel === hotel.value;
       
       const marker = L.marker([hotel.lat!, hotel.lng!], {
-        icon: createMarkerIcon(isSelected, isHovered),
-        zIndexOffset: isSelected ? 1000 : isHovered ? 500 : 0,
+        icon: createMarkerIcon(isSelected),
+        zIndexOffset: isSelected ? 1000 : 0,
       });
 
-      // Create popup content
+      // Create lightweight tooltip for hover (no image, just text)
       const rating = hotel.rating ?? 0;
-      const popupContent = `
-        <div class="hotel-popup">
-          <div class="hotel-popup__header">
-            <h4 class="hotel-popup__name">${hotel.label}</h4>
-            ${rating > 0 ? `<div class="hotel-popup__rating">${generateStars(rating)}</div>` : ""}
-          </div>
-          <button class="hotel-popup__select" data-hotel-id="${hotel.value}">
-            <span class="material-symbols-rounded">check_circle</span>
-            Select Hotel
-          </button>
+      const tooltipContent = `
+        <div class="hotel-tooltip">
+          <div class="hotel-tooltip__name">${hotel.label}</div>
+          ${rating > 0 ? `<div class="hotel-tooltip__rating">${generateStars(rating)}<span>${rating.toFixed(1)}</span></div>` : ""}
         </div>
       `;
 
-      marker.bindPopup(popupContent, {
-        className: "hotel-marker-popup",
-        closeButton: false,
-        autoPan: true,
+      marker.bindTooltip(tooltipContent, {
+        className: "hotel-marker-tooltip",
+        direction: "top",
+        offset: [0, -20],
+        opacity: 1,
       });
 
-      // Event handlers
-      marker.on("mouseover", () => {
-        setHoveredHotel(hotel.value);
-        marker.openPopup();
-      });
-
-      marker.on("mouseout", () => {
-        setHoveredHotel(null);
-      });
-
+      // Click handler - select the hotel
       marker.on("click", () => {
-        onSelectHotel(hotel);
+        handleHotelSelect(hotel.value);
       });
 
       marker.addTo(map);
       markersRef.current.set(hotel.value, marker);
     });
 
-    // Handle popup button clicks
+    // Handle popup button clicks (in case popup is clicked instead of marker)
     const handlePopupClick = (e: Event) => {
       const target = e.target as HTMLElement;
       const button = target.closest(".hotel-popup__select") as HTMLElement;
       if (button) {
         const hotelId = button.dataset.hotelId;
-        const hotel = validHotels.find((h) => h.value === hotelId);
-        if (hotel) {
-          onSelectHotel(hotel);
+        if (hotelId) {
+          handleHotelSelect(hotelId);
         }
       }
     };
@@ -226,20 +213,16 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
     return () => {
       map.getContainer().removeEventListener("click", handlePopupClick);
     };
-  }, [validHotels, selectedHotel, hoveredHotel, onSelectHotel]);
+  }, [validHotels, selectedHotel?.value, handleHotelSelect]);
 
-  // Update marker icons when selection or hover changes
+  // Update only the selected marker's icon when selection changes (lightweight update)
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
     markersRef.current.forEach((marker, hotelId) => {
       const isSelected = selectedHotel?.value === hotelId;
-      const isHovered = hoveredHotel === hotelId;
-      marker.setIcon(createMarkerIcon(isSelected, isHovered));
-      marker.setZIndexOffset(isSelected ? 1000 : isHovered ? 500 : 0);
+      marker.setIcon(createMarkerIcon(isSelected));
+      marker.setZIndexOffset(isSelected ? 1000 : 0);
     });
-  }, [selectedHotel, hoveredHotel]);
+  }, [selectedHotel?.value]);
 
   if (validHotels.length === 0) {
     return (

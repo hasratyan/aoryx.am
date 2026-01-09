@@ -984,8 +984,9 @@ main {
 
   /* Map Picker Popover (full page) */
   .map-picker-popover {
-    width: min(800px, 90vw);
+    width: min(1200px, 90vw);
     max-height: 85vh;
+    min-height: 85vh;
     display: flex;
     flex-direction: column;
 
@@ -1078,14 +1079,104 @@ main {
   .hotel-marker__pin {
     cursor: pointer;
     position: relative;
+    width: 28px;
+    height: 28px;
+    background: #1e40af;
+    border: 3px solid white;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .material-symbols-rounded {
+      transform: rotate(45deg);
+      color: white;
+      font-size: 14px;
+      font-variation-settings: 'FILL' 1;
+    }
   }
 
-  /* Hotel Marker Popup */
+  /* Hover state - use CSS, not React state */
+  .hotel-marker__pin:hover {
+    width: 36px;
+    height: 36px;
+    background: #34d399;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+
+    .material-symbols-rounded {
+      font-size: 18px;
+    }
+  }
+
+  /* Selected state */
+  .hotel-marker--selected .hotel-marker__pin {
+    width: 36px;
+    height: 36px;
+    background: #10b981;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+
+    .material-symbols-rounded {
+      font-size: 18px;
+    }
+  }
+
+  /* Hotel Marker Tooltip (lightweight hover) */
+  .hotel-marker-tooltip {
+    background: #fff !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 0.5em !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    padding: 0 !important;
+
+    &::before {
+      border-top-color: #fff !important;
+    }
+  }
+
+  .hotel-tooltip {
+    padding: 0.5em 0.75em;
+  }
+
+  .hotel-tooltip__name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hotel-tooltip__rating {
+    display: flex;
+    align-items: center;
+    gap: 0.15em;
+    margin-top: 0.25em;
+
+    .star-icon {
+      font-size: 0.8em;
+      color: #fbbf24;
+      font-variation-settings: 'FILL' 1;
+    }
+
+    span:last-child {
+      margin-left: 0.25em;
+      font-size: 0.8em;
+      font-weight: 600;
+      color: #64748b;
+    }
+  }
+
+  /* Hotel Marker Popup (click - not used currently) */
   .hotel-marker-popup .leaflet-popup-content-wrapper {
-    background: rgba(2, 6, 23, 0.98) !important;
-    border: 1px solid rgba(124, 242, 212, 0.3) !important;
-    border-radius: 1em !important;
-    box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.5) !important;
+    background: #fff !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 0.75em !important;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2) !important;
     padding: 0 !important;
     overflow: hidden;
   }
@@ -1096,14 +1187,41 @@ main {
   }
 
   .hotel-marker-popup .leaflet-popup-tip {
-    background: rgba(2, 6, 23, 0.98) !important;
-    border: 1px solid rgba(124, 242, 212, 0.3) !important;
+    background: #fff !important;
+    border: none !important;
     box-shadow: none !important;
   }
 
   .hotel-popup {
     padding: 1em;
-    color: #e2e8f0;
+    color: #334155;
+  }
+
+  .hotel-popup {
+    color: #334155;
+  }
+
+  .hotel-popup--has-image {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hotel-popup__image {
+    width: 100%;
+    height: 121px;
+    overflow: hidden;
+    margin: -1em -1em 0.75em -1em;
+    width: calc(100% + 2em);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .hotel-popup:not(.hotel-popup--has-image) {
+    padding: 1em;
   }
 
   .hotel-popup__header {
@@ -1113,85 +1231,75 @@ main {
   .hotel-popup__name {
     font-size: 1rem;
     font-weight: 700;
-    color: #fff;
+    color: #0f172a;
     margin: 0 0 0.35em 0;
-    line-height: 1.3;
   }
 
   .hotel-popup__rating {
     display: flex;
+    align-items: center;
     gap: 0.15em;
 
     .star-icon {
-      font-size: 0.9em;
       color: #fbbf24;
-      font-variation-settings: 'FILL' 1;
     }
   }
 
+  .hotel-popup__rating-text {
+    margin-left: 0.35em;
+    font-weight: 600;
+    color: #64748b;
+  }
+
   .hotel-popup__select {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5em;
     width: 100%;
-    padding: 0.65em 1em;
     background: linear-gradient(135deg, #10b981, #34d399);
-    border: none;
     border-radius: 0.75em;
     color: #0f172a;
-    font-weight: 700;
     font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
 
     &:hover {
       background: linear-gradient(135deg, #059669, #10b981);
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
     }
-
-    .material-symbols-rounded {
-      font-size: 1.2em;
-      font-variation-settings: 'FILL' 1;
-    }
   }
 
-  /* Leaflet overrides for dark theme */
+  /* Leaflet overrides */
   .leaflet-container {
-    background: #0f172a !important;
+    background: #f8fafc !important;
   }
 
   .leaflet-control-zoom {
-    border: 1px solid rgba(124, 242, 212, 0.3) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
     border-radius: 0.75em !important;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
   }
 
   .leaflet-control-zoom a {
-    background: rgba(2, 6, 23, 0.95) !important;
-    color: #e2e8f0 !important;
-    border-color: rgba(124, 242, 212, 0.2) !important;
+    background: #fff !important;
+    color: #334155 !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
     width: 32px !important;
     height: 32px !important;
     line-height: 32px !important;
     font-size: 1.1em !important;
 
     &:hover {
-      background: rgba(16, 185, 129, 0.2) !important;
-      color: #7cf2d4 !important;
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #059669 !important;
     }
   }
 
   .leaflet-control-attribution {
-    background: rgba(2, 6, 23, 0.8) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
     color: #64748b !important;
     font-size: 0.7rem !important;
     padding: 0.25em 0.5em !important;
 
     a {
-      color: #7cf2d4 !important;
+      color: #10b981 !important;
     }
   }
 
@@ -1817,12 +1925,7 @@ main {
   }
 
   #yas {
-    background: 
-      url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
-      url("/images/logos/seaworld.svg") right 28% bottom 10% / 130px no-repeat, 
-      url("/images/logos/ferrari-world.svg") right 15% bottom 5% / 105px no-repeat, 
-      url("/images/logos/yas-waterworld.svg") right 43% bottom 10% / 130px no-repeat, 
-      linear-gradient(145deg, #eee, #fff) center / cover border-box;
+    background: linear-gradient(145deg, #eee, #fff) center / cover border-box;
     box-shadow: 0 0 100px #ccc4;
 
     &::after{
@@ -1835,23 +1938,42 @@ main {
       top: 0;
       left: 0;
       z-index: -1;
-      mask-image: linear-gradient(170deg, #000 35%, #0000 65%);
+      mask-image: radial-gradient(ellipse at bottom 0 right 0, #0001 45%, #000000 70%);
       mask-size: 100% 100%;
       mask-repeat: no-repeat;
+
+      @media screen and (min-width: 1024px) and (max-width: 1350) {
+        mask-image: radial-gradient(ellipse at bottom 0 right 20%, #0001 45%, #000000 70%);
+      }
     }
 
-    @media screen and (min-width: 1024px) and (max-width: 1350) {
-      background: 
-      url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
-      url("/images/logos/seaworld.svg") right 40% bottom 10% / 130px no-repeat, 
-      url("/images/logos/ferrari-world.svg") right 21% bottom 5% / 105px no-repeat, 
-      url("/images/logos/yas-waterworld.svg") right 63% bottom 10% / 130px no-repeat, 
-      linear-gradient(145deg, #eee, #fff) center / cover border-box;
+    &::before{
+      content: "";
+      background:
+        url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
+        url("/images/logos/seaworld.svg") right 28% bottom 10% / 130px no-repeat, 
+        url("/images/logos/ferrari-world.svg") right 15% bottom 5% / 105px no-repeat, 
+        url("/images/logos/yas-waterworld.svg") right 43% bottom 10% / 130px no-repeat;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+
+      @media screen and (min-width: 1024px) and (max-width: 1350) {
+        background: 
+        url("/images/logos/warner-bros.svg") right 3% bottom 10% / 105px no-repeat, 
+        url("/images/logos/seaworld.svg") right 40% bottom 10% / 130px no-repeat, 
+        url("/images/logos/ferrari-world.svg") right 21% bottom 5% / 105px no-repeat, 
+        url("/images/logos/yas-waterworld.svg") right 63% bottom 10% / 130px no-repeat, 
+      }
+
+       @media screen and (max-width: 1024px) {
+        background: none, 
+      }
     }
 
     @media screen and (max-width: 1024px) {
-      background: linear-gradient(145deg, #eee, #fff) center / cover border-box;
-
       &::after{
         mask-image: none;
       }
@@ -1867,15 +1989,14 @@ main {
       grid-template-columns: auto;
 
       h2{
-        text-shadow: 0 0 50px #000, 0 0 40px #000, 0 0 30px #000, 0 0 20px #000, 0 0 10px #000;
-        filter: brightness(2);
+        text-shadow: 0 0 20px #000, 0 0 10px #000;
       }
       p{
-        text-shadow: 0 0 70px #000, 0 0 60px #000, 0 0 50px #000, 0 0 40px #000, 0 0 30px #000, 0 0 20px #000, 0 0 10px #000;
+        text-shadow:0 0 40px #000, 0 0 30px #000, 0 0 20px #000, 0 0 10px #000;
         filter: brightness(2);
 
       @media screen and (max-width: 1024px) {
-          text-shadow: 0 0 40px #000, 0 0 35px #000, 0 0 30px #000, 0 0 25px #000, 0 0 20px #000, 0 0 15px #000, 0 0 10px #000;
+          text-shadow: 0 0 30px #000, 0 0 25px #000, 0 0 20px #000, 0 0 15px #000, 0 0 10px #000;
         }
       }
     }

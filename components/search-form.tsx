@@ -40,6 +40,8 @@ type LocationOption = {
   parentDestinationId?: string;
   lat?: number;
   lng?: number;
+  rating?: number;
+  imageUrl?: string;
 };
 
 type RoomConfig = {
@@ -380,6 +382,8 @@ export default function SearchForm({
             label: hotel.name ?? hotel.systemId ?? copy.unknownHotel,
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
+            rating: typeof hotel.rating === "number" ? hotel.rating : undefined,
+            imageUrl: hotel.imageUrl ?? undefined,
             type: "hotel",
             parentDestinationId: presetDestinationOption.rawId ?? presetDestinationOption.value,
           }))
@@ -437,6 +441,8 @@ export default function SearchForm({
             label: hotel.name ?? hotel.systemId ?? copy.unknownHotel,
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
+            rating: typeof hotel.rating === "number" ? hotel.rating : undefined,
+            imageUrl: hotel.imageUrl ?? undefined,
             type: "hotel",
             parentDestinationId: destination.rawId ?? destination.value,
           }))
@@ -477,6 +483,8 @@ export default function SearchForm({
             label: hotel.name ?? hotel.systemId ?? copy.unknownHotel,
             lat: typeof hotel.latitude === "number" ? hotel.latitude : undefined,
             lng: typeof hotel.longitude === "number" ? hotel.longitude : undefined,
+            rating: typeof hotel.rating === "number" ? hotel.rating : undefined,
+            imageUrl: hotel.imageUrl ?? undefined,
             type: "hotel",
             parentDestinationId: selectedLocation.rawId ?? selectedLocation.value,
           }))
@@ -812,32 +820,30 @@ export default function SearchForm({
       )}
 
       {!hideLocationFields && hotels.length > 0 && (
-        <>
-          <div
-            id={mapPopoverId}
-            popover="auto"
-            className="popover map-picker-popover"
-            ref={mapPopoverRef}
+        <div
+          id={mapPopoverId}
+          popover="auto"
+          className="popover map-picker-popover"
+          ref={mapPopoverRef}
+        >
+          <h2>{copy.pickOnMap ?? "Pick on map"}</h2>
+          <HotelMapPicker
+            hotels={hotels}
+            selectedHotel={selectedLocation?.type === "hotel" ? selectedLocation : null}
+            onSelectHotel={handleMapHotelSelect}
+          />
+          <button
+            type="button"
+            className="close"
+            popoverTarget={mapPopoverId}
+            popoverTargetAction="hide"
+            aria-label={copy.closeMap ?? "Close map"}
           >
-            <h2>{copy.pickOnMap ?? "Pick on map"}</h2>
-            <HotelMapPicker
-              hotels={hotels}
-              selectedHotel={selectedLocation?.type === "hotel" ? selectedLocation : null}
-              onSelectHotel={handleMapHotelSelect}
-            />
-            <button
-              type="button"
-              className="close"
-              popoverTarget={mapPopoverId}
-              popoverTargetAction="hide"
-              aria-label={copy.closeMap ?? "Close map"}
-            >
-              <span className="material-symbols-rounded" aria-hidden="true">
-                close
-              </span>
-            </button>
-          </div>
-        </>
+            <span className="material-symbols-rounded" aria-hidden="true">
+              close
+            </span>
+          </button>
+        </div>
       )}
 
       {/* Date range */}
