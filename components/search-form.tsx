@@ -290,6 +290,8 @@ export default function SearchForm({
   const [showChildAges, setShowChildAges] = useState(false);
   const childAgesRef = useRef<HTMLDivElement | null>(null);
   const mapPopoverRef = useRef<HTMLDivElement | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [supportsPopover, setSupportsPopover] = useState(false);
   const mapPopoverId = useMemo(
     () => `map-picker-${reactSelectId.replace(/[^a-zA-Z0-9_-]/g, "")}`,
     [reactSelectId],
@@ -675,6 +677,7 @@ export default function SearchForm({
     if (!isFormDisabled) return;
     setShowDatePicker(false);
     setShowChildAges(false);
+    setIsMapOpen(false);
     // Close map popover when form is disabled
     mapPopoverRef.current?.hidePopover?.();
   }, [isFormDisabled]);
@@ -683,6 +686,7 @@ export default function SearchForm({
     if (!isCompact) return;
     setShowDatePicker(false);
     setShowChildAges(false);
+    setIsMapOpen(false);
     // Close map popover when compact
     mapPopoverRef.current?.hidePopover?.();
   }, [isCompact]);
@@ -697,6 +701,33 @@ export default function SearchForm({
   useEffect(() => {
     onRoomCountChange?.(rooms.length);
   }, [rooms.length, onRoomCountChange]);
+
+  useEffect(() => {
+    setSupportsPopover(
+      typeof HTMLElement !== "undefined" &&
+        "showPopover" in HTMLElement.prototype
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!supportsPopover) return;
+    const popover = mapPopoverRef.current;
+    if (!popover) return;
+    const handleToggle = (event: Event) => {
+      const nextState = (event as { newState?: "open" | "closed" }).newState;
+      if (nextState === "open") {
+        setIsMapOpen(true);
+        return;
+      }
+      if (nextState === "closed") {
+        setIsMapOpen(false);
+      }
+    };
+    popover.addEventListener("toggle", handleToggle);
+    return () => {
+      popover.removeEventListener("toggle", handleToggle);
+    };
+  }, [supportsPopover]);
 
   const combinedOptions = useMemo(() => {
     const merged = [...destinations, ...hotels];
@@ -809,6 +840,7 @@ export default function SearchForm({
               disabled={isFormDisabled || hotelsLoading}
               aria-label={copy.pickOnMap ?? "Pick on map"}
               title={copy.pickOnMap ?? "Pick on map"}
+              onClick={() => setIsMapOpen(true)}
             >
               <span className="material-symbols-rounded">map</span>
               <span className="map-picker-label">
@@ -827,17 +859,25 @@ export default function SearchForm({
           ref={mapPopoverRef}
         >
           <h2>{copy.pickOnMap ?? "Pick on map"}</h2>
-          <HotelMapPicker
-            hotels={hotels}
-            selectedHotel={selectedLocation?.type === "hotel" ? selectedLocation : null}
-            onSelectHotel={handleMapHotelSelect}
-          />
+          {isMapOpen ? (
+            <HotelMapPicker
+              hotels={hotels}
+              selectedHotel={selectedLocation?.type === "hotel" ? selectedLocation : null}
+              onSelectHotel={handleMapHotelSelect}
+            />
+          ) : (
+            <div className="map-picker-loading">
+              <span className="material-symbols-rounded">map</span>
+              <span>Loading map...</span>
+            </div>
+          )}
           <button
             type="button"
             className="close"
             popoverTarget={mapPopoverId}
             popoverTargetAction="hide"
             aria-label={copy.closeMap ?? "Close map"}
+            onClick={() => setIsMapOpen(false)}
           >
             <span className="material-symbols-rounded" aria-hidden="true">
               close
