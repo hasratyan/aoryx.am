@@ -16,7 +16,7 @@
     "clsx": "^2.1.1",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^12.24.10",
+    "framer-motion": "^12.25.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
     "material-symbols": "^0.40.2",
