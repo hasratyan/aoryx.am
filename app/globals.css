@@ -2325,14 +2325,18 @@ footer{
 
       .social{
         border: 1px solid #fff3;
-        border-radius: 1em;
+        border-radius: 1.5em;
         gap: 1em;
         padding: 1em;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
 
         @media screen and (max-width: 1024px) {
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+
+        @media screen and (max-width: 768px) {
+          grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
         }
 
         legend{
@@ -2344,11 +2348,11 @@ footer{
           color: #e2e8f0;
           background: #0f172a99;
           border: 1px solid #ffffff1f;
-          border-radius: 1.5em;
+          border-radius: 1.25em;
           align-items: center;
           justify-content: center;
           gap: .5em;
-          padding: .5em .8em;
+          padding: .7em 1em;
           transition: transform .2s, background .2s, border-color .2s, color .2s;
           display: inline-flex;
 
