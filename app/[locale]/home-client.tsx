@@ -265,14 +265,18 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
                   <div className="inner">
                     <div className="meta">
                       <span className="badge">{offer.badge}</span>
-                      <span className="eyebrow" style={{ color: "#cbd5e1" }}>
-                        {t.labels.exclusive}
+                      <span className="eyebrow">
+                        <span className="material-symbols-rounded">diamond</span>{t.labels.exclusive}
                       </span>
                     </div>
                     <h3>{offer.title}</h3>
                     <p>{offer.description}</p>
                     <button type="button">
-                      {offer.cta} <span className="material-symbols-rounded">arrow_forward</span>
+                      <span className="offer-cta-text">{offer.cta}</span>
+                      <span className="offer-cta-hover" aria-hidden="true">
+                        {offer.soon}
+                      </span>
+                      <span className="material-symbols-rounded">arrow_forward</span>
                     </button>
                   </div>
                 </div>

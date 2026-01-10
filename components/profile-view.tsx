@@ -345,6 +345,19 @@ export default function ProfileView({
                       </div>
                       <div className="profile-favorite-body">
                         <div className="profile-item-header">
+                          {item.imageUrl ? (
+                            <Image
+                              className="profile-favorite-inline-image"
+                              src={item.imageUrl}
+                              alt={item.name ?? item.hotelCode}
+                              width={36}
+                              height={36}
+                            />
+                          ) : (
+                            <span className="profile-favorite-inline-icon material-symbols-rounded" aria-hidden="true">
+                              hotel
+                            </span>
+                          )}
                           <div>
                             <h3>{item.name ?? item.hotelCode}</h3>
                             <p className="profile-item-meta">

@@ -242,7 +242,7 @@ export type Translation = {
     stats: { value: string; label: string; icon: string }[];
   };
   exclusives: {
-    offers: { title: string; badge: string; description: string; cta: string }[];
+    offers: { title: string; badge: string; description: string; cta: string; soon: string }[];
   };
   featured: { title: string; subtitle: string; cta: string };
   faq: {
@@ -272,6 +272,9 @@ export type Translation = {
     refundPolicy: string;
     securityPolicy: string;
     b2bPartnership: string;
+    followUs: string;
+    poweredBy: string;
+    copyright: string;
   };
   home: {
     idram: {
@@ -1216,22 +1219,25 @@ const translations: Record<Locale, Translation> = {
     exclusives: {
       offers: [
         {
-          title: "Dubai Marina ֆլեշ-սեյլ",
-          badge: "-18% այս շաբաթ",
-          description: "Արևածագային սյուիտներ, տանիքավեր լողավազան և մարինայի տեսարաններ՝ սահմանափակ գներով",
-          cta: "Դիտել Marina stay-երը",
+          title: "Դուբայ",
+          badge: "Ամենապահանջված",
+          description: "Ժամանակակից քաղաք, լյուքս հյուրանոցներ, շոփինգ, անապատային սաֆարի և ծովափ։",
+          cta: "Դիտել Դուբայի առաջարկները",
+          soon: "Շուտով"
         },
         {
-          title: "Աբու Դաբի մշակութային փախուստ",
-          badge: "Թանգարաններ և ավազաթմբեր",
-          description: "Saadiyat վիլլաներ՝ նախաճաշ, ուշ դուրսգրում և Louvre add-on-ներով",
-          cta: "Բացել Աբու Դաբի առաջարկները",
+          title: "Աբու Դաբի",
+          badge: "Մշակույթ և ընտանիք",
+          description: "Մշակութային տեսարժան վայրեր, Yas Island, թեմատիկ այգիներ և հանգիստ լողափեր։",
+          cta: "Դիտել Աբու Դաբի առաջարկները",
+          soon: "Շուտով"
         },
         {
-          title: "Staycation Palm-ում",
-          badge: "Միայն տեղացիների համար",
-          description: "Palm Jumeirah հանգստյան օրեր՝ մասնավոր լողափ և կոմպլիմենտար բրանչ",
-          cta: "Ակտիվացնել Palm perks",
+          title: "Շարժա",
+          badge: "Լավ գին–որակ",
+          description: "Ավանդական մթնոլորտ, թանգարաններ, մաքուր լողափեր և մատչելի հանգիստ։",
+          cta: "Դիտել Շարժայի առաջարկները",
+          soon: "Շուտով"
         },
       ],
     },
@@ -1244,7 +1250,7 @@ const translations: Record<Locale, Translation> = {
     title: "Հաճախ տրվող հարցեր",
     items: [
       {
-        title: "Ինչ ծառայություններ կարող եմ ամրագրել Megatours-ում՞",
+        title: "Ի՞նչ ծառայություններ կարող եմ ամրագրել Megatours-ում",
         body: "Megatours-ում կարող եք ամրագրել հյուրանոցներ ԱՄԷ-ում, ավիատոմսեր, օդանավակայանային տրանսֆերներ, էքսկուրսիաներ, ճանապարհորդական ապահովագրություն և թեմատիկ պարկերի տոմսեր՝ մեկ հարթակում։",
       },
       {
@@ -1293,6 +1299,9 @@ const translations: Record<Locale, Translation> = {
       refundPolicy: "Վերադարձի քաղաքականություն",
       securityPolicy: "Գաղտնիության քաղաքականություն",
       b2bPartnership: "B2B համագործակցություն",
+      followUs: "Հետևեք մեզ",
+      poweredBy: "«MEGATOURS»-ը համարվում է «ՄԵԳԱՓՐՈՋԵՔԹՍ» ՍՊԸ-ի նախագիծը",
+      copyright: "Բոլոր իրավունքները պաշտպանված են։",
     },
     home: {
       idram: {
@@ -1406,7 +1415,7 @@ const translations: Record<Locale, Translation> = {
             items: [
               "Վեճերի դեպքում նախ անհրաժեշտ է դիմել համակարգի աջակցությանը գրավոր։",
               "Chargeback-ի դեպքում կարող են կիրառվել լրացուցիչ ստուգումներ և ժամկետներ։",
-              "Մենք չենք պատասխանատու բանկային միջնորդավճարների, փոխարժեքների կամ երրորդ կողմի կանոնների համար՝ օրենքով թույլատրելի սահմաններում։",
+              "Մենք պատասխանատու չենք բանկային միջնորդավճարների, փոխարժեքների կամ երրորդ կողմի կանոնների համար՝ օրենքով թույլատրելի սահմաններում։",
             ],
           },
         ],
@@ -2398,22 +2407,25 @@ const translations: Record<Locale, Translation> = {
     exclusives: {
       offers: [
         {
-          title: "Dubai Marina Flash Sale",
-          badge: "-18% This Week",
-          description: "Sunrise suites, rooftop pools, and breathtaking marina views—limited nightly rates.",
-          cta: "View Marina Stays",
+          title: "Dubai",
+          badge: "Most popular",
+          description: "Modern city with luxury hotels, shopping, desert safari and beautiful beaches.",
+          cta: "View Dubai offers",
+          soon: "Coming soon",
         },
         {
-          title: "Abu Dhabi Culture Escape",
-          badge: "Museums & Dunes",
-          description: "Saadiyat villas with gourmet breakfast, late checkout, and Louvre experience add-ons.",
-          cta: "Explore Abu Dhabi",
+          title: "Abu Dhabi",
+          badge: "Culture & family",
+          description: "Cultural landmarks, Yas Island, theme parks and relaxing beaches for families.",
+          cta: "View Abu Dhabi offers",
+          soon: "Coming soon",
         },
         {
-          title: "Palm Jumeirah Staycation",
-          badge: "Local Favorites",
-          description: "Exclusive weekends on the Palm with private beach access and complimentary brunch.",
-          cta: "Unlock Palm Perks",
+          title: "Sharjah",
+          badge: "Best value",
+          description: "Cultural capital with museums, clean beaches and a calm, family-friendly atmosphere.",
+          cta: "View Sharjah offers",
+          soon: "Coming soon",
         },
       ],
     },
@@ -2476,6 +2488,9 @@ const translations: Record<Locale, Translation> = {
       refundPolicy: "Refund Policy",
       securityPolicy: "Privacy Policy",
       b2bPartnership: "B2B Partnership",
+      followUs: "Follow Us",
+      poweredBy: '"MEGATOURS" is a project of "MEGAPROJECTS" LLC',
+      copyright: "All rights reserved.",
     },
     home: {
       idram: {
@@ -3585,22 +3600,25 @@ const translations: Record<Locale, Translation> = {
     exclusives: {
       offers: [
         {
-          title: "Флеш-распродажа в Dubai Marina",
-          badge: "-18% на этой неделе",
-          description: "Сьюты с рассветом, rooftop-бассейны и виды на марину — ограниченные цены",
-          cta: "Смотреть отели в Marina",
+          title: "Дубай",
+          badge: "Самое популярное",
+          description: "Современный город, люксовые отели, шопинг, сафари и красивые пляжи.",
+          cta: "Посмотреть предложения Дубая",
+          soon: "Скоро",
         },
         {
-          title: "Культурный уикенд в Абу-Даби",
-          badge: "Музеи и дюны",
-          description: "Виллы на Saadiyat с завтраком, поздним выездом и опцией Louvre",
-          cta: "Открыть офферы Абу-Даби",
+          title: "Абу-Даби",
+          badge: "Культура и семья",
+          description: "Культурные достопримечательности, Yas Island, парки развлечений и пляжи.",
+          cta: "Посмотреть предложения Абу-Даби",
+          soon: "Скоро",
         },
         {
-          title: "Staycation на Palm",
-          badge: "Для резидентов",
-          description: "Palm Jumeirah с приватным пляжем и комплиментарным бранчем",
-          cta: "Активировать Palm perks",
+          title: "Шарджа",
+          badge: "Лучшее соотношение цены",
+          description: "Культурная столица с музеями, чистыми пляжами и спокойной атмосферой.",
+          cta: "Посмотреть предложения Шарджи",
+          soon: "Скоро",
         },
       ],
     },
@@ -3663,6 +3681,9 @@ const translations: Record<Locale, Translation> = {
       refundPolicy: "Политика возврата",
       securityPolicy: "Политика конфиденциальности",
       b2bPartnership: "B2B сотрудничество",
+      followUs: "Следите за нами",
+      poweredBy: '"MEGATOURS" — проект "МЕГАПРОДЖЕКТС" ООО',
+      copyright: "Все права защищены.",
     },
     home: {
       idram: {

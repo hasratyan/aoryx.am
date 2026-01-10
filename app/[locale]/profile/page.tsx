@@ -52,8 +52,9 @@ type UserProfile = {
 const resolveLocale = (value: string | undefined) =>
   locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
 
-export async function generateMetadata({ params }: { params: { locale: string } }) {
-  const resolvedLocale = resolveLocale(params.locale);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = resolveLocale(locale);
   const t = getTranslations(resolvedLocale);
   return buildLocalizedMetadata({
     locale: resolvedLocale,
