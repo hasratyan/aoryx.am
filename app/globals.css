@@ -2301,6 +2301,7 @@ footer{
 
             @media screen and (max-width: 670px) {
               flex: 45%;
+              padding: 0.7em;
             }
 
             @media screen and (max-width: 400px) {

@@ -124,7 +124,7 @@ export default function Footer() {
             <Link href={"https://b2b.megatours.am"} target={"_blank"}>{t.footer.b2bPartnership}</Link>
           </nav>
           <div className="payment">
-            <Images src="/images/icons/payment-methods.png" width="360" height="50" unoptimized alt="Payment methods" />
+            <Images src="/images/icons/payment-methods.png" width="370" height="50" unoptimized alt="Payment methods" />
           </div>
         </div>
         <div className="copyright">
