@@ -118,9 +118,7 @@ export default function Footer() {
         <div>
           <nav>
             <Link href={`/${locale}/refund-policy`}>{t.footer.refundPolicy}</Link>
-            •
             <Link href={`/${locale}/privacy-policy`}>{t.footer.securityPolicy}</Link>
-            •
             <Link href={"https://b2b.megatours.am"} target={"_blank"}>{t.footer.b2bPartnership}</Link>
           </nav>
           <div className="payment">

@@ -2241,23 +2241,11 @@ main {
 
 footer{
   color: #fff;
-  position: relative;
   padding-block: 2.250em 2.5em;
-  border-top: 1px solid rgba(124, 242, 212, 0.2);
-  background:
-    radial-gradient(1200px 320px at 20% 0%, rgba(34, 211, 238, 0.2), transparent 60%),
-    radial-gradient(900px 300px at 85% 10%, rgba(124, 242, 212, 0.15), transparent 60%),
-    #020617;
+  border-top: 1px solid #0004;
+  background: #0004;
   margin-top: 1.5em;
   overflow: hidden;
-
-  &::before{
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.9));
-    pointer-events: none;
-  }
 
   .container {
     position: relative;
@@ -2396,11 +2384,19 @@ footer{
         display: flex;
         flex-wrap: wrap;
         justify-content: end;
-        gap: 0.5em;
+        gap: 0.50em;
         color: #94a3b8;
         a{
           opacity: 0.8;
           transition: .25s ease;
+          white-space: nowrap;
+
+          &:not(:last-child)::after {
+            content: "•";
+            display: inline-block;
+            padding-left: 0.5em;
+          }
+
           &:hover{
             opacity: 1;
           }
