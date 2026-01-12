@@ -51,6 +51,10 @@ export type Translation = {
     unknownHotel: string;
     pickOnMap: string;
     closeMap: string;
+    mapLoading: string;
+    mapEmpty: string;
+    mapHotelsCount: PluralForms;
+    mapSelectHint: string;
     errors: {
       missingLocation: string;
       missingDates: string;
@@ -945,6 +949,10 @@ const translations: Record<Locale, Translation> = {
       unknownHotel: "Անհայտ հյուրանոց",
       pickOnMap: "Ընտրել քարտեզից",
       closeMap: "Փակել քարտեզը",
+      mapLoading: "Քարտեզը բեռնվում է...",
+      mapEmpty: "Տեղադրության տվյալներով հյուրանոցներ չեն գտնվել",
+      mapHotelsCount: { one: "{count} հյուրանոց", other: "{count} հյուրանոց" },
+      mapSelectHint: "Ընտրելու համար սեղմեք նշիչի վրա",
       errors: {
         missingLocation: "Խնդրում ենք ընտրել ուղղություն կամ հյուրանոց։",
         missingDates: "Խնդրում ենք ընտրել մուտքի և ելքի ամսաթվերը։",
@@ -2133,6 +2141,10 @@ const translations: Record<Locale, Translation> = {
       unknownHotel: "Unknown hotel",
       pickOnMap: "Pick on map",
       closeMap: "Close map",
+      mapLoading: "Loading map...",
+      mapEmpty: "No hotels with location data available",
+      mapHotelsCount: { one: "{count} hotel", other: "{count} hotels" },
+      mapSelectHint: "Click a marker to select",
       errors: {
         missingLocation: "Please select a destination or hotel.",
         missingDates: "Please choose your check-in and check-out dates.",
@@ -3331,6 +3343,10 @@ const translations: Record<Locale, Translation> = {
       unknownHotel: "Неизвестный отель",
       pickOnMap: "Выбрать на карте",
       closeMap: "Закрыть карту",
+      mapLoading: "Загрузка карты...",
+      mapEmpty: "Нет отелей с данными о местоположении",
+      mapHotelsCount: { one: "{count} отель", few: "{count} отеля", many: "{count} отелей", other: "{count} отеля" },
+      mapSelectHint: "Нажмите на маркер, чтобы выбрать",
       errors: {
         missingLocation: "Пожалуйста, выберите направление или отель.",
         missingDates: "Пожалуйста, выберите даты заезда и выезда.",

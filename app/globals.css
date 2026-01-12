@@ -982,6 +982,7 @@ main {
       padding: 3em 2em;
       color: #7cf2d4;
       font-weight: 500;
+      margin: auto;
 
       .material-symbols-rounded {
         font-size: 1.5em;

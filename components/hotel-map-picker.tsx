@@ -3,6 +3,8 @@
 import { useEffect, useRef, useMemo, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useLanguage } from "@/components/language-provider";
+import type { PluralForms } from "@/lib/i18n";
 
 // Types - exported for use in search-form
 export type MapLocationOption = {
@@ -66,10 +68,17 @@ const generateStars = (rating: number) => {
 };
 
 export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }: HotelMapPickerProps) {
+  const { locale, t } = useLanguage();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const hotelsRef = useRef<Map<string, MapLocationOption>>(new Map());
+  const pluralRules = useMemo(() => new Intl.PluralRules(locale), [locale]);
+  const formatPlural = useCallback((count: number, forms: PluralForms) => {
+    const category = pluralRules.select(count);
+    const template = forms[category] ?? forms.other;
+    return template.replace("{count}", count.toString());
+  }, [pluralRules]);
 
   // Filter hotels with valid coordinates
   const validHotels = useMemo(() => {
@@ -228,7 +237,7 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
     return (
       <div className="hotel-map-picker hotel-map-picker--empty">
         <span className="material-symbols-rounded">location_off</span>
-        <p>No hotels with location data available</p>
+        <p>{t.search.mapEmpty}</p>
       </div>
     );
   }
@@ -238,7 +247,7 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
       <div className="hotel-map-picker__info">
         <span className="material-symbols-rounded">touch_app</span>
         <span>
-          {validHotels.length} hotel{validHotels.length !== 1 ? "s" : ""} — Click a marker to select
+          {formatPlural(validHotels.length, t.search.mapHotelsCount)} — {t.search.mapSelectHint}
         </span>
       </div>
       <div className="hotel-map-picker__map" ref={mapRef} />

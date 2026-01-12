@@ -17,17 +17,22 @@ import type { AoryxSearchParams, HotelInfo } from "@/types/aoryx";
 import type { Locale as AppLocale } from "@/lib/i18n";
 import type { HotelMapPickerProps } from "./hotel-map-picker";
 
+const MapPickerLoading = () => {
+  const { t } = useLanguage();
+  return (
+    <div className="map-picker-loading">
+      <span className="material-symbols-rounded">map</span>
+      <span>{t.search.mapLoading}</span>
+    </div>
+  );
+};
+
 // Dynamically import the Map Picker to avoid SSR issues with Leaflet
 const HotelMapPicker = dynamic<HotelMapPickerProps>(
   () => import("./hotel-map-picker"),
   {
     ssr: false,
-    loading: () => (
-      <div className="map-picker-loading">
-        <span className="material-symbols-rounded">map</span>
-        <span>Loading map...</span>
-      </div>
-    ),
+    loading: () => <MapPickerLoading />,
   }
 );
 
@@ -868,10 +873,7 @@ export default function SearchForm({
               onSelectHotel={handleMapHotelSelect}
             />
           ) : (
-            <div className="map-picker-loading">
-              <span className="material-symbols-rounded">map</span>
-              <span>Loading map...</span>
-            </div>
+            <MapPickerLoading />
           )}
           <button
             type="button"
