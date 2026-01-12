@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Loader from "@/components/loader";
@@ -112,6 +112,7 @@ type ExcursionGuest = {
 };
 
 type TransferType = "INDIVIDUAL" | "GROUP";
+type ExcursionFilter = "ALL" | "YAS";
 
 type InsurancePlan = {
   id: string;
@@ -189,26 +190,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     return template.replace("{count}", count.toString());
   }, [pluralRules]);
   const { rates: amdRates } = useAmdRates();
-  const [builderState, setBuilderState] = useState<PackageBuilderState>(() =>
-    readPackageBuilderState()
-  );
+  const [builderState, setBuilderState] = useState<PackageBuilderState>({});
   const [transferOptions, setTransferOptions] = useState<AoryxTransferRate[]>([]);
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [selectedTransferType, setSelectedTransferType] = useState<TransferType | null>(null);
   const [selectedAirportKey, setSelectedAirportKey] = useState<string | null>(null);
-  const [includeReturnTransfer, setIncludeReturnTransfer] = useState<boolean>(() => {
-    const stored = readPackageBuilderState().transfer?.includeReturn;
-    return typeof stored === "boolean" ? stored : true;
-  });
+  const [includeReturnTransfer, setIncludeReturnTransfer] = useState<boolean>(true);
   const [excursionOptions, setExcursionOptions] = useState<AoryxExcursionTicket[]>([]);
   const [excursionLoading, setExcursionLoading] = useState(false);
   const [excursionError, setExcursionError] = useState<string | null>(null);
   const [excursionFee, setExcursionFee] = useState<number | null>(null);
-  const [guestExcursions, setGuestExcursions] = useState<Record<string, string[]>>(() => {
-    const stored = readPackageBuilderState().excursion?.selections;
-    return stored && typeof stored === "object" ? stored : {};
-  });
+  const [excursionFilter, setExcursionFilter] = useState<ExcursionFilter>("ALL");
+  const [guestExcursions, setGuestExcursions] = useState<Record<string, string[]>>({});
   const [activeExcursionGuestId, setActiveExcursionGuestId] = useState<string | null>(null);
   const [flightForm, setFlightForm] = useState<FlightSearchForm>({
     origin: "",
@@ -236,9 +230,18 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const insuranceQuoteRequestIdRef = useRef(0);
   const insuranceQuoteTimerRef = useRef<number | null>(null);
   useEffect(() => {
-    const unsubscribe = subscribePackageBuilderState(() => {
-      setBuilderState(readPackageBuilderState());
-    });
+    const syncState = () => {
+      const next = readPackageBuilderState();
+      setBuilderState(next);
+      if (typeof next.transfer?.includeReturn === "boolean") {
+        setIncludeReturnTransfer(next.transfer.includeReturn);
+      }
+      if (next.excursion?.selections && typeof next.excursion.selections === "object") {
+        setGuestExcursions(next.excursion.selections);
+      }
+    };
+    syncState();
+    const unsubscribe = subscribePackageBuilderState(syncState);
     return unsubscribe;
   }, []);
 
@@ -997,6 +1000,46 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       })),
     [excursionOptions]
   );
+  const isYasExcursion = useCallback((excursion: AoryxExcursionTicket) => {
+    const location = normalizeOptional(excursion.location);
+    if (location && location.toUpperCase().includes("YAS")) {
+      return true;
+    }
+    const yasPattern = /\byas\b|yas\s*island|yas[-\s]/i;
+    return [
+      excursion.name,
+      excursion.description,
+      excursion.productType,
+      excursion.activityCode,
+      excursion.cityCode,
+    ].some((value) => typeof value === "string" && yasPattern.test(value));
+  }, []);
+  const yasExcursions = useMemo(
+    () => excursionOptionsWithId.filter(isYasExcursion),
+    [excursionOptionsWithId, isYasExcursion]
+  );
+  const getExcursionLogo = useCallback(
+    (excursion: AoryxExcursionTicket) => {
+      if (!isYasExcursion(excursion)) return null;
+      const name = normalizeOptional(excursion.name)?.toLowerCase();
+      if (!name) return null;
+      if (name.startsWith("ferrari")) return "/images/logos/ferrari-world.svg";
+      if (name.startsWith("warner")) return "/images/logos/warner-bros.svg";
+      if (name.startsWith("sea world") || name.startsWith("seaworld")) {
+        return "/images/logos/seaworld.svg";
+      }
+      if (name.startsWith("yas waterworld") || name.startsWith("waterworld")) {
+        return "/images/logos/yas-waterworld.svg";
+      }
+      if (name.startsWith("yas")) return "/images/logos/yas.png";
+      return null;
+    },
+    [isYasExcursion]
+  );
+  const visibleExcursions = useMemo(
+    () => (excursionFilter === "YAS" ? yasExcursions : excursionOptionsWithId),
+    [excursionFilter, excursionOptionsWithId, yasExcursions]
+  );
 
   useEffect(() => {
     if (excursionOptionsWithId.length === 0) {
@@ -1492,7 +1535,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const destinationBadge = useMemo(() => {
     if (!destinationName) return null;
     return (
-      <span className="package-service__badge">
+      <span className="badge">
         <span className="material-symbols-rounded" aria-hidden="true">
           location_on
         </span>
@@ -1588,6 +1631,8 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     if (transferError) return null;
     if (filteredTransferOptions.length === 0) return null;
 
+    const hasIndividualOptions = individualTransfers.length > 0;
+    const hasGroupOptions = groupTransfers.length > 0;
     const individualLabel = individualStarting
       ? `${t.packageBuilder.transfers.startingFrom} ${individualStarting}`
       : t.common.contactForRates;
@@ -1596,24 +1641,95 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       : t.common.contactForRates;
 
     return (
-      <div className="transfer-type-group">
-        <div className="package-service__transfer-types">
+      <div className="service-types transfer">
+        <button
+          type="button"
+          className={`${selectedTransferType === "INDIVIDUAL" ? "is-selected" : ""}`}
+          onClick={() => setSelectedTransferType("INDIVIDUAL")}
+          aria-pressed={selectedTransferType === "INDIVIDUAL"}
+        >
+          <span>
+            <h2>{t.packageBuilder.transfers.individual}</h2>
+            {hasIndividualOptions ? (
+              <>
+                <span>{individualLabel}</span>
+                <span className="note">
+                  {t.packageBuilder.transfers.perCar}
+                </span>
+              </>
+            ) : null}
+          </span>
+          <Image
+            src="/images/car.webp"
+            alt={t.packageBuilder.transfers.individual}
+            width={140}
+            height={90}
+            unoptimized
+          />
+        </button>
+        <button
+          type="button"
+          className={`${selectedTransferType === "GROUP" ? "is-selected" : ""}`}
+          onClick={() => setSelectedTransferType("GROUP")}
+          aria-pressed={selectedTransferType === "GROUP"}
+        >
+          <span>
+            <h2>{t.packageBuilder.transfers.group}</h2>
+            {hasGroupOptions ? (
+              <>
+                <span>{groupLabel}</span>
+                <span className="note">
+                  {t.packageBuilder.transfers.perPax}
+                </span>
+              </>
+            ) : null}
+          </span>
+          <Image
+            src="/images/bus.webp"
+            alt={t.packageBuilder.transfers.group}
+            width={140}
+            height={90}
+            unoptimized
+          />
+        </button>
+      </div>
+    );
+  };
+
+  const renderExcursionControls = () => {
+    if (serviceKey !== "excursion") return null;
+    if (!hasHotel) return null;
+    if (excursionLoading) return null;
+    if (excursionError) return null;
+    if (excursionOptionsWithId.length === 0) return null;
+
+    const allCountLabel = formatPlural(
+      excursionOptionsWithId.length,
+      t.packageBuilder.excursions.countLabel
+    );
+    const yasCountLabel = formatPlural(
+      yasExcursions.length,
+      t.packageBuilder.excursions.countLabel
+    );
+
+    return (
+      <>
+        <div className="service-types excursion">
           <button
             type="button"
-            className={`transfer-type-card${selectedTransferType === "INDIVIDUAL" ? " is-selected" : ""}`}
-            onClick={() => setSelectedTransferType("INDIVIDUAL")}
-            aria-pressed={selectedTransferType === "INDIVIDUAL"}
+            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("YAS")}
+            aria-pressed={excursionFilter === "YAS"}
           >
-            <span className="transfer-type-card__content">
-              <h2>{t.packageBuilder.transfers.individual}</h2>
-              <span>{individualLabel}</span>
-              <span className="transfer-type-card__note">
-                {t.packageBuilder.transfers.perCar}
+            <span>
+              <h2>{t.packageBuilder.excursions.yasLabel}</h2>
+              <span className="note">
+                {yasCountLabel}
               </span>
             </span>
             <Image
-              src="/images/car.webp"
-              alt={t.packageBuilder.transfers.individual}
+              src="/images/yas-island.webp"
+              alt={t.packageBuilder.excursions.yasLabel}
               width={140}
               height={90}
               unoptimized
@@ -1621,27 +1737,138 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           </button>
           <button
             type="button"
-            className={`transfer-type-card${selectedTransferType === "GROUP" ? " is-selected" : ""}`}
-            onClick={() => setSelectedTransferType("GROUP")}
-            aria-pressed={selectedTransferType === "GROUP"}
+            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("YAS")}
+            aria-pressed={excursionFilter === "YAS"}
           >
-            <span className="transfer-type-card__content">
-              <h2>{t.packageBuilder.transfers.group}</h2>
-              <span>{groupLabel}</span>
-              <span className="transfer-type-card__note">
-                {t.packageBuilder.transfers.perPax}
+            <span>
+              <h2>Safari</h2>
+              <span className="note">
+                {yasCountLabel}
               </span>
             </span>
             <Image
-              src="/images/bus.webp"
-              alt={t.packageBuilder.transfers.group}
+              src="/images/safari.webp"
+              alt={t.packageBuilder.excursions.yasLabel}
+              width={140}
+              height={90}
+              unoptimized
+            />
+          </button>
+          <button
+            type="button"
+            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("YAS")}
+            aria-pressed={excursionFilter === "YAS"}
+          >
+            <span>
+              <h2>Cruise</h2>
+              <span className="note">
+                {yasCountLabel}
+              </span>
+            </span>
+            <Image
+              src="/images/cruise.webp"
+              alt={t.packageBuilder.excursions.yasLabel}
+              width={140}
+              height={90}
+              unoptimized
+            />
+          </button>
+          <button
+            type="button"
+            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("YAS")}
+            aria-pressed={excursionFilter === "YAS"}
+          >
+            <span>
+              <h2>Burj Khalifa</h2>
+              <span className="note">
+                {yasCountLabel}
+              </span>
+            </span>
+            <Image
+              src="/images/burj-khalifa.webp"
+              alt={t.packageBuilder.excursions.yasLabel}
+              width={140}
+              height={90}
+              unoptimized
+            />
+          </button>
+          <button
+            type="button"
+            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("YAS")}
+            aria-pressed={excursionFilter === "YAS"}
+          >
+            <span>
+              <h2>Helicopter</h2>
+              <span className="note">
+                {yasCountLabel}
+              </span>
+            </span>
+            <Image
+              src="/images/helicopter.webp"
+              alt={t.packageBuilder.excursions.yasLabel}
+              width={140}
+              height={90}
+              unoptimized
+            />
+          </button>
+          <button
+            type="button"
+            className={`${excursionFilter === "ALL" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("ALL")}
+            aria-pressed={excursionFilter === "ALL"}
+          >
+            <span>
+              <h2>{t.packageBuilder.excursions.allLabel}</h2>
+              <span className="note">
+                {allCountLabel}
+              </span>
+            </span>
+            <Image
+              src="/images/all-attractions.webp"
+              alt={t.packageBuilder.excursions.allLabel}
               width={140}
               height={90}
               unoptimized
             />
           </button>
         </div>
-      </div>
+        {excursionGuests.length > 1 ? (
+          <div className="controls">
+            <div className="excursion-guest-tabs">
+              {excursionGuests.map((guest) => {
+                const count = guestExcursions[guest.key]?.length ?? 0;
+                return (
+                  <button
+                    key={guest.key}
+                    type="button"
+                    className={`excursion-guest-tab${guest.key === activeExcursionGuestId ? " is-active" : ""}`}
+                    onClick={() => setActiveExcursionGuestId(guest.key)}
+                    disabled={!canSelectExcursions}
+                  >
+                    <span className="material-symbols-rounded" aria-hidden="true">person</span>
+                    <span>{guest.label}</span>
+                    {count > 0 ? <span className="excursion-guest-count">{count}</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              className="excursion-apply-all"
+              onClick={applyActiveSelectionToAllGuests}
+              disabled={!canSelectExcursions || !activeExcursionGuestId}
+            >
+              <span className="material-symbols-rounded" aria-hidden="true">group_add</span>
+              {t.hotel.addons.excursions.applyAll}
+              {excursionGuests.length > 0 ? ` (${excursionGuests.length})` : ""}
+            </button>
+          </div>
+        ) : null}
+      </>
     );
   };
 
@@ -1693,7 +1920,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const renderTransferList = () => {
     if (!hasHotel) {
       return (
-        <div className="package-service__empty">
+        <div className="empty">
           <p>{t.packageBuilder.warningSelectHotel}</p>
           <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
             {t.packageBuilder.services.hotel}
@@ -1702,16 +1929,16 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       );
     }
     if (transferMissingDestination) {
-      return <p className="package-service__state error">{t.hotel.addons.transfers.missingDestination}</p>;
+      return <p className="state error">{t.hotel.addons.transfers.missingDestination}</p>;
     }
     if (transferLoading) {
-      return <p className="package-service__state">{t.hotel.addons.transfers.loading}</p>;
+      return <p className="state">{t.hotel.addons.transfers.loading}</p>;
     }
     if (transferError) {
-      return <p className="package-service__state error">{transferError}</p>;
+      return <p className="state error">{transferError}</p>;
     }
     if (filteredTransferOptions.length === 0) {
-      return <p className="package-service__state">{t.hotel.addons.transfers.noOptions}</p>;
+      return <p className="tate">{t.hotel.addons.transfers.noOptions}</p>;
     }
 
     const activeTransfers =
@@ -1722,15 +1949,15 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           : [];
 
     if (!selectedTransferType) {
-      return <p className="package-service__state">{t.packageBuilder.transfers.selectType}</p>;
+      return <p className="state">{t.packageBuilder.transfers.selectType}</p>;
     }
 
     if (activeTransfers.length === 0) {
-      return <p className="package-service__state">{t.hotel.addons.transfers.noOptions}</p>;
+      return <p className="state">{t.hotel.addons.transfers.noOptions}</p>;
     }
 
     return (
-      <div className="package-service__list" role="list">
+      <div className="transfers options" role="list">
         {activeTransfers.map((transfer, index) => {
           const id = transferIdMap.get(transfer) ?? buildTransferId(transfer, index);
           const isSelected = selectedTransferId === id;
@@ -1799,42 +2026,42 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           return (
             <div
               key={id}
-              className={`package-service__card${isSelected ? " is-selected" : ""}`}
+              className={`option${isSelected ? " is-selected" : ""}`}
               role="listitem"
             >
               <div>
-                <h3 className="package-service__route">
+                <h3 className="route">
                   {origin}{" "}
                   <span className="material-symbols-rounded">{includeReturnTransfer ? "sync_alt" : "arrow_right_alt"}</span>
                   {destinationLabel}
                 </h3>
-                <p className="package-service__meta type">
+                <p className="meta type">
                   <span className="material-symbols-rounded">{transferType === "GROUP" ? "groups" : "person"}</span>
                   {typeLabel}
                 </p>
                 {transferType === "INDIVIDUAL" && vehicleName ? (
-                  <p className="package-service__meta">
+                  <p className="meta">
                     <span className="material-symbols-rounded">directions_car</span>
                     {t.packageBuilder.checkout.labels.vehicle}: {vehicleName}
                   </p>
                 ) : null}
                 {transferType === "INDIVIDUAL" && vehicleCount ? (
-                  <p className="package-service__meta">
+                  <p className="meta">
                     <span className="material-symbols-rounded">numbers</span>
                     {t.hotel.addons.transfers.vehicleQty}: {vehicleCount}
                   </p>
                 ) : null}
                 {formattedUnitPrice ? (
-                  <p className="package-service__meta">
+                  <p className="meta">
                     <span className="material-symbols-rounded">sell</span>
                     {t.packageBuilder.checkout.labels.price}: {formattedUnitPrice} · {unitSuffix}
                   </p>
                 ) : null}
                 {childPolicyLine ? (
-                  <p className="package-service__meta"><span className="material-symbols-rounded">child_care</span>{childPolicyLine}</p>
+                  <p className="meta"><span className="material-symbols-rounded">child_care</span>{childPolicyLine}</p>
                 ) : null}
                 {formattedTotalPrice && totalGuestCount > 0 ? (
-                  <p className="package-service__meta rate">
+                  <p className="meta rate">
                     {t.common.total} ({t.packageBuilder.checkout.labels.guests}: {totalGuestCount}):{" "}
                     {formattedTotalPrice}
                   </p>
@@ -1857,7 +2084,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const renderFlightPanel = () => {
     if (!hasHotel) {
       return (
-        <div className="service-builder__panel">
+        <div className="panel">
           <div className="package-service__empty">
             <p>{t.packageBuilder.warningSelectHotel}</p>
             <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
@@ -1877,13 +2104,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         return <Loader text={t.packageBuilder.flights.searching} />;
       }
       if (flightError) {
-        return <p className="package-service__state error">{flightError}</p>;
+        return <p className="state error">{flightError}</p>;
       }
       if (!flightSearched) {
-        return <p className="package-service__state">{t.packageBuilder.flights.searchPrompt}</p>;
+        return <p className="state">{t.packageBuilder.flights.searchPrompt}</p>;
       }
       if (flightOffers.length === 0) {
-        return <p className="package-service__state">{t.packageBuilder.flights.noOptions}</p>;
+        return <p className="state">{t.packageBuilder.flights.noOptions}</p>;
       }
 
       return (
@@ -1918,16 +2145,16 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             return (
               <div
                 key={offer.id}
-                className={`package-service__card${isSelected ? " is-selected" : ""}`}
+                className={`option${isSelected ? " is-selected" : ""}`}
                 role="listitem"
               >
                 <div>
-                  <h3 className="package-service__route">
+                  <h3 className="oute">
                     {outboundOrigin} → {outboundDestination}
                   </h3>
-                  {outboundLine && <p className="package-service__meta">{outboundLine}</p>}
-                  {returnLine && <p className="package-service__meta">{returnLine}</p>}
-                  {metaLine && <p className="package-service__meta">{metaLine}</p>}
+                  {outboundLine && <p className="meta">{outboundLine}</p>}
+                  {returnLine && <p className="meta">{returnLine}</p>}
+                  {metaLine && <p className="meta">{metaLine}</p>}
                 </div>
                 <button
                   type="button"
@@ -2002,7 +2229,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             </button>
             <div className="flight-search__badges">
               {passengerSummary && (
-                <span className="package-service__badge">
+                <span className="badge">
                   <span className="material-symbols-rounded" aria-hidden="true">
                     group
                   </span>
@@ -2010,7 +2237,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                 </span>
               )}
               {flightMocked && flightSearched && (
-                <span className="package-service__badge">
+                <span className="badge">
                   <span className="material-symbols-rounded" aria-hidden="true">
                     info
                   </span>
@@ -2027,7 +2254,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           > </StarBorder>
         </form>
       </div>
-      <div className="service-builder__panel">
+      <div className="panel">
         <p className="service-builder__note">{pageCopy.note}</p>
         <div className="flight-results">{offersContent}</div>
       </div>
@@ -2038,7 +2265,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const renderExcursionList = () => {
     if (!hasHotel) {
       return (
-        <div className="package-service__empty">
+        <div className="empty">
           <p>{t.packageBuilder.warningSelectHotel}</p>
           <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
             {t.packageBuilder.services.hotel}
@@ -2047,13 +2274,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       );
     }
     if (excursionLoading) {
-      return <p className="package-service__state">{t.hotel.addons.excursions.loading}</p>;
+      return <p className="state">{t.hotel.addons.excursions.loading}</p>;
     }
     if (excursionError) {
-      return <p className="package-service__state error">{excursionError}</p>;
+      return <p className="state error">{excursionError}</p>;
     }
     if (excursionOptionsWithId.length === 0) {
-      return <p className="package-service__state">{t.hotel.addons.excursions.noOptions}</p>;
+      return <p className="state">{t.hotel.addons.excursions.noOptions}</p>;
     }
 
     const activeGuest = activeExcursionGuestId
@@ -2062,53 +2289,23 @@ export default function PackageServiceClient({ serviceKey }: Props) {
 
     return (
       <>
-        {!hasHotel && (
-          <p className="package-service__state">{t.packageBuilder.warningSelectHotel}</p>
-        )}
+        {visibleExcursions.length === 0 ? (
+          <p className="state">{t.packageBuilder.excursions.noMatch}</p>
+        ) : (
+          <>
         {hasHotel && excursionGuests.length === 0 && (
-          <p className="package-service__state">{t.hotel.errors.unableBuildGuests}</p>
+          <p className="state">{t.hotel.errors.unableBuildGuests}</p>
         )}
-        {excursionGuests.length > 1 && (
-          <div className="excursion-guest-header">
-            <div className="excursion-guest-tabs">
-              {excursionGuests.map((guest) => {
-                const count = guestExcursions[guest.key]?.length ?? 0;
-                return (
-                  <button
-                    key={guest.key}
-                    type="button"
-                    className={`excursion-guest-tab${guest.key === activeExcursionGuestId ? " is-active" : ""}`}
-                    onClick={() => setActiveExcursionGuestId(guest.key)}
-                    disabled={!canSelectExcursions}
-                  >
-                    <span className="material-symbols-rounded" aria-hidden="true">person</span>
-                    <span>{guest.label}</span>
-                    {count > 0 ? <span className="excursion-guest-count">{count}</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              type="button"
-              className="excursion-apply-all"
-              onClick={applyActiveSelectionToAllGuests}
-              disabled={!canSelectExcursions || !activeExcursionGuestId}
-            >
-              <span className="material-symbols-rounded" aria-hidden="true">group_add</span>
-              {t.hotel.addons.excursions.applyAll}
-              {excursionGuests.length > 0 ? ` (${excursionGuests.length})` : ""}
-            </button>
-          </div>
-        )}
-        {excursionFee && excursionFee > 0 ? (
-          <p className="service-builder__note">{t.hotel.addons.excursions.feeNote}</p>
-        ) : null}
-        <div className="excursion-options">
-          {excursionOptionsWithId.map((excursion) => {
+        <div className="excursions options">
+          {visibleExcursions.map((excursion) => {
             const id = excursion.id;
             const isSelected = activeExcursionSelection.includes(id);
             const isEligible = activeGuest ? isExcursionEligibleForGuest(excursion, activeGuest) : true;
             const isDisabled = !canSelectExcursions || !activeExcursionGuestId || !isEligible;
+            const logo = getExcursionLogo(excursion);
+            const logoStyle = logo
+              ? ({ "--excursion-logo": `url(${logo})` } as CSSProperties)
+              : undefined;
             const currency = excursion.pricing?.currency ?? null;
             const adultPrice = excursion.pricing?.adult ?? null;
             const childPrice = excursion.pricing?.child ?? adultPrice;
@@ -2124,7 +2321,8 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             return (
               <label
                 key={id}
-                className={`excursion-option excursion-option--selectable${isSelected ? " is-selected" : ""}${isDisabled ? " is-disabled" : ""}`}
+                className={`option selectable${isSelected ? " is-selected" : ""}${isDisabled ? " is-disabled" : ""}`}
+                style={logoStyle}
               >
                 <input
                   type="checkbox"
@@ -2133,33 +2331,33 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                   disabled={isDisabled}
                   aria-disabled={isDisabled}
                 />
-                <div className="excursion-option__content">
-                  <div className="excursion-info">
+                <div className="content">
+                  <div className="info">
                     <div>
                       <h5>{excursion.name ?? t.hotel.addons.excursions.unnamed}</h5>
                       {excursion.description && <p>{excursion.description}</p>}
                     </div>
                     {excursion.childPolicy && (
-                      <span className="excursion-policy">{excursion.childPolicy}</span>
+                      <span className="policy">{excursion.childPolicy}</span>
                     )}
                   </div>
-                  <div className="excursion-controls">
-                    <div className="excursion-pricing">
-                      <span>
-                        {t.hotel.addons.excursions.adultPrice}:{" "}
-                        {formattedAdult ?? t.common.contact}
-                      </span>
-                      <span>
-                        {t.hotel.addons.excursions.childPrice}:{" "}
-                        {formattedChild ?? t.common.contact}
-                      </span>
-                    </div>
+                  <div className="pricing">
+                    <span>
+                      {t.hotel.addons.excursions.adultPrice}:{" "}
+                      {formattedAdult ?? t.common.contact}
+                    </span>
+                    <span>
+                      {t.hotel.addons.excursions.childPrice}:{" "}
+                      {formattedChild ?? t.common.contact}
+                    </span>
                   </div>
                 </div>
               </label>
             );
           })}
         </div>
+          </>
+        )}
       </>
     );
   };
@@ -2167,7 +2365,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const renderInsurancePanel = () => {
     if (!hasHotel) {
       return (
-        <div className="package-service__empty">
+        <div className="empty">
           <p>{t.packageBuilder.warningSelectHotel}</p>
           <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
             {t.packageBuilder.services.hotel}
@@ -2214,14 +2412,14 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     return (
       <>
         <div className="insurance-badges">
-          <span className="package-service__badge">
+          <span className="badge">
             <span className="material-symbols-rounded" aria-hidden="true">
               shield_with_heart
             </span>
             EFES {t.packageBuilder.services.insurance}
           </span>
           {passengerSummary ? (
-            <span className="package-service__badge">
+            <span className="badge">
               <span className="material-symbols-rounded" aria-hidden="true">
                 group
               </span>
@@ -2229,7 +2427,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             </span>
           ) : null}
           {hotelDateRange ? (
-            <span className="package-service__badge">
+            <span className="badge">
               <span className="material-symbols-rounded" aria-hidden="true">
                 calendar_month
               </span>
@@ -2303,11 +2501,11 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             />
           </label>
         </div>
-        <div className={`package-service__card insurance-summary${showInsuranceDetails ? " is-selected" : ""}`}>
+        <div className={`option insurance-summary${showInsuranceDetails ? " is-selected" : ""}`}>
           <div>
-            <div className="package-service__route">{summaryTitle}</div>
+            <div className="route">{summaryTitle}</div>
             {summaryDescription ? (
-              <div className="package-service__meta">
+              <div className="meta">
                 <span className="material-symbols-rounded" aria-hidden="true">
                   info
                 </span>
@@ -2315,7 +2513,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               </div>
             ) : null}
             {showInsuranceDetails && selectedCoverage ? (
-              <div className="package-service__meta">
+              <div className="meta">
                 <span className="material-symbols-rounded" aria-hidden="true">
                   verified
                 </span>
@@ -2323,7 +2521,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               </div>
             ) : null}
             {showInsuranceDetails && selectedTerritoryLabel ? (
-              <div className="package-service__meta">
+              <div className="meta">
                 <span className="material-symbols-rounded" aria-hidden="true">
                   public
                 </span>
@@ -2331,7 +2529,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               </div>
             ) : null}
             {showInsuranceDetails && travelCountries ? (
-              <div className="package-service__meta">
+              <div className="meta">
                 <span className="material-symbols-rounded" aria-hidden="true">
                   flag
                 </span>
@@ -2339,7 +2537,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               </div>
             ) : null}
             {showInsuranceDetails && hotelDateRange ? (
-              <div className="package-service__meta">
+              <div className="meta">
                 <span className="material-symbols-rounded" aria-hidden="true">
                   calendar_month
                 </span>
@@ -2347,7 +2545,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               </div>
             ) : null}
           </div>
-          <div className="package-service__meta rate">{summaryQuote}</div>
+          <div className="meta rate">{summaryQuote}</div>
         </div>
         {insuranceQuoteError ? (
           <p className="checkout-error" role="alert">
@@ -2368,11 +2566,12 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   return (
     <main className="service-builder">
       <div className="container">
-        <div className="service-builder__header">
+        <div className="header">
           <h1>{pageCopy.title}</h1>
           <p>{pageCopy.body}</p>
           {serviceKey === "transfer" && destinationBadge}
         </div>
+        {renderExcursionControls()}
 
         {serviceKey === "hotel" ? (
           <div className="search">
@@ -2383,22 +2582,22 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         ) : serviceKey === "transfer" ? (
           <>
             {renderTransferTypeGroup()}
-            <div className="transfer-panel__controls">
+            <div className="controls">
               {renderTransferReturnToggle()}
               {renderTransferAirportSelect()}
             </div>
-            <div className="service-builder__panel">
+            <div className="panel">
               {renderTransferList()}
             </div>
           </>
         ) : serviceKey === "excursion" ? (
-          <div className="service-builder__panel">{renderExcursionList()}</div>
+          <div className="panel">{renderExcursionList()}</div>
         ) : serviceKey === "insurance" ? (
-          <div className="service-builder__panel">{renderInsurancePanel()}</div>
+          <div className="panel">{renderInsurancePanel()}</div>
         ) : (
-          <div className="service-builder__panel">
+          <div className="panel">
             {!hasHotel ? (
-              <div className="package-service__empty">
+              <div className="empty">
                 <p>{t.packageBuilder.warningSelectHotel}</p>
                 <Link href={`/${locale}/services/hotel`} className="service-builder__cta">
                   {t.packageBuilder.services.hotel}

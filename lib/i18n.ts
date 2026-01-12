@@ -100,6 +100,13 @@ export type Translation = {
       childPolicyFree: PluralForms;
       childPolicyHalf: PluralForms;
     };
+    excursions: {
+      allLabel: string;
+      yasLabel: string;
+      countLabel: PluralForms;
+      filterNote: string;
+      noMatch: string;
+    };
     flights: {
       searchButton: string;
       searching: string;
@@ -1040,6 +1047,16 @@ const translations: Record<Locale, Translation> = {
           other: "{count} երեխա 50% զեղչով (2-11.99)",
         },
       },
+      excursions: {
+        allLabel: "Բոլոր տարբերակները",
+        yasLabel: "Yas Island",
+        countLabel: {
+          one: "{count} տարբերակ",
+          other: "{count} տարբերակ",
+        },
+        filterNote: "Դիտել տարբերակները",
+        noMatch: "Ընտրված ֆիլտրի համար էքսկուրսիաներ չկան։",
+      },
       flights: {
         searchButton: "Որոնել թռիչքներ",
         searching: "Թռիչքները որոնվում են...",
@@ -1058,31 +1075,31 @@ const translations: Record<Locale, Translation> = {
       pages: {
         hotel: {
           title: "Հյուրանոց",
-          body: "Որոնեք և ավելացրեք հյուրանոցը ձեր փաթեթին։",
+          body: "ԱՄԷ-ի լավագույն հյուրանոցները՝ էքսկլյուզիվ արժեքներով և ներառումներով։",
           note: "Հյուրանոց ընտրելուց հետո կարող եք ավելացնել այլ ծառայություններ։",
           cta: "Որոնել հյուրանոցներ",
         },
         flight: {
           title: "Ավիատոմսեր",
-          body: "Որոնեք flydubai-ի թռիչքները և ավելացրեք դրանք ձեր փաթեթին։",
+          body: "Թռիչքների ուղիղ ամրագրում դեպի ԱՄԷ։",
           note: "Ամսաթվերն ու ուղևորների քանակը վերցվում են հյուրանոցի որոնումից։",
           cta: "Որոնել թռիչքներ",
         },
         transfer: {
           title: "Տրանսֆեր",
-          body: "Տրանսֆերները ընտրեք հյուրանոցի ամրագրման ընթացքում։",
+          body: "Խմբային և անհատական տրանսֆերներ՝ օդանավակայանից մինչև հյուրանոց և հակառակ ուղղությամբ։",
           note: "Սկզբում ընտրեք հյուրանոցը։",
           cta: "Գտնել հյուրանոց",
         },
         excursion: {
-          title: "Էքսկուրսիաներ",
-          body: "Էքսկուրսիաները հասանելի են հյուրանոցի ամրագրման փուլում։",
+          title: "Էքսկուրսիաներ և թեմատիկ պարկեր",
+          body: "Թեմատիկ պարկերի տոմսեր և առաջարկներ՝ ԱՄԷ-ի ամենապահանջված ատրակցիոնների համար։",
           note: "Սկզբում ընտրեք հյուրանոցը։",
           cta: "Գտնել հյուրանոց",
         },
         insurance: {
           title: "Ապահովագրություն",
-          body: "Ընտրեք EFES ճանապարհորդական ապահովագրության պլանը ձեր փաթեթի համար։",
+          body: "Ճանապարհորդական ապահովագրություն՝ հանգիստ ու պաշտպանված ուղևորության համար։",
           note: "Պրեմիումը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
           cta: "Գտնել հյուրանոց",
         },
@@ -1120,7 +1137,7 @@ const translations: Record<Locale, Translation> = {
         emptySummary: "Դեռ ընտրված ծառայություններ չկան։",
         pendingDetails: "Մանրամասները կհաստատվեն ամրագրման ընթացքում։",
         contactTitle: "Կոնտակտային տվյալներ",
-        contactHint: "Հաստատումները և թարմացումները կուղարկվեն այստեղ։",
+        contactHint: "Հաստատումները և թարմացումները կուղարկվեն կոնտակտային անձին։",
         firstName: "Անուն",
         lastName: "Ազգանուն",
         email: "Էլ․ հասցե",
@@ -1243,7 +1260,7 @@ const translations: Record<Locale, Translation> = {
     },
     featured: {
       title: "Ընտրված հյուրանոցներ՝ հատուկ առաջարկներով",
-      subtitle: "Ճկուն չեղարկում, հավելյալ բոնուսներ և ակնթարթային հաստատում։",
+      subtitle: "Թափանցիկ պայմաններ, հատուկ առավելություններ և արագ հաստատում։",
       cta: "Դիտել բոլոր առաջարկները",
     },
   faq: {
@@ -1817,7 +1834,7 @@ const translations: Record<Locale, Translation> = {
       backToSearch: "Վերադառնալ որոնմանը",
       scrollTop: "Վերև գնալ",
       contact: "Կապվել",
-      contactForRates: "Կապվեք գների համար",
+      contactForRates: "Արժեքների ճշտման համար խնդրում ենք կապ հաստատել մեզ հետ։",
       close: "Փակել",
       yes: "Այո",
       no: "Ոչ",
@@ -1872,7 +1889,7 @@ const translations: Record<Locale, Translation> = {
           arrivalDate: "Ժամանման ամսաթիվ և ժամ",
           vehicleQty: "Մեքենաների քանակ",
           loading: "Բեռնվում են տրանսֆերի տարբերակները...",
-          noOptions: "Տվյալ ուղղության համար տրանսֆերներ չկա։",
+          noOptions: "Տվյալ ուղղության համար տրանսֆերի տարբերակներ առկա չեն։",
           missingDestination: "Ընտրեք ուղղություն՝ տրանսֆերները տեսնելու համար։",
           loadFailed: "Չհաջողվեց բեռնել տրանսֆերները։",
           selectRequired: "Խնդրում ենք ընտրել տրանսֆեր կամ անջատել տրանսֆերները։",
@@ -2227,6 +2244,16 @@ const translations: Record<Locale, Translation> = {
           other: "{count} children 50% off (2-11.99)",
         },
       },
+      excursions: {
+        allLabel: "All Options",
+        yasLabel: "Yas Island",
+        countLabel: {
+          one: "{count} option",
+          other: "{count} options",
+        },
+        filterNote: "View options",
+        noMatch: "No excursions match this filter.",
+      },
       flights: {
         searchButton: "Search flights",
         searching: "Searching flights...",
@@ -2245,31 +2272,31 @@ const translations: Record<Locale, Translation> = {
       pages: {
         hotel: {
           title: "Hotel",
-          body: "Search and add the hotel for your package.",
+          body: "A hand-selected portfolio of premium hotels across the UAE, offered at exclusive tour-operator rates.",
           note: "Once your hotel is set, you can add more services.",
           cta: "Search hotels",
         },
         flight: {
           title: "Flights",
-          body: "Search flydubai flights and add them to your package.",
+          body: "Direct flight bookings to the UAE.",
           note: "Dates and passenger counts come from your hotel search.",
           cta: "Search flights",
         },
         transfer: {
           title: "Transfers",
-          body: "Transfers are selected during the hotel booking flow.",
+          body: "Private and shared transfers tailored to your itinerary — from luxury airport pickups to comfortable group transportation.",
           note: "Start with a hotel to continue your package.",
           cta: "Find a hotel",
         },
         excursion: {
-          title: "Excursions",
-          body: "Excursions are selected during the hotel booking flow.",
+          title: "Excursions and Theme Parks",
+          body: "Carefully curated experiences, from iconic landmarks to immersive and private journeys.",
           note: "Start with a hotel to continue your package.",
           cta: "Find a hotel",
         },
         insurance: {
           title: "Insurance",
-          body: "Select an EFES travel insurance plan for your package.",
+          body: "Comprehensive travel insurance designed to protect every stage of your journey.",
           note: "Premiums are estimated using traveler ages and update at checkout.",
           cta: "Find a hotel",
         },
@@ -2307,7 +2334,7 @@ const translations: Record<Locale, Translation> = {
         emptySummary: "No services selected yet.",
         pendingDetails: "Details will be confirmed during booking.",
         contactTitle: "Contact details",
-        contactHint: "We will send confirmations and updates here.",
+        contactHint: "Booking confirmations and updates will be sent to the contact person.",
         firstName: "First name",
         lastName: "Last name",
         email: "Email",
@@ -2431,8 +2458,7 @@ const translations: Record<Locale, Translation> = {
     },
     featured: {
       title: "Distinguished Hotels with Exclusive Privileges",
-      subtitle:
-        "Flexible cancellation, added benefits, and instant confirmation — secured through direct agreements.",
+      subtitle: "Transparent terms, exclusive benefits, and fast confirmation.",
       cta: "Explore Hotels Across the Emirates",
     },
     faq: {
@@ -3009,7 +3035,7 @@ const translations: Record<Locale, Translation> = {
       backToSearch: "Back to Search",
       scrollTop: "Scroll to top",
       contact: "Contact",
-      contactForRates: "Contact for Rates",
+      contactForRates: "For rate inquiries, please contact us.",
       close: "Close",
       yes: "Yes",
       no: "No",
@@ -3420,6 +3446,18 @@ const translations: Record<Locale, Translation> = {
           other: "{count} ребенка со скидкой 50% (2-11.99)",
         },
       },
+      excursions: {
+        allLabel: "Все варианты",
+        yasLabel: "Yas Island",
+        countLabel: {
+          one: "{count} вариант",
+          few: "{count} варианта",
+          many: "{count} вариантов",
+          other: "{count} вариантов",
+        },
+        filterNote: "Посмотреть варианты",
+        noMatch: "Нет экскурсий для выбранного фильтра.",
+      },
       flights: {
         searchButton: "Искать рейсы",
         searching: "Ищем рейсы...",
@@ -3438,31 +3476,31 @@ const translations: Record<Locale, Translation> = {
       pages: {
         hotel: {
           title: "Отель",
-          body: "Найдите и добавьте отель в ваш пакет.",
+          body: "Тщательно отобранные отели по всему ОАЭ с эксклюзивными тарифами туроператора.",
           note: "После выбора отеля можно добавить другие услуги.",
           cta: "Найти отель",
         },
         flight: {
           title: "Авиабилеты",
-          body: "Ищите рейсы flydubai и добавляйте их в пакет.",
+          body: "Прямое бронирование авиабилетов в ОАЭ.",
           note: "Даты и количество пассажиров берутся из поиска отеля.",
           cta: "Искать рейсы",
         },
         transfer: {
           title: "Трансферы",
-          body: "Трансферы выбираются во время бронирования отеля.",
+          body: "Индивидуальные и групповые трансферы — от премиальных встреч в аэропорту до комфортных поездок по городу.",
           note: "Начните с выбора отеля, чтобы продолжить.",
           cta: "Найти отель",
         },
         excursion: {
-          title: "Экскурсии",
-          body: "Экскурсии выбираются во время бронирования отеля.",
+          title: "Экскурсии и тематические парки",
+          body: "Кураторская подборка впечатлений — от знаковых достопримечательностей до приватных маршрутов.",
           note: "Начните с выбора отеля, чтобы продолжить.",
           cta: "Найти отель",
         },
         insurance: {
           title: "Страховка",
-          body: "Выберите план туристической страховки EFES для вашего пакета.",
+          body: "Комплексное туристическое страхование, разработанное для защиты на каждом этапе вашего путешествия.",
           note: "Стоимость рассчитывается по возрасту путешественников и обновляется при оплате.",
           cta: "Найти отель",
         },
@@ -3500,7 +3538,7 @@ const translations: Record<Locale, Translation> = {
         emptySummary: "Пока нет выбранных услуг.",
         pendingDetails: "Детали будут подтверждены во время бронирования.",
         contactTitle: "Контактные данные",
-        contactHint: "Мы отправим подтверждения и обновления на эти контакты.",
+        contactHint: "Подтверждения и обновления будут отправлены контактному лицу.",
         firstName: "Имя",
         lastName: "Фамилия",
         email: "Эл. почта",
@@ -3624,8 +3662,7 @@ const translations: Record<Locale, Translation> = {
     },
     featured: {
       title: "Отели с эксклюзивными привилегиями",
-      subtitle:
-        "Гибкая отмена, дополнительные преимущества и мгновенное подтверждение — благодаря прямым контрактам.",
+      subtitle: "Прозрачные условия, эксклюзивные преимущества и быстрое подтверждение.",
       cta: "Открыть отели по всем эмиратам",
     },
     faq: {
@@ -4204,7 +4241,7 @@ const translations: Record<Locale, Translation> = {
       backToSearch: "Вернуться к поиску",
       scrollTop: "Наверх",
       contact: "Связаться",
-      contactForRates: "Свяжитесь для уточнения цены",
+      contactForRates: "Для уточнения тарифов свяжитесь с нами",
       close: "Закрыть",
       yes: "Да",
       no: "Нет",

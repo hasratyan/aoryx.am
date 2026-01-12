@@ -458,6 +458,7 @@ export interface AoryxExcursionTicket {
   description?: string | null;
   productType?: string | null;
   cityCode?: string | null;
+  location?: string | null;
   countryCode?: string | null;
   pricing?: { currency?: string | null; adult?: number | null; child?: number | null; feeApplied?: boolean | null } | null;
   childPolicy?: string | null;
