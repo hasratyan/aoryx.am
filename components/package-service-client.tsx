@@ -86,6 +86,19 @@ const normalizeOptional = (value: string | null | undefined) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const buildExcursionNameIndex = (excursion: AoryxExcursionTicket) => {
+  const name = normalizeOptional(excursion.name);
+  const activityCode = normalizeOptional(excursion.activityCode);
+  if (!name && !activityCode) return "";
+  return [name, activityCode].filter(Boolean).join(" ").toLowerCase();
+};
+
+const excursionNameIncludes = (excursion: AoryxExcursionTicket, terms: string[]) => {
+  const index = buildExcursionNameIndex(excursion);
+  if (!index) return false;
+  return terms.some((term) => index.includes(term));
+};
+
 const calculateTripDays = (checkIn?: string | null, checkOut?: string | null) => {
   if (!checkIn || !checkOut) return null;
   const start = new Date(`${checkIn}T00:00:00`);
@@ -112,7 +125,7 @@ type ExcursionGuest = {
 };
 
 type TransferType = "INDIVIDUAL" | "GROUP";
-type ExcursionFilter = "ALL" | "YAS";
+type ExcursionFilter = "ALL" | "YAS" | "SAFARI" | "CRUISE" | "BURJ" | "HELICOPTER";
 
 type InsurancePlan = {
   id: string;
@@ -1014,9 +1027,42 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       excursion.cityCode,
     ].some((value) => typeof value === "string" && yasPattern.test(value));
   }, []);
+  const isSafariExcursion = useCallback(
+    (excursion: AoryxExcursionTicket) => excursionNameIncludes(excursion, ["safari"]),
+    []
+  );
+  const isCruiseExcursion = useCallback(
+    (excursion: AoryxExcursionTicket) => excursionNameIncludes(excursion, ["cruise"]),
+    []
+  );
+  const isBurjExcursion = useCallback(
+    (excursion: AoryxExcursionTicket) => excursionNameIncludes(excursion, ["burj", "khalifa"]),
+    []
+  );
+  const isHelicopterExcursion = useCallback(
+    (excursion: AoryxExcursionTicket) =>
+      excursionNameIncludes(excursion, ["helicopter", "heli"]),
+    []
+  );
   const yasExcursions = useMemo(
     () => excursionOptionsWithId.filter(isYasExcursion),
     [excursionOptionsWithId, isYasExcursion]
+  );
+  const safariExcursions = useMemo(
+    () => excursionOptionsWithId.filter(isSafariExcursion),
+    [excursionOptionsWithId, isSafariExcursion]
+  );
+  const cruiseExcursions = useMemo(
+    () => excursionOptionsWithId.filter(isCruiseExcursion),
+    [excursionOptionsWithId, isCruiseExcursion]
+  );
+  const burjExcursions = useMemo(
+    () => excursionOptionsWithId.filter(isBurjExcursion),
+    [excursionOptionsWithId, isBurjExcursion]
+  );
+  const helicopterExcursions = useMemo(
+    () => excursionOptionsWithId.filter(isHelicopterExcursion),
+    [excursionOptionsWithId, isHelicopterExcursion]
   );
   const getExcursionLogo = useCallback(
     (excursion: AoryxExcursionTicket) => {
@@ -1037,8 +1083,32 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     [isYasExcursion]
   );
   const visibleExcursions = useMemo(
-    () => (excursionFilter === "YAS" ? yasExcursions : excursionOptionsWithId),
-    [excursionFilter, excursionOptionsWithId, yasExcursions]
+    () => {
+      switch (excursionFilter) {
+        case "YAS":
+          return yasExcursions;
+        case "SAFARI":
+          return safariExcursions;
+        case "CRUISE":
+          return cruiseExcursions;
+        case "BURJ":
+          return burjExcursions;
+        case "HELICOPTER":
+          return helicopterExcursions;
+        case "ALL":
+        default:
+          return excursionOptionsWithId;
+      }
+    },
+    [
+      burjExcursions,
+      cruiseExcursions,
+      excursionFilter,
+      excursionOptionsWithId,
+      helicopterExcursions,
+      safariExcursions,
+      yasExcursions,
+    ]
   );
 
   useEffect(() => {
@@ -1711,6 +1781,26 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       yasExcursions.length,
       t.packageBuilder.excursions.countLabel
     );
+    const safariCountLabel = formatPlural(
+      safariExcursions.length,
+      t.packageBuilder.excursions.countLabel
+    );
+    const cruiseCountLabel = formatPlural(
+      cruiseExcursions.length,
+      t.packageBuilder.excursions.countLabel
+    );
+    const burjCountLabel = formatPlural(
+      burjExcursions.length,
+      t.packageBuilder.excursions.countLabel
+    );
+    const helicopterCountLabel = formatPlural(
+      helicopterExcursions.length,
+      t.packageBuilder.excursions.countLabel
+    );
+    const safariLabel = "Safari";
+    const cruiseLabel = "Cruise";
+    const burjLabel = "Burj Khalifa";
+    const helicopterLabel = "Helicopter";
 
     return (
       <>
@@ -1737,19 +1827,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           </button>
           <button
             type="button"
-            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
-            onClick={() => setExcursionFilter("YAS")}
-            aria-pressed={excursionFilter === "YAS"}
+            className={`${excursionFilter === "SAFARI" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("SAFARI")}
+            aria-pressed={excursionFilter === "SAFARI"}
           >
             <span>
-              <h2>Safari</h2>
+              <h2>{safariLabel}</h2>
               <span className="note">
-                {yasCountLabel}
+                {safariCountLabel}
               </span>
             </span>
             <Image
               src="/images/safari.webp"
-              alt={t.packageBuilder.excursions.yasLabel}
+              alt={safariLabel}
               width={140}
               height={90}
               unoptimized
@@ -1757,19 +1847,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           </button>
           <button
             type="button"
-            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
-            onClick={() => setExcursionFilter("YAS")}
-            aria-pressed={excursionFilter === "YAS"}
+            className={`${excursionFilter === "CRUISE" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("CRUISE")}
+            aria-pressed={excursionFilter === "CRUISE"}
           >
             <span>
-              <h2>Cruise</h2>
+              <h2>{cruiseLabel}</h2>
               <span className="note">
-                {yasCountLabel}
+                {cruiseCountLabel}
               </span>
             </span>
             <Image
               src="/images/cruise.webp"
-              alt={t.packageBuilder.excursions.yasLabel}
+              alt={cruiseLabel}
               width={140}
               height={90}
               unoptimized
@@ -1777,19 +1867,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           </button>
           <button
             type="button"
-            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
-            onClick={() => setExcursionFilter("YAS")}
-            aria-pressed={excursionFilter === "YAS"}
+            className={`${excursionFilter === "BURJ" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("BURJ")}
+            aria-pressed={excursionFilter === "BURJ"}
           >
             <span>
-              <h2>Burj Khalifa</h2>
+              <h2>{burjLabel}</h2>
               <span className="note">
-                {yasCountLabel}
+                {burjCountLabel}
               </span>
             </span>
             <Image
               src="/images/burj-khalifa.webp"
-              alt={t.packageBuilder.excursions.yasLabel}
+              alt={burjLabel}
               width={140}
               height={90}
               unoptimized
@@ -1797,19 +1887,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           </button>
           <button
             type="button"
-            className={`${excursionFilter === "YAS" ? " is-selected" : ""}`}
-            onClick={() => setExcursionFilter("YAS")}
-            aria-pressed={excursionFilter === "YAS"}
+            className={`${excursionFilter === "HELICOPTER" ? " is-selected" : ""}`}
+            onClick={() => setExcursionFilter("HELICOPTER")}
+            aria-pressed={excursionFilter === "HELICOPTER"}
           >
             <span>
-              <h2>Helicopter</h2>
+              <h2>{helicopterLabel}</h2>
               <span className="note">
-                {yasCountLabel}
+                {helicopterCountLabel}
               </span>
             </span>
             <Image
               src="/images/helicopter.webp"
-              alt={t.packageBuilder.excursions.yasLabel}
+              alt={helicopterLabel}
               width={140}
               height={90}
               unoptimized

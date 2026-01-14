@@ -169,6 +169,36 @@ const toNumber = (value: unknown): number | null => {
   return null;
 };
 
+const normalizeText = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const buildTourDescription = (tour: Record<string, unknown>): string | null => {
+  const category = normalizeText(tour.category);
+  const subcategory = normalizeText(tour.subcategory);
+  const meals = normalizeText(tour.meals);
+  const transfers = normalizeText(tour.transfers);
+  const approxDuration = normalizeText(tour.approxDuration);
+  const minPax = toNumber(tour.minPax);
+  const parts: string[] = [];
+  if (category) parts.push(`Category: ${category}`);
+  if (subcategory) parts.push(`Type: ${subcategory}`);
+  if (meals) parts.push(`Meals: ${meals}`);
+  if (transfers) parts.push(`Transfers: ${transfers}`);
+  if (approxDuration) parts.push(`Duration: ${approxDuration}`);
+  if (typeof minPax === "number" && Number.isFinite(minPax)) {
+    parts.push(`Min pax: ${minPax}`);
+  }
+  return parts.length > 0 ? parts.join(" | ") : null;
+};
+
+const buildTourProductType = (category: string | null, subcategory: string | null) => {
+  if (category && subcategory) return `${category} - ${subcategory}`;
+  return category ?? subcategory ?? null;
+};
+
 export async function fetchExcursions(limit = 200): Promise<{
   excursions: AoryxExcursionTicket[];
   excursionFee: number;
@@ -177,9 +207,15 @@ export async function fetchExcursions(limit = 200): Promise<{
   const db = await getB2bDb();
   const query = { isActive: { $ne: false } };
 
-  const [excursions, excursionFee, platformFee] = await Promise.all([
+  const [excursions, tourExcursions, excursionFee, platformFee] = await Promise.all([
     db
       .collection("aoryxExcursionTickets")
+      .find(query)
+      .sort({ name: 1, "pricing.adult": 1 })
+      .limit(maxDocs)
+      .toArray(),
+    db
+      .collection("aoryxTourExcursions")
       .find(query)
       .sort({ name: 1, "pricing.adult": 1 })
       .limit(maxDocs)
@@ -218,5 +254,59 @@ export async function fetchExcursions(limit = 200): Promise<{
     };
   });
 
-  return { excursions: sanitizedExcursions as AoryxExcursionTicket[], excursionFee: totalFee };
+  const sanitizedTours = tourExcursions.map((tour) => {
+    const record = tour as Record<string, unknown>;
+    const pricing = (record.pricing as Record<string, unknown> | undefined) ?? {};
+    const adult = applyFee(pricing.adult);
+    const child = applyFee(pricing.child ?? pricing.adult);
+    const category = normalizeText(record.category);
+    const subcategory = normalizeText(record.subcategory);
+    const validity = (record.validity as { from?: unknown; to?: unknown } | undefined) ?? null;
+    const currency = normalizeText((pricing as { currency?: unknown }).currency);
+    return {
+      ...record,
+      _id: normalizeId(record._id),
+      activityCode: normalizeText(record.tourCode),
+      name: normalizeText(record.name),
+      description: buildTourDescription(record),
+      productType: buildTourProductType(category, subcategory),
+      childPolicy: normalizeText(record.childPolicy),
+      validity: validity
+        ? {
+            ...validity,
+            from: normalizeDateValue(validity.from),
+            to: normalizeDateValue(validity.to),
+          }
+        : validity,
+      pricing: {
+        ...pricing,
+        currency,
+        adult,
+        child,
+        feeApplied: true,
+      },
+    };
+  });
+
+  const mergedExcursions = [...sanitizedExcursions, ...sanitizedTours];
+  mergedExcursions.sort((left, right) => {
+    const leftName = normalizeText(left.name)?.toLowerCase() ?? "";
+    const rightName = normalizeText(right.name)?.toLowerCase() ?? "";
+    if (leftName && rightName) {
+      const nameOrder = leftName.localeCompare(rightName);
+      if (nameOrder !== 0) return nameOrder;
+    } else if (leftName || rightName) {
+      return leftName ? -1 : 1;
+    }
+    const leftPrice = toNumber((left.pricing as { adult?: unknown })?.adult);
+    const rightPrice = toNumber((right.pricing as { adult?: unknown })?.adult);
+    if (leftPrice === null && rightPrice === null) return 0;
+    if (leftPrice === null) return 1;
+    if (rightPrice === null) return -1;
+    return leftPrice - rightPrice;
+  });
+
+  const limitedExcursions = mergedExcursions.slice(0, maxDocs);
+
+  return { excursions: limitedExcursions as AoryxExcursionTicket[], excursionFee: totalFee };
 }

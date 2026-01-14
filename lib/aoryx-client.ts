@@ -1141,6 +1141,15 @@ export async function hotelInfo(hotelCode: string): Promise<AoryxHotelInfoResult
   const statusCode = response.StatusCode as number | undefined;
   const errors = response.Errors;
 
+  console.info("[Aoryx][hotel-info] Response", {
+    hotelCode,
+    isSuccess: isSuccess ?? null,
+    statusCode: statusCode ?? null,
+    exceptionMessage: exceptionMessage ?? null,
+    errors: errors ?? null,
+    hotelInformation: response.HotelInformation ?? null,
+  });
+
   if (!isSuccess) {
     throw new AoryxServiceError(
       exceptionMessage ?? "HotelInfo request failed",
