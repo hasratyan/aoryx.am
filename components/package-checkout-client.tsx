@@ -1955,7 +1955,7 @@ export default function PackageCheckoutClient() {
                 </div>
               ))}
               <div className="checkout-summary__line">
-                <span>{t.packageBuilder.checkout.totalLabel}</span>
+                <b>{t.packageBuilder.checkout.totalLabel}</b>
                 <strong>{estimatedTotal ?? 0}</strong>
               </div>
               <p className="checkout-summary__note">{t.packageBuilder.checkout.processingNote}</p>
