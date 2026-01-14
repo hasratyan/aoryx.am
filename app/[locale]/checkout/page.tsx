@@ -14,8 +14,9 @@ export const dynamic = "force-dynamic";
 const resolveLocale = (value: string | undefined) =>
   locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
 
-export async function generateMetadata({ params }: { params: { locale: string } }) {
-  const resolvedLocale = resolveLocale(params.locale);
+export async function generateMetadata({ params }: PageProps) {
+  const resolvedParams = await params;
+  const resolvedLocale = resolveLocale(resolvedParams.locale);
   const t = getTranslations(resolvedLocale);
   return buildLocalizedMetadata({
     locale: resolvedLocale,
@@ -26,7 +27,6 @@ export async function generateMetadata({ params }: { params: { locale: string } 
 }
 
 export default async function CheckoutPage({ params }: PageProps) {
-  await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return (

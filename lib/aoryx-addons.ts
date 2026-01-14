@@ -230,7 +230,7 @@ export async function fetchExcursions(limit = 200): Promise<{
     return num !== null ? num + totalFee : null;
   };
 
-  const sanitizedExcursions = excursions.map((ex) => {
+  const sanitizedExcursions: AoryxExcursionTicket[] = excursions.map((ex) => {
     const pricing = (ex as { pricing?: Record<string, unknown> }).pricing ?? {};
     const adult = applyFee(pricing.adult);
     const child = applyFee(pricing.child ?? pricing.adult);
@@ -251,10 +251,10 @@ export async function fetchExcursions(limit = 200): Promise<{
         child,
         feeApplied: true,
       },
-    };
+    } as AoryxExcursionTicket;
   });
 
-  const sanitizedTours = tourExcursions.map((tour) => {
+  const sanitizedTours: AoryxExcursionTicket[] = tourExcursions.map((tour) => {
     const record = tour as Record<string, unknown>;
     const pricing = (record.pricing as Record<string, unknown> | undefined) ?? {};
     const adult = applyFee(pricing.adult);
@@ -285,10 +285,10 @@ export async function fetchExcursions(limit = 200): Promise<{
         child,
         feeApplied: true,
       },
-    };
+    } as AoryxExcursionTicket;
   });
 
-  const mergedExcursions = [...sanitizedExcursions, ...sanitizedTours];
+  const mergedExcursions: AoryxExcursionTicket[] = [...sanitizedExcursions, ...sanitizedTours];
   mergedExcursions.sort((left, right) => {
     const leftName = normalizeText(left.name)?.toLowerCase() ?? "";
     const rightName = normalizeText(right.name)?.toLowerCase() ?? "";
