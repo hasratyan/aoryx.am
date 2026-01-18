@@ -139,18 +139,52 @@ export type Translation = {
       quoteLoading: string;
       selectPlanNote: string;
       coverageLabel: string;
+      programTitle: string;
+      coverageListTitle: string;
       territoryLabel: string;
       travelCountriesLabel: string;
       travelCountriesPlaceholder: string;
       defaultTravelCountry: string;
       startDateLabel: string;
       endDateLabel: string;
+      daysLabel: string;
+      subrisksTitle: string;
+      errors: {
+        invalidDays: string;
+      };
+      subrisks: {
+        amateurSport: {
+          label: string;
+          rate: string;
+          description: string;
+        };
+        baggage: {
+          label: string;
+          rate: string;
+          description: string;
+        };
+        travelInconveniences: {
+          label: string;
+          rate: string;
+          description: string;
+        };
+        houseInsurance: {
+          label: string;
+          rate: string;
+          description: string;
+        };
+        tripCancellation: {
+          label: string;
+          rate: string;
+          description: string;
+        };
+      };
       territories: {
         worldwideExcluding: string;
         worldwideExcludingPolicy: string;
       };
       plans: {
-        standard: { title: string; description: string };
+        elite: { title: string; description: string; coverages: string[] };
       };
     };
     checkout: {
@@ -164,6 +198,8 @@ export type Translation = {
       contactHint: string;
       firstName: string;
       lastName: string;
+      latinHint: string;
+      armenianHint: string;
       email: string;
       phone: string;
       guestTitle: string;
@@ -211,6 +247,11 @@ export type Translation = {
       couponTitle: string;
       couponPlaceholder: string;
       applyCoupon: string;
+      insuranceTerms: {
+        prefix: string;
+        link: string;
+        suffix: string;
+      };
       paymentTitle: string;
       paymentHint: string;
       methodIdram: string;
@@ -235,18 +276,19 @@ export type Translation = {
         cardUnavailable: string;
         paymentFailed: string;
       };
-      labels: {
-        destination: string;
-        dates: string;
-        rooms: string;
-        guests: string;
-        route: string;
-        vehicle: string;
-        price: string;
-        type: string;
-        hotelCode: string;
+        labels: {
+          destination: string;
+          dates: string;
+          rooms: string;
+          guests: string;
+          route: string;
+          vehicle: string;
+          price: string;
+          type: string;
+          hotelCode: string;
+          excursions: string;
+        };
       };
-    };
   };
   trustStats: {
     title: string;
@@ -759,9 +801,7 @@ export type Translation = {
         noteLabel: string;
         notePlaceholder: string;
         plans: {
-          essential: { title: string; description: string };
-          complete: { title: string; description: string; highlight: string };
-          premium: { title: string; description: string };
+          elite: { title: string; description: string };
         };
       };
       flights: {
@@ -848,6 +888,7 @@ export type Translation = {
       remarksTitle: string;
       additionalInfo: string;
       roomPriceLabel: string;
+      roomLabel: string;
       paymentNote: string;
       redirectingToIdram: string;
       payWithIdram: string;
@@ -917,8 +958,8 @@ export type Translation = {
 const translations: Record<Locale, Translation> = {
   hy: {
     nav: [
-      { href: "#featured", label: "Լավագույն Հյուրանոցներ" },
-      { href: "#offers", label: "Բացառիկ Առաջարկներ" },
+      { href: "#featured", label: "Լավագույն հյուրանոցներ" },
+      { href: "#offers", label: "Բացառիկ առաջարկներ" },
       { href: "#faq", label: "ՀՏՀ" },
     ],
     labels: { exclusive: "Բացառիկ" },
@@ -1108,22 +1149,61 @@ const translations: Record<Locale, Translation> = {
         insurance: {
           title: "Ապահովագրություն",
           body: "Ճանապարհորդական ապահովագրություն՝ հանգիստ ու պաշտպանված ուղևորության համար։",
-          note: "Պրեմիումը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
+          note: "Ապահովագրավճարը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
           cta: "Գտնել հյուրանոց",
         },
       },
       insurance: {
-        note: "Պրեմիումը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
-        quoteLabel: "Կանխատեսվող պրեմիում",
-        quoteLoading: "Պրեմիումը հաշվարկվում է...",
+        note: "Ապահովագրավճարը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
+        quoteLabel: "Ապահովագրավճար",
+        quoteLoading: "Ապահովագրավճարը հաշվարկվում է...",
         selectPlanNote: "Ընտրեք ապահովագրության պլանը՝ փաթեթին ավելացնելու համար։",
         coverageLabel: "Ծածկույթ՝ {amount}",
-        territoryLabel: "Ապահովագրության տարածք",
-        travelCountriesLabel: "Ճանապարհորդության երկիր",
-        travelCountriesPlaceholder: "օր․ Արաբական Միացյալ Էմիրություն",
-        defaultTravelCountry: "Արաբական Միացյալ Էմիրություն",
+        programTitle: "Ճամփորդական ծրագիր՝",
+        coverageListTitle: "Ներառված ծածկույթներ",
+        territoryLabel: "Ապահովագրության տարածք՝",
+        travelCountriesLabel: "Ճանապարհորդության երկիր՝",
+        travelCountriesPlaceholder: "օր․ Արաբական Միացյալ Էմիրություններ",
+        defaultTravelCountry: "Արաբական Միացյալ Էմիրություններ",
         startDateLabel: "Սկիզբ",
         endDateLabel: "Ավարտ",
+        daysLabel: "Վավերության ժամկետ՝ {count} օր",
+        subrisksTitle: "Լրացուցիչ ծածկույթներ",
+        errors: {
+          invalidDays: "Ճանապարհորդության օրերի քանակը սխալ է լրացված",
+        },
+        subrisks: {
+          amateurSport: {
+            label: "Վտանգավոր սպորտ",
+            rate: "֏1,200",
+            description:
+              "Հատուցվում են նաև սիրողական սպորտաձևերով և վտանգավոր հոբբիներով զբաղվելու արդյունքում առաջացած պատահարները: Սիրողական սպորտաձևերի կամ վտանգավոր հոբբիների օրինակ է լեռնադահուկային սպորտը, սերֆինգը, ռաֆթինգը, մրցավազքային ձիասպորտը և այլն։",
+          },
+          baggage: {
+            label: "Ուղեբեռ",
+            rate: "֏2,500",
+            description:
+              "Ծածկույթի շրջանակում հաճախորդը կստանա հատուցում հանձնվող ուղեբեռի կորստի կամ ուշացման դեպքում։ Եթե ճանապարհորդության ընթացքում հաճախորդի ուղեբեռը կորել է, փոխհատուցվում է նման վնասի դիմաց` 20 USD ուղեբեռի յուրաքանչյուր կիլոգրամի համար, բայց ոչ ավել քան 500 USD ուղեբեռի բոլոր կտորները միասին: Հաճախորդի ուղեբեռի ժամանակավոր կորստի կամ սխալմամբ փոխարինվելու դեպքում, հատուցվում է ուշացման 5-րդ ժամից սկսած 20 USD յուրաքանչյուր ժամի համար, բայց ոչ ավել քան 12 ժամը։",
+          },
+          travelInconveniences: {
+            label: "Ճամփորդության անհարմարություններ",
+            rate: "֏15,000",
+            description:
+              "Ձեռք բերելով ճամփորդության անհարմարություններից ապահովագրություն՝ հաճախորդը բառացիորեն կազատվի ճամփորդության ընթացքում առաջացած անհարմարությունների բերած հետագա բարդություններից․\n• Չվերթի հետաձգում\n• Բաց թողնված /միջանկյալ/ թռիչք (missed connection)\n• Գույքի վնաս\n• Ընտանիքի անդամի մահ կամ հոսպիտալացում\nԱռավելագույն հատուցման գումարը կազմում է 3,000 USD:",
+          },
+          houseInsurance: {
+            label: "Տան ապահովագրություն",
+            rate: "֏1,500",
+            description:
+              "Ճանապարհորդության ընթացքում ապահովագրվում է ապահովագրված անձի անշարժ գույքը` տունը կամ բնակարանը։ Ապահովագրվող ռիսկերն են հրդեհը, պայթյունը, ջրից վնասվածքը, ապակու կոտրանքը, տարերային աղետը, պատասխանատվությունը, կենդանիների գործողությունները և երրորդ անձանց հակաօրինական գործողությունները։ Առավելագույն հատուցման գումարը կազմում է 5,000 USD։",
+          },
+          tripCancellation: {
+            label: "Ճամփորդության չեղարկում և հետաձգում",
+            rate: "֏10,000",
+            description:
+              "Հաճախորդը կստանա ուղևորության չկայացման հետևանքով նախապես վճարված ուղևորության տոմսերի վերադարձի և հյուրանոցային համարների, ներառյալ Transfer ամրագրումը չեղարկելու հետ կապված ծախսերը, եթե դա հետևանք է․\n▪ հաճախորդի կամ իր ընտանիքի անդամներից որևէ մեկի հոսպիտալացման կամ մահվան,\n▪ հաճախորդին պատկանող անշարժ գույքի` հրդեհի, պայթյունի կամ ջրից վնասների հետևանքով վնասման (ոչնչացման),\n▪ հաճախորդի զորակոչի կամ ներգրավմանը դատական գործում,\n▪ հաճախորդի կամ ճամփորդության ուղեկցի կովիդ-19 ունենալը, եթե նախատեսված ճամփորդությունից առավելագույնը 72 ժամ առաջ կատարված ՊՇՌ թեստը դրական է։\nԱռավելագույն հատուցման գումարը կազմում է 3,000 USD։",
+          },
+        },
         territories: {
           worldwideExcluding:
             "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
@@ -1131,9 +1211,21 @@ const translations: Record<Locale, Translation> = {
             "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
         },
         plans: {
-          standard: {
-            title: "Ստանդարտ",
+          elite: {
+            title: "Էլիտ",
             description: "Հիմնական ճանապարհորդական ծածկույթ EFES-ից։",
+            coverages: [
+              "Բժշկական ծախսեր",
+              "Կովիդ – 19",
+              "Հետմահու ռեպատրիացիայի հետ կապված ծախսեր",
+              "Օգնության կազմակերպման հետ կապված ծախսեր",
+              "Տրանսպորտային ծախսեր",
+              "Դժբախտ պատահարներից ապահովագրություն",
+              "Քաղաքացիական պատասխանատվություն",
+              "Անձնագրի կորուստ",
+              "Տարհանում",
+              "Վարձակալած մեքենայի վնասներ",
+            ],
           },
         },
       },
@@ -1148,6 +1240,8 @@ const translations: Record<Locale, Translation> = {
         contactHint: "Հաստատումները և թարմացումները կուղարկվեն կոնտակտային անձին։",
         firstName: "Անուն",
         lastName: "Ազգանուն",
+        latinHint: "(Լատինատառ)",
+        armenianHint: "(Հայատառ)",
         email: "Էլ․ հասցե",
         phone: "Հեռախոս",
         guestTitle: "Հյուրերի տվյալներ",
@@ -1169,8 +1263,8 @@ const translations: Record<Locale, Translation> = {
         insuranceEmpty: "Ապահովագրությունը ընտրելուց հետո կլրացվեն տվյալները։",
         insuranceTravelerLabel: "Ճանապարհորդ {index}",
         insuranceFields: {
-          firstNameEn: "Անուն (լատինատառ)",
-          lastNameEn: "Ազգանուն (լատինատառ)",
+          firstNameEn: "Անուն",
+          lastNameEn: "Ազգանուն",
           gender: "Սեռ",
           genderPlaceholder: "Ընտրել",
           genderMale: "Արական",
@@ -1187,7 +1281,7 @@ const translations: Record<Locale, Translation> = {
           phone: "Հեռախոս",
           email: "Էլ․ հասցե",
           address: "Գրանցման հասցե",
-          addressEn: "Հասցե (լատինատառ)",
+          addressEn: "Հասցե",
           country: "Երկիր",
           region: "Տարածաշրջան",
           city: "Քաղաք",
@@ -1195,6 +1289,12 @@ const translations: Record<Locale, Translation> = {
         couponTitle: "Կտրոնի կամ նվեր քարտի կոդ",
         couponPlaceholder: "Մուտքագրեք կոդը",
         applyCoupon: "Կիրառել",
+        insuranceTerms: {
+          prefix: "Ստացել, ծանոթացել և համաձայն եմ ",
+          link: "Ճամփորդության ապահովագրության պայմանագրի պայմաններին",
+          suffix:
+            "՝ ներառյալ սույն պայմանագրի գործողության ընթացքում և դրանից հետո ծանուցումների կարգի կիրառմանը։",
+        },
         paymentTitle: "Վճարման եղանակ",
         paymentHint: "Ընտրեք վճարման տարբերակը։",
         methodIdram: "Վճարել Idram-ով",
@@ -1229,6 +1329,7 @@ const translations: Record<Locale, Translation> = {
           price: "Գին",
           type: "Տեսակ",
           hotelCode: "Հյուրանոցի կոդ",
+          excursions: "Էքսկուրսիաներ",
         },
       },
     },
@@ -1928,18 +2029,9 @@ const translations: Record<Locale, Translation> = {
           noteLabel: "Հատուկ նշումներ (ըստ ցանկության)",
           notePlaceholder: "Նշեք ցանկալի ծածկույթները։",
           plans: {
-            essential: {
-              title: "Հիմնական",
-              description: "Բժշկական և չեղարկման հիմնական ծածկույթ։",
-            },
-            complete: {
-              title: "Լիարժեք",
-              description: "Լրացուցիչ ծածկույթներ՝ ուշացումներ, ուղեբեռ և այլն։",
-              highlight: "Առաջարկվող",
-            },
-            premium: {
-              title: "Պրեմիում",
-              description: "Լիարժեք պաշտպանություն՝ ավելի բարձր սահմաններով։",
+            elite: {
+              title: "Էլիտ",
+              description: "Հիմնական ճանապարհորդական ծածկույթ EFES-ից։",
             },
           },
         },
@@ -1982,8 +2074,8 @@ const translations: Record<Locale, Translation> = {
         empty: "Սենյակների տարբերակներ չկան։",
         noMatch: "Ֆիլտրերին համապատասխան տարբերակ չի գտնվել։",
         count: {
-          one: "{count} սենյակի տարբերակ",
-          other: "{count} սենյակի տարբերակ",
+          one: "{count} տարբերակ",
+          other: "{count} տարբերակ",
         },
         of: "{total}-ից",
         filterMeal: "Սննդակարգ",
@@ -2038,6 +2130,7 @@ const translations: Record<Locale, Translation> = {
         remarksTitle: "Նշումներ",
         additionalInfo: "Լրացուցիչ տեղեկություն",
         roomPriceLabel: "Սենյակի գինը",
+        roomLabel: "Սենյակ",
         paymentNote: "Դուք կվերուղղորդվեք Idram՝ վճարումը ավարտելու համար։",
         redirectingToIdram: "Ուղարկում ենք Idram...",
         payWithIdram: "Վճարել Idram-ով",
@@ -2315,16 +2408,55 @@ const translations: Record<Locale, Translation> = {
       },
       insurance: {
         note: "Premiums are estimated using traveler ages and update at checkout.",
-        quoteLabel: "Estimated premium",
+        quoteLabel: "Premium",
         quoteLoading: "Calculating premium...",
         selectPlanNote: "Choose a plan to add insurance to your package.",
         coverageLabel: "Coverage: {amount}",
-        territoryLabel: "Coverage territory",
-        travelCountriesLabel: "Travel country",
+        programTitle: "Travel program:",
+        coverageListTitle: "Included coverages",
+        territoryLabel: "Coverage territory:",
+        travelCountriesLabel: "Travel country:",
         travelCountriesPlaceholder: "e.g. United Arab Emirates",
-        defaultTravelCountry: "Արաբական Միացյալ Էմիրություն",
+        defaultTravelCountry: "United Arab Emirates",
         startDateLabel: "Start date",
         endDateLabel: "End date",
+        daysLabel: "Validity period: {count} days",
+        subrisksTitle: "Optional coverages",
+        errors: {
+          invalidDays: "The number of travel days is incorrect.",
+        },
+        subrisks: {
+          amateurSport: {
+            label: "Dangerous sport",
+            rate: "֏1,200",
+            description:
+              "Accidents resulting from amateur sports and dangerous hobbies are also covered. Examples of amateur sports or dangerous hobbies are skiing, surfing, rafting, horse racing, etc.",
+          },
+          baggage: {
+            label: "Baggage",
+            rate: "֏2,500",
+            description:
+              "As part of the coverage, the customer will receive compensation in case of loss or delay of checked luggage. If the customer's luggage is lost during the journey, compensation for such loss is 20 USD for each kilogram of luggage, but not more than 500 USD for all pieces of luggage combined. In case of temporary loss or mistakenly replacement of the customer's luggage, the compensation is 20 USD for each hour starting from the 5th hour of delay, but not more than 12 hours.",
+          },
+          travelInconveniences: {
+            label: "Travel inconveniences",
+            rate: "֏15,000",
+            description:
+              "By purchasing travel inconveniences insurance, the client will literally be freed from further complications caused by the inconveniences during the trip:\n• Flight delay\n• Missed /intermediate/ flight (missed connection)\n• Property damage\n• Death or hospitalization of a family member\nThe maximum compensation amount is 3,000 USD.",
+          },
+          houseInsurance: {
+            label: "Home insurance",
+            rate: "֏1,500",
+            description:
+              "During the trip, the immovable property of the insured - house or apartment - is insured. Insured risks are fire, explosion, water damage, glass breakage, natural disaster, liability, animal acts and illegal actions of third parties. The maximum compensation amount is 5,000 USD.",
+          },
+          tripCancellation: {
+            label: "Trip cancellation or delay",
+            rate: "֏10,000",
+            description:
+              "The customer will be reimbursed for the refund of pre-paid travel tickets and cancellation of hotel rooms, including Transfer booking fees, as a result of trip cancellation, if this is a result of:\n▪ hospitalization or death of the client or any of their family members,\n▪ damage (destruction) of the real estate belonging to the client due to fire, explosion or water damage,\n▪ conscription or involvement of the client in a court case,\n▪ the customer or travel companion having Covid-19, if the PCR test performed at most 72 hours before the planned trip is positive.\nThe maximum compensation amount is 3,000 USD.",
+          },
+        },
         territories: {
           worldwideExcluding:
             "Worldwide (excluding USA, Canada, Australia, Japan, Schengen countries, United Kingdom)",
@@ -2332,9 +2464,21 @@ const translations: Record<Locale, Translation> = {
             "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
         },
         plans: {
-          standard: {
-            title: "Standard",
+          elite: {
+            title: "Elite",
             description: "Core travel coverage from EFES.",
+            coverages: [
+              "Medical expenses",
+              "Covid – 19",
+              "Expenses for organization of assistance",
+              "Posthumous repatriation expenses",
+              "Transportation costs",
+              "Personal Accident Insurance",
+              "Civil liability",
+              "Loss of passport",
+              "Evacuation",
+              "Rental car damages",
+            ],
           },
         },
       },
@@ -2349,6 +2493,8 @@ const translations: Record<Locale, Translation> = {
         contactHint: "Booking confirmations and updates will be sent to the contact person.",
         firstName: "First name",
         lastName: "Last name",
+        latinHint: "(in English letters)",
+        armenianHint: "(in Armenian)",
         email: "Email",
         phone: "Phone",
         guestTitle: "Guest details",
@@ -2370,8 +2516,8 @@ const translations: Record<Locale, Translation> = {
         insuranceEmpty: "Insurance travelers will appear after you select insurance.",
         insuranceTravelerLabel: "Traveler {index}",
         insuranceFields: {
-          firstNameEn: "First name (Latin)",
-          lastNameEn: "Last name (Latin)",
+          firstNameEn: "First name",
+          lastNameEn: "Last name",
           gender: "Gender",
           genderPlaceholder: "Select",
           genderMale: "Male",
@@ -2388,7 +2534,7 @@ const translations: Record<Locale, Translation> = {
           phone: "Phone",
           email: "Email",
           address: "Registered address",
-          addressEn: "Address (Latin)",
+          addressEn: "Address",
           country: "Country",
           region: "Region",
           city: "City",
@@ -2396,6 +2542,12 @@ const translations: Record<Locale, Translation> = {
         couponTitle: "Coupon or gift card code",
         couponPlaceholder: "Enter code",
         applyCoupon: "Apply",
+        insuranceTerms: {
+          prefix: "I have received, read and I agree with ",
+          link: "Terms of the travel insurance contract",
+          suffix:
+            ", including the use of notifications terms during and after the contract period.",
+        },
         paymentTitle: "Payment method",
         paymentHint: "Choose how you want to pay.",
         methodIdram: "Pay by Idram",
@@ -2431,6 +2583,7 @@ const translations: Record<Locale, Translation> = {
           price: "Price",
           type: "Type",
           hotelCode: "Hotel code",
+          excursions: "Excursions",
         },
       },
     },
@@ -3133,18 +3286,9 @@ const translations: Record<Locale, Translation> = {
           noteLabel: "Special requests (optional)",
           notePlaceholder: "Let us know any coverage preferences.",
           plans: {
-            essential: {
-              title: "Essential",
-              description: "Medical coverage and trip cancellation basics.",
-            },
-            complete: {
-              title: "Complete",
-              description: "Extended coverage for delays, baggage, and more.",
-              highlight: "Recommended",
-            },
-            premium: {
-              title: "Premium",
-              description: "Comprehensive protection with higher limits.",
+            elite: {
+              title: "Elite",
+              description: "Core travel coverage from EFES.",
             },
           },
         },
@@ -3243,6 +3387,7 @@ const translations: Record<Locale, Translation> = {
         remarksTitle: "Important Remarks",
         additionalInfo: "Additional Information",
         roomPriceLabel: "Room Price",
+        roomLabel: "Room",
         paymentNote: "You will be securely redirected to Idram to complete your payment.",
         redirectingToIdram: "Redirecting to Idram...",
         payWithIdram: "Pay with Idram",
@@ -3523,16 +3668,55 @@ const translations: Record<Locale, Translation> = {
       },
       insurance: {
         note: "Стоимость рассчитывается по возрасту путешественников и обновляется при оплате.",
-        quoteLabel: "Ориентировочная стоимость",
+        quoteLabel: "Стоимость",
         quoteLoading: "Рассчитываем стоимость...",
         selectPlanNote: "Выберите план, чтобы добавить страховку в пакет.",
         coverageLabel: "Покрытие: {amount}",
-        territoryLabel: "Территория покрытия",
-        travelCountriesLabel: "Страна поездки",
+        programTitle: "Страховой план:",
+        coverageListTitle: "Включенные покрытия",
+        territoryLabel: "Территория покрытия:",
+        travelCountriesLabel: "Страна поездки:",
         travelCountriesPlaceholder: "например, Объединенные Арабские Эмираты",
-        defaultTravelCountry: "Արաբական Միացյալ Էմիրություն",
+        defaultTravelCountry: "Объединенные Арабские Эмираты",
         startDateLabel: "Дата начала",
         endDateLabel: "Дата окончания",
+        daysLabel: "Время действия: {count} дней",
+        subrisksTitle: "Дополнительные покрытия",
+        errors: {
+          invalidDays: "Неверно указано количество дней поездки.",
+        },
+        subrisks: {
+          amateurSport: {
+            label: "Опасный спорт",
+            rate: "֏1,200",
+            description:
+              "Также покрываются несчастные случаи, возникшие при занятиях любительскими видами спорта и опасными хобби. Примеры любительского спорта или опасных хобби: горнолыжный спорт, серфинг, рафтинг, конные скачки и т. д.",
+          },
+          baggage: {
+            label: "Багаж",
+            rate: "֏2,500",
+            description:
+              "В рамках покрытия клиент получает компенсацию при утрате или задержке зарегистрированного багажа. Если багаж клиента утерян во время поездки, компенсация составляет 20 USD за каждый килограмм багажа, но не более 500 USD за все места багажа вместе. При временной утрате или ошибочной замене багажа компенсация выплачивается начиная с 5-го часа задержки из расчета 20 USD за каждый час, но не более 12 часов.",
+          },
+          travelInconveniences: {
+            label: "Неудобства в поездке",
+            rate: "֏15,000",
+            description:
+              "При оформлении страхования от неудобств в поездке клиент освобождается от дальнейших сложностей, вызванных неудобствами во время путешествия:\n• Задержка рейса\n• Пропущенный стыковочный рейс (missed connection)\n• Повреждение имущества\n• Смерть или госпитализация члена семьи\nМаксимальная сумма возмещения — 3,000 USD.",
+          },
+          houseInsurance: {
+            label: "Страхование жилья",
+            rate: "֏1,500",
+            description:
+              "Во время поездки страхуется недвижимое имущество застрахованного лица — дом или квартира. Страхуемые риски: пожар, взрыв, ущерб от воды, бой стекла, стихийные бедствия, ответственность, действия животных и противоправные действия третьих лиц. Максимальная сумма возмещения — 5,000 USD.",
+          },
+          tripCancellation: {
+            label: "Отмена или перенос поездки",
+            rate: "֏10,000",
+            description:
+              "Клиент получает возмещение за возврат предварительно оплаченных билетов и расходов на отмену гостиничных номеров, включая бронирование трансфера, если отмена поездки вызвана:\n▪ госпитализацией или смертью клиента или кого-либо из членов его семьи,\n▪ повреждением (уничтожением) недвижимости клиента вследствие пожара, взрыва или повреждения водой,\n▪ призывом клиента на службу или его вовлечением в судебное дело,\n▪ заболеванием клиента или попутчика COVID-19 при положительном ПЦР-тесте, выполненном не более чем за 72 часа до планируемой поездки.\nМаксимальная сумма возмещения — 3,000 USD.",
+          },
+        },
         territories: {
           worldwideExcluding:
             "Весь мир (кроме США, Канады, Австралии, Японии, стран Шенгена, Великобритании)",
@@ -3540,9 +3724,21 @@ const translations: Record<Locale, Translation> = {
             "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)",
         },
         plans: {
-          standard: {
-            title: "Стандарт",
+          elite: {
+            title: "Элит",
             description: "Базовое туристическое покрытие от EFES.",
+            coverages: [
+              "Медицинские расходы",
+              "COVID-19",
+              "Расходы на организацию помощи",
+              "Расходы на посмертную репатриацию",
+              "Транспортные расходы",
+              "Страхование от несчастных случаев",
+              "Гражданская ответственность",
+              "Утрата паспорта",
+              "Эвакуация",
+              "Повреждения арендованного автомобиля",
+            ],
           },
         },
       },
@@ -3557,6 +3753,8 @@ const translations: Record<Locale, Translation> = {
         contactHint: "Подтверждения и обновления будут отправлены контактному лицу.",
         firstName: "Имя",
         lastName: "Фамилия",
+        latinHint: "(На английском)",
+        armenianHint: "(На армянском)",
         email: "Эл. почта",
         phone: "Телефон",
         guestTitle: "Данные гостей",
@@ -3578,8 +3776,8 @@ const translations: Record<Locale, Translation> = {
         insuranceEmpty: "Путешественники для страховки появятся после выбора страховки.",
         insuranceTravelerLabel: "Путешественник {index}",
         insuranceFields: {
-          firstNameEn: "Имя (латиница)",
-          lastNameEn: "Фамилия (латиница)",
+          firstNameEn: "Имя",
+          lastNameEn: "Фамилия",
           gender: "Пол",
           genderPlaceholder: "Выберите",
           genderMale: "Мужской",
@@ -3604,6 +3802,12 @@ const translations: Record<Locale, Translation> = {
         couponTitle: "Код купона или подарочной карты",
         couponPlaceholder: "Введите код",
         applyCoupon: "Применить",
+        insuranceTerms: {
+          prefix: "Я получил(а), ознакомился(лась) и согласен(на) с ",
+          link: "условиями договора туристического страхования",
+          suffix:
+            ", включая применение порядка уведомлений в период действия договора и после его окончания.",
+        },
         paymentTitle: "Способ оплаты",
         paymentHint: "Выберите удобный способ оплаты.",
         methodIdram: "Оплата через Idram",
@@ -3639,6 +3843,7 @@ const translations: Record<Locale, Translation> = {
           price: "Цена",
           type: "Тип",
           hotelCode: "Код отеля",
+          excursions: "Экскурсии",
         },
       },
     },
@@ -4345,18 +4550,9 @@ const translations: Record<Locale, Translation> = {
           noteLabel: "Особые пожелания (опционально)",
           notePlaceholder: "Укажите предпочтения по покрытию.",
           plans: {
-            essential: {
-              title: "Базовый",
-              description: "Медицинское покрытие и базовая отмена поездки.",
-            },
-            complete: {
-              title: "Полный",
-              description: "Расширенное покрытие: задержки, багаж и другое.",
-              highlight: "Рекомендуем",
-            },
-            premium: {
-              title: "Премиум",
-              description: "Максимальная защита и повышенные лимиты.",
+            elite: {
+              title: "Элит",
+              description: "Базовое туристическое покрытие от EFES.",
             },
           },
         },
@@ -4459,6 +4655,7 @@ const translations: Record<Locale, Translation> = {
         remarksTitle: "Примечания",
         additionalInfo: "Дополнительная информация",
         roomPriceLabel: "Цена номера",
+        roomLabel: "Номер",
         paymentNote: "Вы будете перенаправлены в Idram для завершения оплаты.",
         redirectingToIdram: "Переходим в Idram...",
         payWithIdram: "Оплатить через Idram",

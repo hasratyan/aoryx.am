@@ -42,7 +42,7 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
         {t.accessibility.skipToContent}
       </Link>
       <div className="videoWrap">
-        <video src="/uae.mp4" autoPlay muted loop playsInline />
+        <video src="/videos/uae.mp4" autoPlay muted loop playsInline />
       </div>
       <main role="main" id="main-content">
         <div className="container">
@@ -189,7 +189,7 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
               </div>
             </div>
             <div className="container">
-              <Image src="/images/icons/beach-chair.png" alt={t.home.idram.alt} width={230} height={200} />
+              <Image src="/images/icons/beach-chair.webp" alt={t.home.idram.alt} width={230} height={200} />
               <h2>{t.home.idram.title}</h2>
               <p>{t.home.idram.body}</p>
             </div>
@@ -207,7 +207,7 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
               </div>
             </div>
             <div className="container">
-              <Image height={100} width={100} src={"/images/icons/plane-ticket.png"} unoptimized alt={t.home.flydubai.alt}/>
+              <Image height={100} width={100} src={"/images/icons/plane-ticket.webp"} unoptimized alt={t.home.flydubai.alt}/>
               <h2>{t.home.flydubai.title}</h2>
               <p>{t.home.flydubai.body}</p>
             </div>
@@ -216,11 +216,11 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
           <div id="efes">
             <div className="header">
               <div className="logos">
-                <Image src="/images/logos/efes.png" alt={t.home.efes.alt} width={200} height={110} />
+                <Image src="/images/logos/efes.webp" alt={t.home.efes.alt} width={200} height={110} />
               </div>
             </div>
             <div className="container">
-              <Image height={100} width={100} src={"/images/icons/insurance.png"} unoptimized alt={t.home.efes.alt}/>
+              <Image height={100} width={100} src={"/images/icons/insurance.webp"} unoptimized alt={t.home.efes.alt}/>
               <h2>{t.home.efes.title}</h2>
               <p>{t.home.efes.body}</p>
             </div>
@@ -229,11 +229,11 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
           <div id="yas">
             <div className="header">
               <div className="logos">
-                <Image src="/images/logos/yas.png" alt={t.home.yas.alt} width={200} height={110} />
+                <Image src="/images/logos/yas.webp" alt={t.home.yas.alt} width={200} height={110} />
               </div>
             </div>
             <div className="container">
-              {/* <Image height={100} width={100} src={"/images/icons/tickets.png"} unoptimized alt={t.home.yas.alt}/> */}
+              {/* <Image height={100} width={100} src={"/images/icons/tickets.webp"} unoptimized alt={t.home.yas.alt}/> */}
               <h2>{t.home.yas.title}</h2>
               <p>{t.home.yas.body}</p>
             </div>

@@ -24,6 +24,10 @@ export type EfesQuoteResult = {
   totalPremium: number;
   currency: string;
   premiums: Array<{ travelerId: string | null; premium: number }>;
+  sum?: number | null;
+  discountedSum?: number | null;
+  priceCoverages?: Record<string, number> | null;
+  discountedPriceCoverages?: Record<string, number> | null;
   raw?: unknown[];
 };
 

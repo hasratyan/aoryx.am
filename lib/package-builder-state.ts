@@ -9,7 +9,15 @@ export const DEFAULT_SERVICE_FLAGS: ServiceFlags = {
   insurance: true,
 };
 
-import type { AoryxRoomSearch, BookingInsuranceTraveler } from "@/types/aoryx";
+import type {
+  AoryxExcursionSelection,
+  AoryxRoomSearch,
+  AoryxTransferChargeType,
+  AoryxTransferLocation,
+  AoryxTransferPricing,
+  AoryxTransferVehicle,
+  BookingInsuranceTraveler,
+} from "@/types/aoryx";
 
 export type PackageBuilderHotelSelection = {
   selected: boolean;
@@ -54,6 +62,11 @@ export type PackageBuilderInsuranceSelection = PackageBuilderServiceSelection & 
   riskAmount?: number | null;
   riskCurrency?: string | null;
   riskLabel?: string | null;
+  quoteSum?: number | null;
+  quoteDiscountedSum?: number | null;
+  quotePriceCoverages?: Record<string, number> | null;
+  quoteDiscountedPriceCoverages?: Record<string, number> | null;
+  quoteError?: string | null;
   territoryCode?: string | null;
   territoryLabel?: string | null;
   territoryPolicyLabel?: string | null;
@@ -82,12 +95,23 @@ export type PackageBuilderState = {
     transferOrigin?: string | null;
     transferDestination?: string | null;
     vehicleName?: string | null;
+    vehicleMaxPax?: number | null;
     transferType?: string | null;
     includeReturn?: boolean | null;
     vehicleQuantity?: number | null;
+    origin?: AoryxTransferLocation | null;
+    destination?: AoryxTransferLocation | null;
+    vehicle?: AoryxTransferVehicle | null;
+    paxRange?: { minPax?: number | null; maxPax?: number | null } | null;
+    pricing?: AoryxTransferPricing | null;
+    validity?: { from?: string | null; to?: string | null } | null;
+    chargeType?: AoryxTransferChargeType | null;
+    paxCount?: number | null;
   };
   excursion?: PackageBuilderServiceSelection & {
     selections?: Record<string, string[]>;
+    items?: Array<{ id: string; name?: string | null }>;
+    selectionsDetailed?: AoryxExcursionSelection[];
   };
   insurance?: PackageBuilderInsuranceSelection;
   flight?: PackageBuilderFlightSelection;

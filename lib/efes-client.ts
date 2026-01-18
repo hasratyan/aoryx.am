@@ -34,12 +34,19 @@ type EfesTokenCache = {
 };
 
 const EFES_AUTH_PATH = "/webservice/auth";
-const EFES_SCRIPT_PATH = "/webservice/script";
+const EFES_SCRIPT_PATH = "/webservice/script?Content-Type=application/json";
 const EFES_POLICY_PATH = "/webservice/policy";
 const DEFAULT_RISK_LABEL = "STANDARD";
 const DEFAULT_RISK_AMOUNT = 15000;
 const DEFAULT_RISK_CURRENCY = "EUR";
 const DEFAULT_PREMIUM_CURRENCY = "AMD";
+const DEFAULT_SUBRISKS = [
+  "AMATEUR_SPORT_EXPENCES",
+  "BAGGAGE_EXPENCES",
+  "travel_inconveniences",
+  "house_insurance",
+  "trip_cancellation",
+];
 const DEFAULT_TERRITORY_LABEL =
   "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)";
 
@@ -89,7 +96,7 @@ const calculateDays = (startDate: string, endDate: string) => {
   const end = parseIsoDate(endDate);
   if (!start || !end) return null;
   const diffMs = end.getTime() - start.getTime();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1;
   return Math.max(1, diffDays);
 };
 
@@ -97,6 +104,25 @@ const formatEfesAmount = (value: number) => {
   if (!Number.isFinite(value)) return "";
   const fixed = value.toFixed(2);
   return fixed.endsWith(".00") ? fixed.slice(0, -3) : fixed;
+};
+
+const maskSensitive = (value: unknown) =>
+  typeof value === "string" && value.trim().length > 0 ? "<masked>" : value;
+
+const sanitizeScriptPayload = (payload: unknown) => {
+  if (!payload || typeof payload !== "object") return payload;
+  const record = payload as Record<string, unknown>;
+  const dynObject = record.dyn_object;
+  if (!dynObject || typeof dynObject !== "object") return payload;
+  const dynRecord = dynObject as Record<string, unknown>;
+  return {
+    ...record,
+    dyn_object: {
+      ...dynRecord,
+      insured_passport: maskSensitive(dynRecord.insured_passport),
+      insured_social_card: maskSensitive(dynRecord.insured_social_card),
+    },
+  };
 };
 
 const extractToken = (payload: unknown): string | null => {
@@ -120,10 +146,114 @@ const extractNumber = (value: unknown): number | null => {
   return null;
 };
 
+const extractEfesField = (payload: unknown, keys: string[]): number | null => {
+  if (!payload || typeof payload !== "object") return extractNumber(payload);
+  const record = payload as Record<string, unknown>;
+  for (const key of keys) {
+    const value = extractNumber(record[key]);
+    if (value !== null) return value;
+  }
+  const nestedCandidates = ["result", "data", "payload", "response"];
+  for (const key of nestedCandidates) {
+    const nested = record[key];
+    const nestedValue = extractEfesField(nested, keys);
+    if (nestedValue !== null) return nestedValue;
+  }
+  return null;
+};
+
+const extractEfesSum = (payload: unknown) =>
+  extractEfesField(payload, ["SUM", "sum", "total_sum", "totalSum"]);
+
+const extractEfesDiscountedSum = (payload: unknown) =>
+  extractEfesField(payload, ["DISCOUNTED_SUM", "discounted_sum", "discountedSum"]);
+
+const EFES_SUBRISK_KEYS = [
+  "AMATEUR_SPORT_EXPENCES",
+  "BAGGAGE_EXPENCES",
+  "TRAVEL_INCONVENIENCES",
+  "TRIP_CANCELLATION",
+  "HOUSE_INSURANCE",
+];
+
+const parsePriceCoverages = (value: unknown): Record<string, number> | null => {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const entries: Array<[string, number]> = [];
+  for (const [key, raw] of Object.entries(record)) {
+    const parsed = extractNumber(raw);
+    if (parsed === null) continue;
+    entries.push([key.toUpperCase(), parsed]);
+  }
+  if (entries.length === 0) return null;
+  return entries.reduce<Record<string, number>>((acc, [key, value]) => {
+    acc[key] = value;
+    return acc;
+  }, {});
+};
+
+const parseSubriskCoverages = (
+  record: Record<string, unknown>,
+  prefix = ""
+): Record<string, number> | null => {
+  const entries: Array<[string, number]> = [];
+  EFES_SUBRISK_KEYS.forEach((key) => {
+    const value = extractNumber(record[`${prefix}${key}`]);
+    if (value === null) return;
+    entries.push([key, value]);
+  });
+  if (entries.length === 0) return null;
+  return entries.reduce<Record<string, number>>((acc, [key, value]) => {
+    acc[key] = value;
+    return acc;
+  }, {});
+};
+
+const extractPriceCoverages = (payload: unknown): Record<string, number> | null => {
+  if (!payload || typeof payload !== "object") return null;
+  const record = payload as Record<string, unknown>;
+  const direct = parsePriceCoverages(
+    record.PRICE_COVERAGES ?? record.price_coverages ?? record.priceCoverages
+  );
+  if (direct) return direct;
+  const nestedCandidates = ["result", "data", "payload", "response"];
+  for (const key of nestedCandidates) {
+    const nested = record[key];
+    const nestedValue = extractPriceCoverages(nested);
+    if (nestedValue) return nestedValue;
+  }
+  return null;
+};
+
+const extractSubriskCoverages = (
+  payload: unknown,
+  prefix = ""
+): Record<string, number> | null => {
+  if (!payload || typeof payload !== "object") return null;
+  const record = payload as Record<string, unknown>;
+  const direct = parseSubriskCoverages(record, prefix);
+  if (direct) return direct;
+  const nestedCandidates = ["result", "data", "payload", "response"];
+  for (const key of nestedCandidates) {
+    const nested = record[key];
+    const nestedValue = extractSubriskCoverages(nested, prefix);
+    if (nestedValue) return nestedValue;
+  }
+  return null;
+};
+
 const extractPremium = (payload: unknown): number | null => {
   if (!payload || typeof payload !== "object") return extractNumber(payload);
   const record = payload as Record<string, unknown>;
   const candidates = [
+    "DISCOUNTED_SUM",
+    "SUM",
+    "discounted_sum",
+    "discountedSum",
+    "total_sum",
+    "totalSum",
+    "sum",
+    "total",
     "premium",
     "total_premium",
     "totalPremium",
@@ -156,17 +286,65 @@ const extractCurrency = (payload: unknown): string | null => {
   return null;
 };
 
-const buildSubriskPayload = (labels: string[] | null | undefined) => {
-  const validLabels = Array.isArray(labels) ? labels.filter((label) => label.trim().length > 0) : [];
-  if (validLabels.length === 0) return undefined;
+const parseEfesError = (payload: unknown): string | null => {
+  if (!payload || typeof payload !== "object") return null;
+  const record = payload as Record<string, unknown>;
+  const isErrorValue = record.is_error;
+  const errorCodeValue = record.error_code ?? record.d_error_code;
+  const isErrorFlag =
+    (typeof isErrorValue === "number" && isErrorValue !== 0) ||
+    (typeof isErrorValue === "string" &&
+      isErrorValue.trim().length > 0 &&
+      isErrorValue.trim() !== "0");
+  const errorCode =
+    typeof errorCodeValue === "number"
+      ? errorCodeValue
+      : typeof errorCodeValue === "string"
+        ? Number(errorCodeValue)
+        : null;
+  if (!isErrorFlag && !(typeof errorCode === "number" && errorCode > 0)) {
+    return null;
+  }
+  const messageCandidates = [record.error_msg, record.d_error_msg];
+  for (const value of messageCandidates) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return "EFES returned an error response";
+};
+
+const buildSubriskPayload = (
+  selectedLabels: string[] | null | undefined,
+  allLabels?: string[] | null
+) => {
+  const normalizedSelected = normalizeSubrisks(selectedLabels);
+  const normalizedAll = normalizeSubrisks(allLabels) ?? [];
+  const baseLabels =
+    normalizedAll.length > 0 ? normalizedAll : normalizedSelected ?? [];
+  if (baseLabels.length === 0) return undefined;
+  const activeSet = new Set(normalizedSelected ?? baseLabels);
+  const merged =
+    normalizedSelected && normalizedSelected.length > 0
+      ? [
+          ...baseLabels,
+          ...normalizedSelected.filter((label) => !baseLabels.includes(label)),
+        ]
+      : baseLabels;
   return [
     {
-      subrisk: validLabels.map((label) => ({
+      subrisk: merged.map((label) => ({
         subrisk_label: label,
-        active: 1,
+        active: activeSet.has(label) ? 1 : 0,
       })),
     },
   ];
+};
+
+const normalizeSubrisks = (labels: string[] | null | undefined) => {
+  if (!Array.isArray(labels)) return null;
+  const normalized = labels.map((label) => label.trim()).filter((label) => label.length > 0);
+  return normalized;
 };
 
 const subriskFieldMap: Record<string, string> = {
@@ -302,6 +480,7 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
   if (!days || days <= 0) {
     throw new EfesClientError("Invalid travel dates for EFES quote");
   }
+  const subriskPayload = buildSubriskPayload(request.subrisks, DEFAULT_SUBRISKS);
 
   const results = await Promise.all(
     request.travelers.map(async (traveler) => {
@@ -320,16 +499,27 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
           promo_code: request.promoCode ?? "",
           insured_passport: traveler.passportNumber ?? "",
           insured_social_card: traveler.socialCard ?? "",
-          ...(request.subrisks ? { subrisks: buildSubriskPayload(request.subrisks) } : {}),
+          subrisks: subriskPayload,
         },
       };
-      const response = await efesRequest<unknown>(EFES_SCRIPT_PATH, payload);
-      const premium = extractPremium(response);
-      if (premium === null) {
-        throw new EfesServiceError("Unable to extract EFES premium from response", 200, response);
+      console.info("[EFES][script] request", sanitizeScriptPayload(payload));
+      try {
+        const response = await efesRequest<unknown>(EFES_SCRIPT_PATH, payload);
+        console.info("[EFES][script] response", response);
+        const efesError = parseEfesError(response);
+        if (efesError) {
+          throw new EfesServiceError(efesError, 200, response);
+        }
+        const premium = extractPremium(response);
+        if (premium === null) {
+          throw new EfesServiceError("Unable to extract EFES premium from response", 200, response);
+        }
+        const currency = extractCurrency(response) ?? DEFAULT_PREMIUM_CURRENCY;
+        return { travelerId: traveler.id ?? null, premium, currency, raw: response };
+      } catch (error) {
+        console.error("[EFES][script] error", error);
+        throw error;
       }
-      const currency = extractCurrency(response) ?? DEFAULT_PREMIUM_CURRENCY;
-      return { travelerId: traveler.id ?? null, premium, currency, raw: response };
     })
   );
 
@@ -339,10 +529,58 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
   }
 
   const totalPremium = results.reduce((sum, result) => sum + result.premium, 0);
+  const totals = results.reduce(
+    (acc, result) => {
+      const sumValue = extractEfesSum(result.raw);
+      if (sumValue !== null) {
+        acc.sum += sumValue;
+        acc.hasSum = true;
+      }
+      const discountedValue = extractEfesDiscountedSum(result.raw);
+      if (discountedValue !== null) {
+        acc.discountedSum += discountedValue;
+        acc.hasDiscountedSum = true;
+      }
+      return acc;
+    },
+    { sum: 0, discountedSum: 0, hasSum: false, hasDiscountedSum: false }
+  );
+  const coverageTotals = results.reduce(
+    (acc, result) => {
+      const baseCoverages =
+        extractPriceCoverages(result.raw) ?? extractSubriskCoverages(result.raw);
+      const discountedCoverages = extractSubriskCoverages(result.raw, "DISCOUNTED_");
+      if (baseCoverages) {
+        acc.hasBase = true;
+        Object.entries(baseCoverages).forEach(([key, value]) => {
+          acc.base[key] = (acc.base[key] ?? 0) + value;
+        });
+      }
+      if (discountedCoverages) {
+        acc.hasDiscounted = true;
+        Object.entries(discountedCoverages).forEach(([key, value]) => {
+          acc.discounted[key] = (acc.discounted[key] ?? 0) + value;
+        });
+      }
+      return acc;
+    },
+    {
+      base: {} as Record<string, number>,
+      discounted: {} as Record<string, number>,
+      hasBase: false,
+      hasDiscounted: false,
+    }
+  );
   return {
     totalPremium,
     currency,
     premiums: results.map(({ travelerId, premium }) => ({ travelerId, premium })),
+    sum: totals.hasSum ? totals.sum : null,
+    discountedSum: totals.hasDiscountedSum ? totals.discountedSum : null,
+    priceCoverages: coverageTotals.hasBase ? coverageTotals.base : null,
+    discountedPriceCoverages: coverageTotals.hasDiscounted
+      ? coverageTotals.discounted
+      : null,
     raw: results.map((result) => result.raw),
   };
 }
@@ -501,6 +739,7 @@ export async function createEfesPoliciesFromBooking(payload: AoryxBookingPayload
       : DEFAULT_RISK_AMOUNT;
   const riskCurrency = insurance.riskCurrency ?? DEFAULT_RISK_CURRENCY;
   const riskLabel = insurance.riskLabel ?? DEFAULT_RISK_LABEL;
+  const subrisks = normalizeSubrisks(insurance.subrisks) ?? DEFAULT_SUBRISKS;
   const territoryLabel =
     insurance.territoryPolicyLabel ??
     (insurance.territoryCode ? DEFAULT_TERRITORY_LABEL : insurance.territoryLabel ?? DEFAULT_TERRITORY_LABEL);
@@ -531,7 +770,7 @@ export async function createEfesPoliciesFromBooking(payload: AoryxBookingPayload
         endDate,
         days,
         policyCreationDate,
-        subrisks: insurance.subrisks ?? undefined,
+        subrisks,
       };
       const payload = buildPolicyPayload(policyRequest);
       const response = await efesRequest<unknown>(EFES_POLICY_PATH, payload);

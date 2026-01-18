@@ -172,6 +172,17 @@ export default function PackageBuilder() {
     }
     return null;
   })();
+  const selectedInsuranceLabel = (() => {
+    if (!builderState.insurance?.selected) return null;
+    const planId = builderState.insurance.planId?.trim().toLowerCase();
+    if (planId === "elite") {
+      return t.packageBuilder.insurance.plans.elite.title;
+    }
+    const planLabel = builderState.insurance.planLabel?.trim();
+    if (planLabel) return planLabel;
+    const label = builderState.insurance.label?.trim();
+    return label || null;
+  })();
 
   const hotelViewHref = (() => {
     const selection = builderState.hotel;
@@ -361,12 +372,14 @@ export default function PackageBuilder() {
       builderState.excursion?.currency ?? null,
       baseRates
     );
-    addSelection(
-      builderState.insurance?.selected === true,
-      builderState.insurance?.price ?? null,
-      builderState.insurance?.currency ?? null,
-      baseRates
-    );
+    if (builderState.insurance?.selected === true && !builderState.insurance?.quoteError) {
+      addSelection(
+        true,
+        builderState.insurance?.price ?? null,
+        builderState.insurance?.currency ?? null,
+        baseRates
+      );
+    }
 
     if (selectedCount === 0) {
       return { label: null, isExact: false };
@@ -552,15 +565,25 @@ export default function PackageBuilder() {
                     : builderState[service.id as Exclude<PackageBuilderService, "hotel">];
                 const isSelected = serviceSelection?.selected === true;
                 const isDisabled = serviceFlags[service.id] === false;
+                const isInsuranceQuoteError =
+                  service.id === "insurance" && Boolean(builderState.insurance?.quoteError);
                 const serviceRates = service.id === "hotel" ? hotelRates : baseRates;
                 const serviceAmount = serviceSelection?.price ?? null;
-                const normalizedPrice = isSelected
-                  ? normalizeAmount(serviceAmount, serviceSelection?.currency ?? null, serviceRates)
-                  : null;
+                const normalizedPrice =
+                  isSelected && !isInsuranceQuoteError
+                    ? normalizeAmount(
+                        serviceAmount,
+                        serviceSelection?.currency ?? null,
+                        serviceRates
+                      )
+                    : null;
                 const formattedPrice = normalizedPrice
                   ? formatCurrencyAmount(normalizedPrice.amount, normalizedPrice.currency, intlLocale)
                   : null;
-                const priceLabel = isSelected ? formattedPrice ?? t.common.contactForRates : null;
+                const priceLabel =
+                  isSelected && !isInsuranceQuoteError
+                    ? formattedPrice ?? t.common.contactForRates
+                    : null;
                 const statusLabel = isDisabled
                   ? t.packageBuilder.disabledTag
                   : isSelected
@@ -576,6 +599,8 @@ export default function PackageBuilder() {
                       ? selectedTransferLabel
                       : service.id === "flight"
                         ? selectedFlightLabel
+                        : service.id === "insurance"
+                          ? selectedInsuranceLabel
                       : null;
                 const viewHref =
                   service.id === "hotel" ? hotelViewHref : `/${locale}/services/${service.id}`;

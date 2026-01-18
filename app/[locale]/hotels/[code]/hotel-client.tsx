@@ -1485,20 +1485,9 @@ export default function HotelClient({
   const insurancePlans = useMemo<InsurancePlan[]>(
     () => [
       {
-        id: "essential",
-        title: t.hotel.addons.insurance.plans.essential.title,
-        description: t.hotel.addons.insurance.plans.essential.description,
-      },
-      {
-        id: "complete",
-        title: t.hotel.addons.insurance.plans.complete.title,
-        description: t.hotel.addons.insurance.plans.complete.description,
-        highlight: t.hotel.addons.insurance.plans.complete.highlight,
-      },
-      {
-        id: "premium",
-        title: t.hotel.addons.insurance.plans.premium.title,
-        description: t.hotel.addons.insurance.plans.premium.description,
+        id: "elite",
+        title: t.hotel.addons.insurance.plans.elite.title,
+        description: t.hotel.addons.insurance.plans.elite.description,
       },
     ],
     [t.hotel.addons.insurance.plans]
@@ -2483,7 +2472,7 @@ export default function HotelClient({
                     return (
                       <fieldset key={room.roomIdentifier} className="booking-room">
                       <legend>
-                        Room {room.roomIdentifier}
+                        {t.hotel.booking.roomLabel} &#8470;{room.roomIdentifier}
                         {room.roomName ? ` · ${room.roomName}` : ""}
                       </legend>
                       <div className="booking-room-details">
