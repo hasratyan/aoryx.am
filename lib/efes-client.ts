@@ -7,6 +7,7 @@ import {
   EFES_USER,
   isEfesConfigured,
 } from "@/lib/env";
+import { toCountryAlpha3 } from "@/lib/country-alpha3";
 import type { AoryxBookingPayload, BookingInsuranceSelection, BookingInsuranceTraveler } from "@/types/aoryx";
 import type { EfesQuoteRequest, EfesQuoteResult, EfesPolicyRequest } from "@/types/efes";
 
@@ -49,6 +50,7 @@ const DEFAULT_SUBRISKS = [
 ];
 const DEFAULT_TERRITORY_LABEL =
   "Ամբողջ աշխարհ (բացառությամբ ԱՄՆ, Կանադա, Ավստրալիա, Ճապոնիա, Շենգենյան երկրներ, Մեծ Բրիտանիա)";
+const EFES_TRAVEL_COUNTRY_LABEL = "Արաբական Միացյալ Էմիրություն";
 
 let cachedToken: EfesTokenCache | null = null;
 
@@ -105,6 +107,14 @@ const formatEfesAmount = (value: number) => {
   const fixed = value.toFixed(2);
   return fixed.endsWith(".00") ? fixed.slice(0, -3) : fixed;
 };
+
+const normalizeEfesPhone = (value: string | null | undefined) => {
+  if (!value) return "";
+  return value.replace(/\D/g, "");
+};
+
+const resolveEfesCountry = (value: string | null | undefined) =>
+  toCountryAlpha3(value);
 
 const maskSensitive = (value: unknown) =>
   typeof value === "string" && value.trim().length > 0 ? "<masked>" : value;
@@ -480,10 +490,12 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
   if (!days || days <= 0) {
     throw new EfesClientError("Invalid travel dates for EFES quote");
   }
-  const subriskPayload = buildSubriskPayload(request.subrisks, DEFAULT_SUBRISKS);
-
   const results = await Promise.all(
     request.travelers.map(async (traveler) => {
+      const subriskPayload = buildSubriskPayload(
+        traveler.subrisks ?? request.subrisks,
+        DEFAULT_SUBRISKS
+      );
       const payload = {
         script_name: "calc_travel_cost",
         dyn_object: {
@@ -515,7 +527,21 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
           throw new EfesServiceError("Unable to extract EFES premium from response", 200, response);
         }
         const currency = extractCurrency(response) ?? DEFAULT_PREMIUM_CURRENCY;
-        return { travelerId: traveler.id ?? null, premium, currency, raw: response };
+        const sumValue = extractEfesSum(response);
+        const discountedSumValue = extractEfesDiscountedSum(response);
+        const priceCoverages =
+          extractPriceCoverages(response) ?? extractSubriskCoverages(response);
+        const discountedPriceCoverages = extractSubriskCoverages(response, "DISCOUNTED_");
+        return {
+          travelerId: traveler.id ?? null,
+          premium,
+          currency,
+          sum: sumValue,
+          discountedSum: discountedSumValue,
+          raw: response,
+          priceCoverages,
+          discountedPriceCoverages,
+        };
       } catch (error) {
         console.error("[EFES][script] error", error);
         throw error;
@@ -531,12 +557,12 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
   const totalPremium = results.reduce((sum, result) => sum + result.premium, 0);
   const totals = results.reduce(
     (acc, result) => {
-      const sumValue = extractEfesSum(result.raw);
+      const sumValue = result.sum;
       if (sumValue !== null) {
         acc.sum += sumValue;
         acc.hasSum = true;
       }
-      const discountedValue = extractEfesDiscountedSum(result.raw);
+      const discountedValue = result.discountedSum;
       if (discountedValue !== null) {
         acc.discountedSum += discountedValue;
         acc.hasDiscountedSum = true;
@@ -547,9 +573,8 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
   );
   const coverageTotals = results.reduce(
     (acc, result) => {
-      const baseCoverages =
-        extractPriceCoverages(result.raw) ?? extractSubriskCoverages(result.raw);
-      const discountedCoverages = extractSubriskCoverages(result.raw, "DISCOUNTED_");
+      const baseCoverages = result.priceCoverages ?? null;
+      const discountedCoverages = result.discountedPriceCoverages ?? null;
       if (baseCoverages) {
         acc.hasBase = true;
         Object.entries(baseCoverages).forEach(([key, value]) => {
@@ -571,16 +596,62 @@ export async function quoteEfesTravelCost(request: EfesQuoteRequest): Promise<Ef
       hasDiscounted: false,
     }
   );
+  const travelerCoverageMaps = results.reduce(
+    (acc, result, index) => {
+      const fallbackId = request.travelers[index]?.id ?? null;
+      const travelerId = result.travelerId ?? fallbackId;
+      if (!travelerId) return acc;
+      if (result.priceCoverages) {
+        acc.base[travelerId] = result.priceCoverages;
+      }
+      if (result.discountedPriceCoverages) {
+        acc.discounted[travelerId] = result.discountedPriceCoverages;
+      }
+      return acc;
+    },
+    { base: {} as Record<string, Record<string, number>>, discounted: {} as Record<string, Record<string, number>> }
+  );
+  const travelerSumMaps = results.reduce(
+    (acc, result, index) => {
+      const fallbackId = request.travelers[index]?.id ?? null;
+      const travelerId = result.travelerId ?? fallbackId;
+      if (!travelerId) return acc;
+      if (typeof result.sum === "number" && Number.isFinite(result.sum)) {
+        acc.sum[travelerId] = result.sum;
+      }
+      if (typeof result.discountedSum === "number" && Number.isFinite(result.discountedSum)) {
+        acc.discounted[travelerId] = result.discountedSum;
+      }
+      return acc;
+    },
+    { sum: {} as Record<string, number>, discounted: {} as Record<string, number> }
+  );
+  const sumByTraveler =
+    Object.keys(travelerSumMaps.sum).length > 0 ? travelerSumMaps.sum : null;
+  const discountedSumByTraveler =
+    Object.keys(travelerSumMaps.discounted).length > 0
+      ? travelerSumMaps.discounted
+      : null;
+  const priceCoveragesByTraveler =
+    Object.keys(travelerCoverageMaps.base).length > 0 ? travelerCoverageMaps.base : null;
+  const discountedPriceCoveragesByTraveler =
+    Object.keys(travelerCoverageMaps.discounted).length > 0
+      ? travelerCoverageMaps.discounted
+      : null;
   return {
     totalPremium,
     currency,
     premiums: results.map(({ travelerId, premium }) => ({ travelerId, premium })),
     sum: totals.hasSum ? totals.sum : null,
     discountedSum: totals.hasDiscountedSum ? totals.discountedSum : null,
+    sumByTraveler,
+    discountedSumByTraveler,
     priceCoverages: coverageTotals.hasBase ? coverageTotals.base : null,
     discountedPriceCoverages: coverageTotals.hasDiscounted
       ? coverageTotals.discounted
       : null,
+    priceCoveragesByTraveler,
+    discountedPriceCoveragesByTraveler,
     raw: results.map((result) => result.raw),
   };
 }
@@ -590,10 +661,17 @@ const buildPolicyPayload = (request: EfesPolicyRequest) => {
   const address = traveler.address ?? {};
   const fullAddress = address.full ?? "";
   const fullAddressEn = address.fullEn ?? fullAddress;
-  const country = address.country ?? "ARM";
+  const country =
+    resolveEfesCountry(address.country) ??
+    (address.country ? address.country : "ARM");
   const region = address.region ?? "YR";
   const city = address.city ?? "YR01";
-  const citizenship = traveler.citizenship ?? "ARM";
+  const citizenship =
+    resolveEfesCountry(traveler.citizenship) ??
+    traveler.citizenship ??
+    "ARM";
+  const insuredPhone = normalizeEfesPhone(traveler.phone);
+  const insuredMobilePhone = normalizeEfesPhone(traveler.mobilePhone ?? traveler.phone);
   const residency = traveler.residency === false ? "0" : "1";
   const policyCreationDate = formatEfesDate(request.policyCreationDate);
   const policyStartDate = formatEfesDate(request.startDate);
@@ -625,9 +703,9 @@ const buildPolicyPayload = (request: EfesPolicyRequest) => {
       : "",
     INSURED_GENDER: traveler.gender ?? "",
     INSURED_BIRTHDAY: traveler.birthDate ? formatEfesDate(traveler.birthDate) : "",
-    INSURED_PHONE: traveler.phone ?? "",
+    INSURED_PHONE: insuredPhone,
     INSURED_CITIZENSHIP: citizenship,
-    INSURED_MOBILE_PHONE: traveler.mobilePhone ?? traveler.phone ?? "",
+    INSURED_MOBILE_PHONE: insuredMobilePhone,
     INSURED_MAIL: traveler.email ?? "",
     IS_INSURED_SAME_REG_LIVE_ADDRESS: "1",
     INSURED_REG_FULL_ADDRESS: fullAddress,
@@ -663,8 +741,8 @@ const buildPolicyPayload = (request: EfesPolicyRequest) => {
     TRAVEL_PASSPORT_EXPIRY_DATE: traveler.passportExpiryDate
       ? formatEfesDate(traveler.passportExpiryDate)
       : "",
-    TRAVEL_PHONE: traveler.phone ?? "",
-    TRAVEL_MOBILE_PHONE: traveler.mobilePhone ?? traveler.phone ?? "",
+    TRAVEL_PHONE: insuredPhone,
+    TRAVEL_MOBILE_PHONE: insuredMobilePhone,
     TRAVEL_MAIL: traveler.email ?? "",
     TRAVEL_LOCATION_TYPE: "REGISTRATION",
     TRAVEL_REG_FULL_ADDRESS: fullAddress,
@@ -739,11 +817,11 @@ export async function createEfesPoliciesFromBooking(payload: AoryxBookingPayload
       : DEFAULT_RISK_AMOUNT;
   const riskCurrency = insurance.riskCurrency ?? DEFAULT_RISK_CURRENCY;
   const riskLabel = insurance.riskLabel ?? DEFAULT_RISK_LABEL;
-  const subrisks = normalizeSubrisks(insurance.subrisks) ?? DEFAULT_SUBRISKS;
+  const baseSubrisks = normalizeSubrisks(insurance.subrisks) ?? DEFAULT_SUBRISKS;
   const territoryLabel =
     insurance.territoryPolicyLabel ??
     (insurance.territoryCode ? DEFAULT_TERRITORY_LABEL : insurance.territoryLabel ?? DEFAULT_TERRITORY_LABEL);
-  const travelCountries = insurance.travelCountries ?? "";
+  const travelCountries = EFES_TRAVEL_COUNTRY_LABEL;
   if (!travelCountries) {
     throw new EfesClientError("Missing travel countries for EFES policy");
   }
@@ -752,6 +830,7 @@ export async function createEfesPoliciesFromBooking(payload: AoryxBookingPayload
 
   const results = await Promise.all(
     travelers.map(async (traveler) => {
+      const subrisks = normalizeSubrisks(traveler.subrisks) ?? baseSubrisks;
       const premium = normalizeTravelerPremium(traveler, insurance, travelers.length);
       if (!premium || !Number.isFinite(premium)) {
         throw new EfesClientError("Missing premium for EFES policy traveler");
@@ -773,6 +852,9 @@ export async function createEfesPoliciesFromBooking(payload: AoryxBookingPayload
         subrisks,
       };
       const payload = buildPolicyPayload(policyRequest);
+      if (process.env.NODE_ENV === "development") {
+        console.info("[EFES][policy] request", payload);
+      }
       const response = await efesRequest<unknown>(EFES_POLICY_PATH, payload);
       return { travelerId: traveler.id ?? null, response };
     })

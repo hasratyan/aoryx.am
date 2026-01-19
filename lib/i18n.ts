@@ -148,7 +148,10 @@ export type Translation = {
       startDateLabel: string;
       endDateLabel: string;
       daysLabel: string;
+      roamingLabel: string;
       subrisksTitle: string;
+      guestToggleRemove: string;
+      guestToggleAdd: string;
       errors: {
         invalidDays: string;
       };
@@ -210,12 +213,13 @@ export type Translation = {
       guestChildLabel: string;
       guestLeadLabel: string;
       ageLabel: string;
-      billingTitle: string;
-      billingHint: string;
-      country: string;
-      city: string;
-      address: string;
-      zip: string;
+    billingTitle: string;
+    billingHint: string;
+    country: string;
+    countryPlaceholder: string;
+    city: string;
+    address: string;
+    zip: string;
       insuranceTitle: string;
       insuranceHint: string;
       insuranceEmpty: string;
@@ -252,6 +256,8 @@ export type Translation = {
         link: string;
         suffix: string;
       };
+      devInsuranceSubmit: string;
+      devInsuranceSuccess: string;
       paymentTitle: string;
       paymentHint: string;
       methodIdram: string;
@@ -266,7 +272,6 @@ export type Translation = {
       payCard: string;
       totalTitle: string;
       totalLabel: string;
-      processingNote: string;
       errors: {
         missingHotel: string;
         missingDetails: string;
@@ -336,6 +341,11 @@ export type Translation = {
       alt: string;
     };
     efes: {
+      title: string;
+      body: string;
+      alt: string;
+    };
+    alosim: {
       title: string;
       body: string;
       alt: string;
@@ -1071,7 +1081,8 @@ const translations: Record<Locale, Translation> = {
       helper: "Սկզբում ընտրեք հյուրանոց, որպեսզի հասանելի դառնան մնացած լրացուցիչ ծառայությունները։",
       warningSelectHotel: "Փաթեթ կազմելու համար առաջնահերթ ընտրեք հյուրանոց։",
       sessionExpiresIn: "Սեսիայի ավարտին մնացել է",
-      sessionWarningTen: "Մնացել է 10 րոպե՝ փաթեթի վճարումը ավարտելու համար։",
+      sessionWarningTen:
+        "Հարգելի այցելու, խնդրում ենք շտապել ավարտել վճարումը, հակառակ դեպքում ձեր փաթեթը կվերակայվի։ Պատվերը ավարտելուց հետո Ձեզ կտրվի հնարավորություն ընտրել նաև լրացուցիչ ծառայություններ։",
       sessionWarningFive: "Մնացել է 5 րոպե՝ փաթեթի վճարումը ավարտելու համար։",
       sessionExpired: "Սեսիան ավարտվել է։ Փաթեթը վերակայվել է։ Խնդրում ենք նորից ընտրել հյուրանոցը։",
       requiredTag: "Պարտադիր",
@@ -1168,7 +1179,10 @@ const translations: Record<Locale, Translation> = {
         startDateLabel: "Սկիզբ",
         endDateLabel: "Ավարտ",
         daysLabel: "Վավերության ժամկետ՝ {count} օր",
+        roamingLabel: "Անվճար ինտերնետ փաթեթ (1GB/7 օր կամ 1 օր անսահմանափակ)",
         subrisksTitle: "Լրացուցիչ ծածկույթներ",
+        guestToggleRemove: "Հեռացնել ապահովագրությունը այս հյուրի համար",
+        guestToggleAdd: "Ավելացնել ապահովագրությունը այս հյուրի համար",
         errors: {
           invalidDays: "Ճանապարհորդության օրերի քանակը սխալ է լրացված",
         },
@@ -1255,6 +1269,7 @@ const translations: Record<Locale, Translation> = {
         billingTitle: "Վճարման տվյալներ",
         billingHint: "Օգտագործվում է հաշիվների և հաստատման համար։",
         country: "Երկիր",
+        countryPlaceholder: "Ընտրել երկիր",
         city: "Քաղաք",
         address: "Հասցե",
         zip: "Փոստային ինդեքս",
@@ -1295,6 +1310,8 @@ const translations: Record<Locale, Translation> = {
           suffix:
             "՝ ներառյալ սույն պայմանագրի գործողության ընթացքում և դրանից հետո ծանուցումների կարգի կիրառմանը։",
         },
+        devInsuranceSubmit: "Ապահովագրությունը ուղարկել (DEV)",
+        devInsuranceSuccess: "Ապահովագրությունը հաջողությամբ ուղարկվեց։",
         paymentTitle: "Վճարման եղանակ",
         paymentHint: "Ընտրեք վճարման տարբերակը։",
         methodIdram: "Վճարել Idram-ով",
@@ -1309,7 +1326,6 @@ const translations: Record<Locale, Translation> = {
         payCard: "Վճարել քարտով",
         totalTitle: "Վճարման ամփոփում",
         totalLabel: "Ընդհանուր",
-        processingNote: "Վճարումը կկատարվի ապահով միջավայրում։ Ամրագրումը կհաստատենք ստուգումից հետո։",
         errors: {
           missingHotel: "Խնդրում ենք ընտրել հյուրանոցը շարունակելու համար։",
           missingDetails: "Սենյակների տվյալները բացակայում են։ Խնդրում ենք կրկին ընտրել հյուրանոցը։",
@@ -1439,6 +1455,11 @@ const translations: Record<Locale, Translation> = {
         title: "Ապահովագրություն՝ ձեր հանգստի համար",
         body: "Ընտրե՛ք ճանապարհորդական ապահովագրություն՝ ձեր հանգիստը լիարժեք անցկացնելու համար՝ սկսած օրական 300 դրամից։",
         alt: "efes"
+      },
+      alosim:{
+        title: "Անվճար ինտերնետ փաթեթ՝ Ձեր ապահովագրության հետ",
+        body: "Գլոբալ ծածկույթ, eSIM տեխնոլոգիա՝ առանց SIM քարտ փոխելու, պարզ ակտիվացում",
+        alt: "aloSIM"
       },
       flydubai:{
         title: "Ավիատոմսերի ակնթարթային ամրագրում",
@@ -2324,7 +2345,8 @@ const translations: Record<Locale, Translation> = {
       helper: "Start by selecting a hotel to unlock additional services for your package.",
       warningSelectHotel: "Please select a hotel to continue building your package.",
       sessionExpiresIn: "Session expires in",
-      sessionWarningTen: "10 minutes left to complete your package payment.",
+      sessionWarningTen:
+        "Dear guest, please hurry up to complete checkout, otherwise your package will be reset. You can select additional services later after completing the order as well.",
       sessionWarningFive: "5 minutes left to complete your package payment.",
       sessionExpired: "Session expired. Your package has been reset. Please select a hotel again.",
       requiredTag: "Required",
@@ -2421,7 +2443,10 @@ const translations: Record<Locale, Translation> = {
         startDateLabel: "Start date",
         endDateLabel: "End date",
         daysLabel: "Validity period: {count} days",
+        roamingLabel: "Free internet package (1 GB / 7 days or 1 day unlimited)",
         subrisksTitle: "Optional coverages",
+        guestToggleRemove: "Remove insurance for this guest",
+        guestToggleAdd: "Add insurance for this guest",
         errors: {
           invalidDays: "The number of travel days is incorrect.",
         },
@@ -2508,6 +2533,7 @@ const translations: Record<Locale, Translation> = {
         billingTitle: "Billing details",
         billingHint: "Used for invoices and payment verification.",
         country: "Country",
+        countryPlaceholder: "Select a country",
         city: "City",
         address: "Street address",
         zip: "ZIP / Postal code",
@@ -2548,6 +2574,8 @@ const translations: Record<Locale, Translation> = {
           suffix:
             ", including the use of notifications terms during and after the contract period.",
         },
+        devInsuranceSubmit: "Submit insurance (dev)",
+        devInsuranceSuccess: "Insurance submitted successfully.",
         paymentTitle: "Payment method",
         paymentHint: "Choose how you want to pay.",
         methodIdram: "Pay by Idram",
@@ -2562,8 +2590,6 @@ const translations: Record<Locale, Translation> = {
         payCard: "Pay by card",
         totalTitle: "Payment summary",
         totalLabel: "Total",
-        processingNote:
-          "Your payment will be processed securely. We will confirm your booking after verification.",
         errors: {
           missingHotel: "Select a hotel to continue.",
           missingDetails: "Room details are missing. Please reselect the hotel.",
@@ -2694,6 +2720,12 @@ const translations: Record<Locale, Translation> = {
         title: "Travel Insurance for Your Peace of Mind",
         body: "Choose reliable travel insurance to fully enjoy your trip, starting from just 300 AMD per day.",
         alt: "efes",
+      },
+
+      alosim: {
+        title: "Free Internet Package with your Insurance",
+        body: "Global coverage, eSIM technology without changing SIM cards, Simple Activation",
+        alt: "aloSIM",
       },
 
       flydubai: {
@@ -3578,7 +3610,8 @@ const translations: Record<Locale, Translation> = {
       helper: "Сначала выберите отель, чтобы начать сборку пакета с дополнительными опциями.",
       warningSelectHotel: "Пожалуйста, выберите отель, чтобы продолжить сборку пакета.",
       sessionExpiresIn: "Сессия истекает через",
-      sessionWarningTen: "Осталось 10 минут, чтобы завершить оплату пакета.",
+      sessionWarningTen:
+        "Уважаемый гость, пожалуйста, поторопитесь завершить оплату, иначе ваш пакет будет сброшен. Дополнительные услуги можно выбрать после завершения заказа.",
       sessionWarningFive: "Осталось 5 минут, чтобы завершить оплату пакета.",
       sessionExpired: "Сессия истекла. Пакет сброшен. Пожалуйста, выберите отель снова.",
       requiredTag: "Обязательно",
@@ -3679,9 +3712,12 @@ const translations: Record<Locale, Translation> = {
         travelCountriesPlaceholder: "например, Объединенные Арабские Эмираты",
         defaultTravelCountry: "Объединенные Арабские Эмираты",
         startDateLabel: "Дата начала",
-        endDateLabel: "Дата окончания",
+        endDateLabel: "окончания",
         daysLabel: "Время действия: {count} дней",
+        roamingLabel: "Бесплатный интернет пакет (1 ГБ / 7 дней или 1 день безлимит)",
         subrisksTitle: "Дополнительные покрытия",
+        guestToggleRemove: "Убрать страховку для этого гостя",
+        guestToggleAdd: "Добавить страховку для этого гостя",
         errors: {
           invalidDays: "Неверно указано количество дней поездки.",
         },
@@ -3768,6 +3804,7 @@ const translations: Record<Locale, Translation> = {
         billingTitle: "Платежные данные",
         billingHint: "Используется для счетов и проверки платежа.",
         country: "Страна",
+        countryPlaceholder: "Выберите страну",
         city: "Город",
         address: "Адрес",
         zip: "Индекс",
@@ -3808,6 +3845,8 @@ const translations: Record<Locale, Translation> = {
           suffix:
             ", включая применение порядка уведомлений в период действия договора и после его окончания.",
         },
+        devInsuranceSubmit: "Отправить страховку (DEV)",
+        devInsuranceSuccess: "Страховка отправлена.",
         paymentTitle: "Способ оплаты",
         paymentHint: "Выберите удобный способ оплаты.",
         methodIdram: "Оплата через Idram",
@@ -3822,8 +3861,6 @@ const translations: Record<Locale, Translation> = {
         payCard: "Оплатить картой",
         totalTitle: "Сумма к оплате",
         totalLabel: "Итого",
-        processingNote:
-          "Платеж обрабатывается в защищенной среде. Бронирование подтвердим после проверки.",
         errors: {
           missingHotel: "Выберите отель, чтобы продолжить.",
           missingDetails: "Данные по номерам отсутствуют. Пожалуйста, выберите отель заново.",
@@ -3954,6 +3991,12 @@ const translations: Record<Locale, Translation> = {
         title: "Туристическая страховка для вашего спокойствия",
         body: "Выберите надежную туристическую страховку и наслаждайтесь поездкой — от 300 драмов в день.",
         alt: "efes",
+      },
+
+      alosim: {
+        title: "Бесплатный интернет-пакет при наличии страховки",
+        body: "Глобальное покрытие, технология eSIM без замены SIM-карт, простая активация.",
+        alt: "aloSIM",
       },
 
       flydubai: {

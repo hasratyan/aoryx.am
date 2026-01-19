@@ -165,6 +165,13 @@ type ExcursionGuest = {
   age: number | null;
 };
 
+type InsuranceGuest = {
+  id: string;
+  label: string;
+  type: "Adult" | "Child";
+  age: number | null;
+};
+
 type TransferType = "INDIVIDUAL" | "GROUP";
 type ExcursionFilter = "ALL" | "YAS" | "SAFARI" | "CRUISE" | "BURJ" | "HELICOPTER";
 
@@ -282,6 +289,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   const [excursionFilter, setExcursionFilter] = useState<ExcursionFilter>("ALL");
   const [guestExcursions, setGuestExcursions] = useState<Record<string, string[]>>({});
   const [activeExcursionGuestId, setActiveExcursionGuestId] = useState<string | null>(null);
+  const [activeInsuranceGuestId, setActiveInsuranceGuestId] = useState<string | null>(null);
   const [flightForm, setFlightForm] = useState<FlightSearchForm>({
     origin: "",
     destination: "",
@@ -318,6 +326,16 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       }
       if (next.excursion?.selections && typeof next.excursion.selections === "object") {
         setGuestExcursions(next.excursion.selections);
+      } else {
+        setGuestExcursions((prev) => {
+          const hasSelections = Object.values(prev).some((list) => list.length > 0);
+          if (!hasSelections) return prev;
+          const cleared: Record<string, string[]> = {};
+          Object.keys(prev).forEach((key) => {
+            cleared[key] = [];
+          });
+          return cleared;
+        });
       }
     };
     syncState();
@@ -482,6 +500,112 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     [t.packageBuilder.insurance.territories]
   );
 
+  const insuranceGuests = useMemo<InsuranceGuest[]>(() => {
+    const rooms = hotelSelection?.rooms ?? null;
+    const guests: InsuranceGuest[] = [];
+    let counter = 1;
+
+    if (!rooms || rooms.length === 0) {
+      const total =
+        typeof hotelSelection?.guestCount === "number" ? hotelSelection.guestCount : 0;
+      for (let i = 0; i < total; i += 1) {
+        guests.push({
+          id: `guest-${i + 1}`,
+          label: `${t.auth.guestNameFallback} ${counter} - ${t.hotel.addons.excursions.adultPrice}`,
+          type: "Adult",
+          age: null,
+        });
+        counter += 1;
+      }
+      return guests;
+    }
+
+    rooms.forEach((room, roomIndex) => {
+      const roomIdentifier =
+        typeof room.roomIdentifier === "number" ? room.roomIdentifier : roomIndex + 1;
+      const adults =
+        typeof room.adults === "number" && room.adults > 0 ? room.adults : 1;
+      const children = Array.isArray(room.childrenAges) ? room.childrenAges : [];
+      for (let i = 0; i < adults; i += 1) {
+        guests.push({
+          id: `room-${roomIdentifier}-adult-${i + 1}`,
+          label: `${t.auth.guestNameFallback} ${counter} - ${t.hotel.addons.excursions.adultPrice}`,
+          type: "Adult",
+          age: null,
+        });
+        counter += 1;
+      }
+      children.forEach((age, index) => {
+        const safeAge = Number.isFinite(age) ? age : null;
+        const ageLabel = safeAge !== null ? ` (${safeAge})` : "";
+        guests.push({
+          id: `room-${roomIdentifier}-child-${index + 1}`,
+          label: `${t.auth.guestNameFallback} ${counter} - ${t.hotel.addons.excursions.childPrice}${ageLabel}`,
+          type: "Child",
+          age: safeAge,
+        });
+        counter += 1;
+      });
+    });
+
+    return guests;
+  }, [
+    hotelSelection?.guestCount,
+    hotelSelection?.rooms,
+    t.auth.guestNameFallback,
+    t.hotel.addons.excursions.adultPrice,
+    t.hotel.addons.excursions.childPrice,
+  ]);
+
+  useEffect(() => {
+    if (insuranceGuests.length === 0) {
+      if (activeInsuranceGuestId) {
+        setActiveInsuranceGuestId(null);
+      }
+      return;
+    }
+    if (!activeInsuranceGuestId) {
+      setActiveInsuranceGuestId(insuranceGuests[0]?.id ?? null);
+      return;
+    }
+    if (!insuranceGuests.some((guest) => guest.id === activeInsuranceGuestId)) {
+      setActiveInsuranceGuestId(insuranceGuests[0]?.id ?? null);
+    }
+  }, [activeInsuranceGuestId, insuranceGuests]);
+
+  const insuranceGuestIds = useMemo(
+    () => insuranceGuests.map((guest) => guest.id),
+    [insuranceGuests]
+  );
+
+  const selectedInsuranceGuestIds = useMemo(() => {
+    if (!Array.isArray(insuranceSelection?.insuredGuestIds)) {
+      return insuranceGuestIds;
+    }
+    const available = new Set(insuranceGuestIds);
+    const filtered = insuranceSelection.insuredGuestIds.filter((id) => available.has(id));
+    return filtered.length > 0 ? filtered : insuranceGuestIds;
+  }, [insuranceGuestIds, insuranceSelection?.insuredGuestIds]);
+
+  const selectedInsuranceGuestIdSet = useMemo(
+    () => new Set(selectedInsuranceGuestIds),
+    [selectedInsuranceGuestIds]
+  );
+
+  const resolveGuestSubrisks = useCallback(
+    (guestId: string | null) => {
+      const map = insuranceSelection?.subrisksByGuest ?? null;
+      if (guestId && map && Array.isArray(map[guestId])) {
+        return map[guestId];
+      }
+      if (Array.isArray(insuranceSelection?.subrisks)) {
+        return insuranceSelection.subrisks;
+      }
+      return DEFAULT_INSURANCE_SUBRISKS;
+    },
+    [insuranceSelection?.subrisks, insuranceSelection?.subrisksByGuest]
+  );
+
   const insuranceSubrisks = useMemo<InsuranceSubriskOption[]>(
     () => [
       {
@@ -514,14 +638,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   );
 
   const selectedInsuranceSubrisks = useMemo(() => {
-    const normalized = Array.isArray(insuranceSelection?.subrisks)
-      ? insuranceSelection.subrisks
-          .map((value) => value.trim())
-          .filter((value) => value.length > 0)
+    const guestSubrisks = resolveGuestSubrisks(activeInsuranceGuestId);
+    const normalized = Array.isArray(guestSubrisks)
+      ? guestSubrisks.map((value) => value.trim()).filter((value) => value.length > 0)
       : null;
     const selected = new Set(normalized ?? DEFAULT_INSURANCE_SUBRISKS);
     return insuranceSubriskIds.filter((id) => selected.has(id));
-  }, [insuranceSelection?.subrisks, insuranceSubriskIds]);
+  }, [activeInsuranceGuestId, insuranceSubriskIds, resolveGuestSubrisks]);
 
   const selectedInsuranceSubriskSet = useMemo(
     () => new Set(selectedInsuranceSubrisks),
@@ -530,40 +653,50 @@ export default function PackageServiceClient({ serviceKey }: Props) {
 
   const buildInsuranceQuoteTravelers = useCallback(() => {
     const rooms = hotelSelection?.rooms ?? [];
-    const travelers: Array<{ id: string; age: number }> = [];
+    const travelers: Array<{ id: string; age: number; subrisks?: string[] | null }> = [];
     if (rooms.length === 0) {
       const total =
         typeof hotelSelection?.guestCount === "number" ? hotelSelection.guestCount : 0;
       for (let i = 0; i < total; i += 1) {
+        const id = `guest-${i + 1}`;
         travelers.push({
-          id: `guest-${i + 1}`,
+          id,
           age: DEFAULT_INSURANCE_ADULT_AGE,
+          subrisks: resolveGuestSubrisks(id),
         });
       }
-      return travelers;
-    }
-
-    rooms.forEach((room, roomIndex) => {
-      const roomIdentifier =
-        typeof room.roomIdentifier === "number" ? room.roomIdentifier : roomIndex + 1;
-      const adultCount = typeof room.adults === "number" && room.adults > 0 ? room.adults : 1;
-      for (let i = 0; i < adultCount; i += 1) {
-        travelers.push({
-          id: `room-${roomIdentifier}-adult-${i + 1}`,
-          age: DEFAULT_INSURANCE_ADULT_AGE,
-        });
-      }
-      const childAges = Array.isArray(room.childrenAges) ? room.childrenAges : [];
-      childAges.forEach((age, index) => {
-        travelers.push({
-          id: `room-${roomIdentifier}-child-${index + 1}`,
-          age: Number.isFinite(age) ? age : DEFAULT_INSURANCE_CHILD_AGE,
+    } else {
+      rooms.forEach((room, roomIndex) => {
+        const roomIdentifier =
+          typeof room.roomIdentifier === "number" ? room.roomIdentifier : roomIndex + 1;
+        const adultCount = typeof room.adults === "number" && room.adults > 0 ? room.adults : 1;
+        for (let i = 0; i < adultCount; i += 1) {
+          const id = `room-${roomIdentifier}-adult-${i + 1}`;
+          travelers.push({
+            id,
+            age: DEFAULT_INSURANCE_ADULT_AGE,
+            subrisks: resolveGuestSubrisks(id),
+          });
+        }
+        const childAges = Array.isArray(room.childrenAges) ? room.childrenAges : [];
+        childAges.forEach((age, index) => {
+          const id = `room-${roomIdentifier}-child-${index + 1}`;
+          travelers.push({
+            id,
+            age: Number.isFinite(age) ? age : DEFAULT_INSURANCE_CHILD_AGE,
+            subrisks: resolveGuestSubrisks(id),
+          });
         });
       });
-    });
+    }
 
-    return travelers;
-  }, [hotelSelection?.guestCount, hotelSelection?.rooms]);
+    return travelers.filter((traveler) => selectedInsuranceGuestIdSet.has(traveler.id));
+  }, [
+    hotelSelection?.guestCount,
+    hotelSelection?.rooms,
+    resolveGuestSubrisks,
+    selectedInsuranceGuestIdSet,
+  ]);
 
   const insuranceQuoteRequest = useMemo(() => {
     if (!insuranceSelection?.selected) return null;
@@ -638,6 +771,19 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           insuranceQuoteRequest.payload
         );
         if (requestId !== insuranceQuoteRequestIdRef.current) return;
+        const premiumMap = quote.premiums.reduce<Record<string, number>>(
+          (acc, entry, index) => {
+            const fallbackId = insuranceQuoteRequest.payload.travelers[index]?.id ?? null;
+            const id = entry.travelerId ?? fallbackId;
+            if (id && Number.isFinite(entry.premium)) {
+              acc[id] = entry.premium;
+            }
+            return acc;
+          },
+          {}
+        );
+        const quotePremiumsByGuest =
+          Object.keys(premiumMap).length > 0 ? premiumMap : null;
         updatePackageBuilderState((prev) => {
           if (!prev.insurance?.selected) return prev;
           return {
@@ -649,8 +795,14 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               quoteSum: typeof quote.sum === "number" ? quote.sum : null,
               quoteDiscountedSum:
                 typeof quote.discountedSum === "number" ? quote.discountedSum : null,
+              quoteSumByGuest: quote.sumByTraveler ?? null,
+              quoteDiscountedSumByGuest: quote.discountedSumByTraveler ?? null,
               quotePriceCoverages: quote.priceCoverages ?? null,
               quoteDiscountedPriceCoverages: quote.discountedPriceCoverages ?? null,
+              quotePriceCoveragesByGuest: quote.priceCoveragesByTraveler ?? null,
+              quoteDiscountedPriceCoveragesByGuest:
+                quote.discountedPriceCoveragesByTraveler ?? null,
+              quotePremiumsByGuest,
               quoteError: null,
               startDate: insuranceQuoteRequest.startDate,
               endDate: insuranceQuoteRequest.endDate,
@@ -680,8 +832,13 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               currency: null,
               quoteSum: null,
               quoteDiscountedSum: null,
+              quoteSumByGuest: null,
+              quoteDiscountedSumByGuest: null,
               quotePriceCoverages: null,
               quoteDiscountedPriceCoverages: null,
+              quotePriceCoveragesByGuest: null,
+              quoteDiscountedPriceCoveragesByGuest: null,
+              quotePremiumsByGuest: null,
               quoteError: mappedMessage,
             },
             updatedAt: Date.now(),
@@ -703,6 +860,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     insuranceQuoteRequest,
     insuranceSelection?.selected,
     t.packageBuilder.checkout.errors.insuranceQuoteFailed,
+    t.packageBuilder.insurance.errors,
   ]);
   const transferGuestCounts = useMemo(() => {
     const rooms = hotelSelection?.rooms ?? [];
@@ -1334,20 +1492,27 @@ export default function PackageServiceClient({ serviceKey }: Props) {
   );
 
   const computeExcursionPrice = useCallback(
-    (excursion: AoryxExcursionTicket, age: number | null) => {
-      const childRange = parseChildPolicyRange(excursion.childPolicy);
-      const childIsFree =
-        isFocPolicy(excursion.childPolicy) || (excursion.pricing?.child ?? 0) === 0;
+    (excursion: AoryxExcursionTicket, guest: ExcursionGuest) => {
       const feeAlreadyApplied =
         (excursion.pricing as { feeApplied?: unknown })?.feeApplied === true;
       const feeToApply = feeAlreadyApplied ? 0 : excursionFee ?? 0;
+      const currency = excursion.pricing?.currency;
+
+      if (guest.type === "Adult") {
+        return { amount: (excursion.pricing?.adult ?? 0) + feeToApply, currency };
+      }
+
+      const age = guest.age;
+      const childRange = parseChildPolicyRange(excursion.childPolicy);
+      const childIsFree =
+        isFocPolicy(excursion.childPolicy) || (excursion.pricing?.child ?? 0) === 0;
 
       const focNonRestrictive = childIsFree && !/only/i.test(excursion.childPolicy ?? "");
 
       if (childIsFree && age !== null) {
         const focMax = childRange?.max ?? 3;
         if (age <= focMax) {
-          return { amount: feeToApply, currency: excursion.pricing?.currency };
+          return { amount: feeToApply, currency };
         }
       }
 
@@ -1360,24 +1525,24 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       if (childEligible && age !== null) {
         return {
           amount: (excursion.pricing?.child ?? excursion.pricing?.adult ?? 0) + feeToApply,
-          currency: excursion.pricing?.currency,
+          currency,
         };
       }
 
       if (childIsFree && age === null) {
-        return { amount: feeToApply, currency: excursion.pricing?.currency };
+        return { amount: feeToApply, currency };
       }
 
       if (focNonRestrictive) {
         return {
           amount: (excursion.pricing?.adult ?? 0) + feeToApply,
-          currency: excursion.pricing?.currency,
+          currency,
         };
       }
 
       return {
         amount: (excursion.pricing?.adult ?? 0) + feeToApply,
-        currency: excursion.pricing?.currency,
+        currency,
       };
     },
     [excursionFee]
@@ -1404,7 +1569,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         const excursion = lookup.get(excursionId);
         if (!excursion) return;
         if (!isExcursionEligibleForGuest(excursion, guest)) return;
-        const price = computeExcursionPrice(excursion, guest.age);
+        const price = computeExcursionPrice(excursion, guest);
         if (!Number.isFinite(price.amount) || price.amount <= 0) return;
         if (price.currency) {
           if (!currency) {
@@ -1475,7 +1640,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         const excursion = lookup.get(excursionId);
         if (!excursion) return;
         if (!isExcursionEligibleForGuest(excursion, guest)) return;
-        const price = computeExcursionPrice(excursion, guest.age);
+        const price = computeExcursionPrice(excursion, guest);
         if (!Number.isFinite(price.amount)) return;
         const existing = selections.get(excursionId) ?? {
           id: excursion.id,
@@ -1707,6 +1872,15 @@ export default function PackageServiceClient({ serviceKey }: Props) {
 
   const handleSelectInsurancePlan = useCallback(
     (plan: InsurancePlan) => {
+      if (
+        insuranceSelection?.selected &&
+        insuranceSelection.planId === plan.id &&
+        insuranceSelection.riskAmount === plan.riskAmount &&
+        insuranceSelection.riskCurrency === plan.riskCurrency &&
+        insuranceSelection.riskLabel === plan.riskLabel
+      ) {
+        return;
+      }
       const territory = insuranceTerritories[0];
       updateInsuranceSelection({
         label: plan.title,
@@ -1719,8 +1893,12 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         currency: null,
         quoteSum: null,
         quoteDiscountedSum: null,
+        quoteSumByGuest: null,
+        quoteDiscountedSumByGuest: null,
         quotePriceCoverages: null,
         quoteDiscountedPriceCoverages: null,
+        quotePriceCoveragesByGuest: null,
+        quoteDiscountedPriceCoveragesByGuest: null,
         quoteError: null,
         startDate: hotelSelection?.checkInDate ?? null,
         endDate: hotelSelection?.checkOutDate ?? null,
@@ -1735,13 +1913,23 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           insuranceSelection?.travelCountries ??
           t.packageBuilder.insurance.defaultTravelCountry ??
           "",
+        insuredGuestIds:
+          insuranceSelection?.insuredGuestIds ??
+          (insuranceGuestIds.length > 0 ? insuranceGuestIds : null),
       });
       openPackageBuilder();
     },
     [
+      insuranceGuestIds,
       insuranceSelection?.territoryCode,
       insuranceSelection?.territoryLabel,
       insuranceSelection?.territoryPolicyLabel,
+      insuranceSelection?.insuredGuestIds,
+      insuranceSelection?.planId,
+      insuranceSelection?.riskAmount,
+      insuranceSelection?.riskCurrency,
+      insuranceSelection?.riskLabel,
+      insuranceSelection?.selected,
       insuranceSelection?.subrisks,
       insuranceSelection?.travelCountries,
       insuranceTerritories,
@@ -1763,20 +1951,59 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         currency: null,
         quoteSum: null,
         quoteDiscountedSum: null,
+        quoteSumByGuest: null,
+        quoteDiscountedSumByGuest: null,
         quotePriceCoverages: null,
         quoteDiscountedPriceCoverages: null,
+        quotePriceCoveragesByGuest: null,
+        quoteDiscountedPriceCoveragesByGuest: null,
         quoteError: null,
       });
     },
     [insuranceTerritories, updateInsuranceSelection]
   );
 
+  const handleToggleInsuranceGuestCoverage = useCallback((guestId: string | null) => {
+    if (!insuranceSelection?.selected) return;
+    if (!guestId) return;
+    if (insuranceGuestIds.length === 0) return;
+    const current =
+      selectedInsuranceGuestIds.length > 0 ? selectedInsuranceGuestIds : insuranceGuestIds;
+    const currentSet = new Set(current);
+    if (currentSet.has(guestId)) {
+      if (currentSet.size === 1) return;
+      currentSet.delete(guestId);
+    } else {
+      currentSet.add(guestId);
+    }
+    const next = insuranceGuestIds.filter((id) => currentSet.has(id));
+    if (next.length === 0) return;
+    updateInsuranceSelection({
+      insuredGuestIds: next,
+      price: null,
+      currency: null,
+      quoteSum: null,
+      quoteDiscountedSum: null,
+      quoteSumByGuest: null,
+      quoteDiscountedSumByGuest: null,
+      quotePriceCoverages: null,
+      quoteDiscountedPriceCoverages: null,
+      quotePriceCoveragesByGuest: null,
+      quoteDiscountedPriceCoveragesByGuest: null,
+      quoteError: null,
+    });
+  }, [
+    insuranceGuestIds,
+    insuranceSelection?.selected,
+    selectedInsuranceGuestIds,
+    updateInsuranceSelection,
+  ]);
+
   const handleToggleInsuranceSubrisk = useCallback(
     (subriskId: string) => {
       if (!insuranceSelection?.selected) return;
-      const current = Array.isArray(insuranceSelection.subrisks)
-        ? insuranceSelection.subrisks
-        : DEFAULT_INSURANCE_SUBRISKS;
+      if (!activeInsuranceGuestId) return;
+      const current = resolveGuestSubrisks(activeInsuranceGuestId);
       const currentSet = new Set(
         current.map((value) => value.trim()).filter((value) => value.length > 0)
       );
@@ -1787,12 +2014,18 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       }
       const next = insuranceSubriskIds.filter((id) => currentSet.has(id));
       const extras = Array.from(currentSet).filter((id) => !insuranceSubriskIds.includes(id));
-      updateInsuranceSelection({ subrisks: [...next, ...extras] });
+      const subrisksByGuest = {
+        ...(insuranceSelection.subrisksByGuest ?? {}),
+        [activeInsuranceGuestId]: [...next, ...extras],
+      };
+      updateInsuranceSelection({ subrisksByGuest });
     },
     [
+      activeInsuranceGuestId,
       insuranceSelection?.selected,
-      insuranceSelection?.subrisks,
+      insuranceSelection?.subrisksByGuest,
       insuranceSubriskIds,
+      resolveGuestSubrisks,
       updateInsuranceSelection,
     ]
   );
@@ -1820,8 +2053,12 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         currency: null,
         quoteSum: null,
         quoteDiscountedSum: null,
+        quoteSumByGuest: null,
+        quoteDiscountedSumByGuest: null,
         quotePriceCoverages: null,
         quoteDiscountedPriceCoverages: null,
+        quotePriceCoveragesByGuest: null,
+        quoteDiscountedPriceCoveragesByGuest: null,
         quoteError: null,
       });
       if (selection.startDate.getTime() !== selection.endDate.getTime()) {
@@ -2317,14 +2554,14 @@ export default function PackageServiceClient({ serviceKey }: Props) {
         </div>
         {excursionGuests.length > 1 ? (
           <div className="controls">
-            <div className="excursion-guest-tabs">
+            <div className="guest-tabs">
               {excursionGuests.map((guest) => {
                 const count = guestExcursions[guest.key]?.length ?? 0;
                 return (
                   <button
                     key={guest.key}
                     type="button"
-                    className={`excursion-guest-tab${guest.key === activeExcursionGuestId ? " is-active" : ""}`}
+                    className={`guest-tab${guest.key === activeExcursionGuestId ? " is-active" : ""}`}
                     onClick={() => setActiveExcursionGuestId(guest.key)}
                     disabled={!canSelectExcursions}
                   >
@@ -2337,7 +2574,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             </div>
             <button
               type="button"
-              className="excursion-apply-all"
+              className="apply-all"
               onClick={applyActiveSelectionToAllGuests}
               disabled={!canSelectExcursions || !activeExcursionGuestId}
             >
@@ -2356,6 +2593,10 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     if (!hasHotel) return null;
     const selectedPlanId = insuranceSelection?.planId ?? null;
     return (
+      <>
+      <div className="videoWrap">
+        <video src="/videos/efes.mp4" autoPlay muted loop playsInline />
+      </div>
       <div className="service-types insurance">
         {insurancePlans.map((plan) => {
           const isSelected = plan.id === selectedPlanId;
@@ -2364,7 +2605,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
             <button
               key={plan.id}
               type="button"
-              className={`${isSelected ? " selected" : ""}`}
+              className={`${isSelected ? "is-selected" : ""}`}
               onClick={() => handleSelectInsurancePlan(plan)}
               aria-pressed={isSelected}
             >
@@ -2375,6 +2616,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
           );
         })}
       </div>
+      </>
     );
   };
 
@@ -2384,80 +2626,132 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     const selectedTerritory =
       insuranceSelection?.territoryCode ?? insuranceTerritories[0]?.code ?? "";
     const travelCountries = t.packageBuilder.insurance.defaultTravelCountry ?? "";
+    const showGuestSelection = insuranceGuests.length > 1;
 
     return (
       <div className="controls">
-          <label className="checkout-field" style={{display:"none"}}>
-            <span>{t.packageBuilder.insurance.territoryLabel}</span>
-            <select
-              className="checkout-input"
-              value={selectedTerritory}
-              onChange={(event) => handleUpdateInsuranceTerritory(event.target.value)}
-              disabled={!insuranceSelection?.selected}
-            >
-              {insuranceTerritories.map((territory) => (
-                <option key={territory.code} value={territory.code}>
-                  {territory.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="checkout-field">
-            <span>{t.packageBuilder.insurance.travelCountriesLabel}</span>
-            <input
-              className="checkout-input"
-              value={travelCountries}
-              readOnly
-              aria-readonly="true"
-              type="hidden"
-              disabled={!insuranceSelection?.selected}
-            />
-          </label>
-          <div
-            className="insurance-date-picker"
-            ref={insuranceDatePickerRef}
+        <label className="checkout-field" style={{display:"none"}}>
+          <span>{t.packageBuilder.insurance.territoryLabel}</span>
+          <select
+            className="checkout-input"
+            value={selectedTerritory}
+            onChange={(event) => handleUpdateInsuranceTerritory(event.target.value)}
+            disabled={!insuranceSelection?.selected}
           >
-            <span>
-              {t.packageBuilder.insurance.startDateLabel} / {t.packageBuilder.insurance.endDateLabel}
-            </span>
-            <button
-              type="button"
-              className="date-picker"
-              onClick={() => setShowInsuranceDatePicker((prev) => !prev)}
-              disabled={!insuranceSelection?.selected}
-            >
-              <span className="material-symbols-rounded" aria-hidden="true">
-                date_range
-              </span>
-              <span>
-                {insuranceDateRange.startDate && insuranceDateRange.endDate
-                  ? (
-                    <>
-                      {formatDateDisplay(insuranceDateRange.startDate)}{" "}
+            {insuranceTerritories.map((territory) => (
+              <option key={territory.code} value={territory.code}>
+                {territory.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="checkout-field">
+          <span>{t.packageBuilder.insurance.travelCountriesLabel}</span>
+          <input
+            className="checkout-input"
+            value={travelCountries}
+            readOnly
+            aria-readonly="true"
+            type="hidden"
+            disabled={!insuranceSelection?.selected}
+          />
+        </label>
+        {showGuestSelection ? (
+          <>
+            <div className="guest-tabs">
+              {insuranceGuests.map((guest) => {
+                const isSelected = guest.id === activeInsuranceGuestId;
+                const isExcluded = !selectedInsuranceGuestIdSet.has(guest.id);
+                const toggleDisabled =
+                  !insuranceSelection?.selected ||
+                  (!isExcluded && selectedInsuranceGuestIds.length <= 1);
+                const toggleLabel = isExcluded
+                  ? t.packageBuilder.insurance.guestToggleAdd
+                  : t.packageBuilder.insurance.guestToggleRemove;
+                const toggleIcon = isExcluded ? "add" : "close";
+                return (
+                  <div
+                    key={guest.id}
+                    className={`guest-tab-shell${isExcluded ? " is-excluded" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      className={`guest-tab${isSelected ? " is-active" : ""}${isExcluded ? " is-excluded" : ""}`}
+                      onClick={() => setActiveInsuranceGuestId(guest.id)}
+                      disabled={!insuranceSelection?.selected}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="material-symbols-rounded" aria-hidden="true">person</span>
+                      <span>{guest.label}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`guest-tab-remove${isExcluded ? " is-add" : " is-remove"}`}
+                      onClick={() => {
+                        if (isExcluded) {
+                          setActiveInsuranceGuestId(guest.id);
+                        }
+                        handleToggleInsuranceGuestCoverage(guest.id);
+                      }}
+                      disabled={toggleDisabled}
+                      aria-label={toggleLabel}
+                    >
                       <span className="material-symbols-rounded" aria-hidden="true">
-                        arrow_forward
-                      </span>{" "}
-                      {formatDateDisplay(insuranceDateRange.endDate)}
-                    </>
-                  )
-                  : t.search.datePlaceholder}
-              </span>
-            </button>
-            {showInsuranceDatePicker && insuranceSelection?.selected ? (
-              <div>
-                <DateRange
-                  ranges={[insuranceDateRange]}
-                  minDate={new Date()}
-                  onChange={handleInsuranceDateChange}
-                  rangeColors={["#10b981"]}
-                  moveRangeOnFirstSelection={false}
-                  showMonthAndYearPickers
-                  direction="vertical"
-                  locale={dateFnsLocale}
-                />
-              </div>
-            ) : null}
-          </div>
+                        {toggleIcon}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+        <div
+          className="insurance-date-picker"
+          ref={insuranceDatePickerRef}
+        >
+          <span>
+            {t.packageBuilder.insurance.startDateLabel} / {t.packageBuilder.insurance.endDateLabel}
+          </span>
+          <button
+            type="button"
+            className="date-picker"
+            onClick={() => setShowInsuranceDatePicker((prev) => !prev)}
+            disabled={!insuranceSelection?.selected}
+          >
+            <span className="material-symbols-rounded" aria-hidden="true">
+              date_range
+            </span>
+            <span>
+              {insuranceDateRange.startDate && insuranceDateRange.endDate
+                ? (
+                  <>
+                    {formatDateDisplay(insuranceDateRange.startDate)}{" "}
+                    <span className="material-symbols-rounded" aria-hidden="true">
+                      arrow_forward
+                    </span>{" "}
+                    {formatDateDisplay(insuranceDateRange.endDate)}
+                  </>
+                )
+                : t.search.datePlaceholder}
+            </span>
+          </button>
+          {showInsuranceDatePicker && insuranceSelection?.selected ? (
+            <div>
+              <DateRange
+                ranges={[insuranceDateRange]}
+                minDate={new Date()}
+                onChange={handleInsuranceDateChange}
+                rangeColors={["#10b981"]}
+                moveRangeOnFirstSelection={false}
+                showMonthAndYearPickers
+                direction="vertical"
+                locale={dateFnsLocale}
+              />
+            </div>
+          ) : null}
+        </div>
+        
       </div>
     );
   };
@@ -2973,51 +3267,114 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       insuranceTerritories.find((territory) => territory.code === selectedTerritory)?.label ?? "";
     const travelCountries = t.packageBuilder.insurance.defaultTravelCountry ?? "";
     const showInsuranceDetails = insuranceSelection?.selected === true;
-    const insurancePriceLabel =
-      typeof insuranceSelection?.price === "number" && insuranceSelection.currency
-        ? formatCurrencyAmount(
-            insuranceSelection.price,
-            insuranceSelection.currency,
-            intlLocale
-          )
-        : null;
     const quoteCurrency =
       insuranceSelection?.currency ?? insuranceSelection?.riskCurrency ?? null;
+    const quotePremiumsByGuest = insuranceSelection?.quotePremiumsByGuest ?? null;
+    const quoteSumByGuest = insuranceSelection?.quoteSumByGuest ?? null;
+    const quoteDiscountedSumByGuest = insuranceSelection?.quoteDiscountedSumByGuest ?? null;
     const priceCoverages = insuranceSelection?.quotePriceCoverages ?? null;
     const discountedPriceCoverages =
       insuranceSelection?.quoteDiscountedPriceCoverages ?? null;
+    const priceCoveragesByGuest = insuranceSelection?.quotePriceCoveragesByGuest ?? null;
+    const discountedPriceCoveragesByGuest =
+      insuranceSelection?.quoteDiscountedPriceCoveragesByGuest ?? null;
     const coverageCurrency = insuranceSelection?.currency ?? "AMD";
-    const quoteSumValue =
-      typeof insuranceSelection?.quoteSum === "number"
-        ? insuranceSelection.quoteSum
-        : null;
-    const quoteDiscountedSumValue =
-      typeof insuranceSelection?.quoteDiscountedSum === "number"
-        ? insuranceSelection.quoteDiscountedSum
-        : null;
     const formatQuoteValue = (value: number | null | undefined) => {
       if (typeof value !== "number" || !Number.isFinite(value)) return null;
       return (
         formatCurrencyAmount(value, quoteCurrency, intlLocale) ?? value.toString()
       );
     };
-    const formattedQuoteSum = formatQuoteValue(quoteSumValue);
-    const formattedQuoteDiscountedSum = formatQuoteValue(quoteDiscountedSumValue);
+    const selectedCoverage = selectedPlan
+      ? formatCoverageAmount(selectedPlan.riskAmount, selectedPlan.riskCurrency)
+      : null;
+    const selectedPlanCoverages = Array.isArray(selectedPlan?.coverages)
+      ? selectedPlan.coverages.map((item) => item.trim()).filter((item) => item.length > 0)
+      : [];
+    const insuranceDayCount = calculateTripDays(
+      insuranceStartDateRaw,
+      insuranceEndDateRaw
+    );
+    const insuranceDaysLabel =
+      typeof insuranceDayCount === "number"
+        ? t.packageBuilder.insurance.daysLabel.replace(
+            "{count}",
+            insuranceDayCount.toString()
+          )
+        : null;
+    const roamingLabel = t.packageBuilder.insurance.roamingLabel.trim();
+    const summaryTitle = selectedPlan?.title ?? t.packageBuilder.services.insurance;
+    const insuranceQuoteErrorLabel =
+      insuranceQuoteError ?? insuranceSelection?.quoteError ?? null;
+    const activeGuestCovered =
+      activeInsuranceGuestId ? selectedInsuranceGuestIdSet.has(activeInsuranceGuestId) : true;
+    const activeGuestPriceCoverages =
+      activeInsuranceGuestId && activeGuestCovered
+        ? priceCoveragesByGuest?.[activeInsuranceGuestId] ?? null
+        : null;
+    const activeGuestDiscountedPriceCoverages =
+      activeInsuranceGuestId && activeGuestCovered
+        ? discountedPriceCoveragesByGuest?.[activeInsuranceGuestId] ?? null
+        : null;
+    const useAggregateCoverages =
+      !activeGuestPriceCoverages &&
+      !activeGuestDiscountedPriceCoverages &&
+      selectedInsuranceGuestIds.length <= 1;
+    const resolvedPriceCoverages =
+      activeGuestPriceCoverages ?? (useAggregateCoverages ? priceCoverages : null);
+    const resolvedDiscountedPriceCoverages =
+      activeGuestDiscountedPriceCoverages ??
+      (useAggregateCoverages ? discountedPriceCoverages : null);
+    const activeGuestSumValue =
+      activeInsuranceGuestId && activeGuestCovered && quoteSumByGuest
+        ? quoteSumByGuest[activeInsuranceGuestId]
+        : null;
+    const activeGuestDiscountedSumValue =
+      activeInsuranceGuestId && activeGuestCovered && quoteDiscountedSumByGuest
+        ? quoteDiscountedSumByGuest[activeInsuranceGuestId]
+        : null;
+    const activeGuestPremiumValue =
+      activeInsuranceGuestId && activeGuestCovered && quotePremiumsByGuest
+        ? quotePremiumsByGuest[activeInsuranceGuestId]
+        : null;
+    const formattedActiveGuestPremium = formatQuoteValue(activeGuestPremiumValue);
+    const formattedActiveGuestSum = formatQuoteValue(activeGuestSumValue);
+    const formattedActiveGuestDiscountedSum = formatQuoteValue(activeGuestDiscountedSumValue);
+    const summaryQuote = showInsuranceDetails
+      ? insuranceQuoteLoading
+        ? t.packageBuilder.insurance.quoteLoading
+        : insuranceQuoteErrorLabel
+          ? insuranceQuoteErrorLabel
+          : `${t.packageBuilder.insurance.quoteLabel}:${
+              formattedActiveGuestPremium ? "" : " —"
+            }`
+      : `${t.packageBuilder.insurance.quoteLabel}: —`;
+    const showQuoteBreakdown =
+      showInsuranceDetails && !insuranceQuoteLoading && !insuranceQuoteErrorLabel;
+    const showSumLabel = showQuoteBreakdown && formattedActiveGuestSum;
+    const showDiscountedSumLabel =
+      showQuoteBreakdown &&
+      formattedActiveGuestDiscountedSum &&
+      (!formattedActiveGuestSum ||
+        (typeof activeGuestSumValue === "number" &&
+          typeof activeGuestDiscountedSumValue === "number" &&
+          Math.abs(activeGuestSumValue - activeGuestDiscountedSumValue) > 0.001));
     const resolveSubriskRate = (subriskId: string, isSelected: boolean) => {
-      if (!priceCoverages && !discountedPriceCoverages) return null;
+      if (!activeGuestCovered) return null;
+      if (!resolvedPriceCoverages && !resolvedDiscountedPriceCoverages) return null;
       const candidates = [subriskId, subriskId.toUpperCase(), subriskId.toLowerCase()];
       let baseValue: number | null = null;
       let discountedValue: number | null = null;
       for (const key of candidates) {
-        const value = priceCoverages?.[key];
-        if (typeof value === "number" && Number.isFinite(value)) {
+        const value = resolvedPriceCoverages?.[key];
+        if (typeof value === "number" && Number.isFinite(value) && value > 0) {
           baseValue = value;
           break;
         }
       }
       for (const key of candidates) {
-        const value = discountedPriceCoverages?.[key];
-        if (typeof value === "number" && Number.isFinite(value)) {
+        const value = resolvedDiscountedPriceCoverages?.[key];
+        if (typeof value === "number" && Number.isFinite(value) && value > 0) {
           discountedValue = value;
           break;
         }
@@ -3037,44 +3394,15 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       if (baseLabel && discountedLabel) return `${baseLabel} / ${discountedLabel}`;
       return baseLabel ?? discountedLabel;
     };
-    const selectedCoverage = selectedPlan
-      ? formatCoverageAmount(selectedPlan.riskAmount, selectedPlan.riskCurrency)
-      : null;
-    const selectedPlanCoverages = Array.isArray(selectedPlan?.coverages)
-      ? selectedPlan.coverages.map((item) => item.trim()).filter((item) => item.length > 0)
-      : [];
-    const insuranceDayCount = calculateTripDays(
-      insuranceStartDateRaw,
-      insuranceEndDateRaw
-    );
-    const insuranceDaysLabel =
-      typeof insuranceDayCount === "number"
-        ? t.packageBuilder.insurance.daysLabel.replace(
-            "{count}",
-            insuranceDayCount.toString()
-          )
-        : null;
-    const summaryTitle = selectedPlan?.title ?? t.packageBuilder.services.insurance;
-    const insuranceQuoteErrorLabel =
-      insuranceQuoteError ?? insuranceSelection?.quoteError ?? null;
-    const summaryQuote = showInsuranceDetails
-      ? insuranceQuoteLoading
-        ? t.packageBuilder.insurance.quoteLoading
-        : insuranceQuoteErrorLabel
-          ? insuranceQuoteErrorLabel
-          : `${t.packageBuilder.insurance.quoteLabel}:`
-      : `${t.packageBuilder.insurance.quoteLabel}: —`;
-    const showQuoteBreakdown =
-      showInsuranceDetails && !insuranceQuoteLoading && !insuranceQuoteErrorLabel;
-    const quoteSumLabel =
-      showQuoteBreakdown && formattedQuoteSum ? `${formattedQuoteSum}` : null;
-    const hasDiscount =
-      quoteDiscountedSumValue !== null &&
-      (quoteSumValue === null || Math.abs(quoteSumValue - quoteDiscountedSumValue) > 0.001);
-    const quoteDiscountedSumLabel =
-      showQuoteBreakdown && hasDiscount && formattedQuoteDiscountedSum
-        ? `${formattedQuoteDiscountedSum}`
-        : null;
+    const subriskIconMap: Record<string, string> = {
+      amateur_sport_expences: "/images/icons/dangerous-sport.webp",
+      baggage_expences: "/images/icons/baggage.webp",
+      travel_inconveniences: "/images/icons/travel-inconveniences.webp",
+      house_insurance: "/images/icons/home-insurance.webp",
+      trip_cancellation: "/images/icons/trip-cancellation.webp",
+    };
+    const resolveSubriskIcon = (subriskId: string) =>
+      subriskIconMap[subriskId.toLowerCase()] ?? null;
 
     return (
       <>
@@ -3084,7 +3412,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               className={`option insurance${showInsuranceDetails ? " is-selected" : ""}`}
             >
               <div className="details">
-                <div className="route">{t.packageBuilder.insurance.programTitle} {summaryTitle}</div>
+                <h2 className="route">{t.packageBuilder.insurance.programTitle} {summaryTitle}</h2>
                   {showInsuranceDetails && selectedCoverage ? (
                     <div className="meta">
                       <span className="material-symbols-rounded" aria-hidden="true">
@@ -3117,6 +3445,22 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                       {insuranceDaysLabel}
                     </div>
                   ) : null}
+                  {showInsuranceDetails && roamingLabel ? (
+                    <div className="meta">
+                      <span className="material-symbols-rounded" aria-hidden="true">
+                        wifi
+                      </span>
+                      <span>{roamingLabel}</span>
+                    </div>
+                  ) : null}
+                  <div className="meta rate">
+                    {summaryQuote}
+                    {/* {quotePremiumLabel ? <span>{quotePremiumLabel}</span> : null} */}
+                    {showSumLabel ? <span>{formattedActiveGuestSum}</span> : null}
+                    {showDiscountedSumLabel ? (
+                      <span className="discount">{formattedActiveGuestDiscountedSum}</span>
+                    ) : null}
+                  </div>
                 </div>
                 {showInsuranceDetails && selectedPlanCoverages.length > 0 ? (
                   <ul className="coverage-list">
@@ -3125,32 +3469,47 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                     ))}
                   </ul>
                 ) : null}
-              <div className="meta rate">
-                {summaryQuote}
-                {quoteSumLabel ? <span>{quoteSumLabel}</span> : null}
-                {quoteDiscountedSumLabel ? <span className="discount">{quoteDiscountedSumLabel}</span> : null}
-              </div>
             </div>
           </div>
         }
         {insuranceSubrisks.length > 0 && insuranceSelection?.selected ? (
           <div className="insurance-subrisks">
             <h2>{t.packageBuilder.insurance.subrisksTitle}</h2>
-            {insuranceQuoteErrorLabel ? (
-              <p className="checkout-error" role="alert">
-                {insuranceQuoteErrorLabel}
-              </p>
-            ) : null}
             {insuranceSubrisks.map((subrisk) => {
               const isChecked = selectedInsuranceSubriskSet.has(subrisk.id);
               const isDisabled =
-                !insuranceSelection?.selected || Boolean(insuranceQuoteErrorLabel);
+                !insuranceSelection?.selected ||
+                Boolean(insuranceQuoteErrorLabel) ||
+                !activeGuestCovered;
               const subriskRateLabel = resolveSubriskRate(subrisk.id, isChecked);
+              const subriskIcon = resolveSubriskIcon(subrisk.id);
               return (
                 <label
                   key={subrisk.id}
                   className={isDisabled ? " is-disabled" : ""}
                 >
+                  {subriskIcon ? (
+                    <Image
+                      className="icon"
+                      src={subriskIcon}
+                      alt={subrisk.label}
+                      width={60}
+                      height={60}
+                    />
+                  ) : null}
+                  <div>
+                    <h3>
+                      <span className="subrisk-title">{subrisk.label}</span>
+                      {subriskRateLabel ? (
+                        <span className="subrisk-rate">({subriskRateLabel})</span>
+                      ) : null}
+                    </h3>
+                    {subrisk.description ? (
+                      <p>
+                        {subrisk.description}
+                      </p>
+                    ) : null}
+                  </div>
                   <span className="toggle">
                     <input
                       type="checkbox"
@@ -3160,17 +3519,6 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                     />
                     <span className="toggle__slider" aria-hidden="true" />
                   </span>
-                  <div>
-                    <h3>
-                      {subrisk.label}
-                      {subriskRateLabel ? <span>({subriskRateLabel})</span> : null}
-                    </h3>
-                    {subrisk.description ? (
-                      <p>
-                        {subrisk.description}
-                      </p>
-                    ) : null}
-                  </div>
                 </label>
               );
             })}

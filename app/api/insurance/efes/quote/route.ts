@@ -50,11 +50,17 @@ export async function POST(request: NextRequest) {
         const record = traveler as Record<string, unknown>;
         const age = parseNumber(record.age);
         if (age === null) return null;
+        const travelerSubrisks = Array.isArray(record.subrisks)
+          ? record.subrisks
+              .map((entry) => parseString(entry))
+              .filter((entry): entry is string => Boolean(entry))
+          : undefined;
         return {
           id: parseString(record.id) || null,
           age,
           passportNumber: parseString(record.passportNumber) || null,
           socialCard: parseString(record.socialCard) || null,
+          subrisks: travelerSubrisks,
         };
       })
       .filter((traveler): traveler is NonNullable<typeof traveler> => Boolean(traveler));

@@ -64,9 +64,16 @@ export type PackageBuilderInsuranceSelection = PackageBuilderServiceSelection & 
   riskLabel?: string | null;
   quoteSum?: number | null;
   quoteDiscountedSum?: number | null;
+  quoteSumByGuest?: Record<string, number> | null;
+  quoteDiscountedSumByGuest?: Record<string, number> | null;
   quotePriceCoverages?: Record<string, number> | null;
   quoteDiscountedPriceCoverages?: Record<string, number> | null;
+  quotePriceCoveragesByGuest?: Record<string, Record<string, number>> | null;
+  quoteDiscountedPriceCoveragesByGuest?: Record<string, Record<string, number>> | null;
+  quotePremiumsByGuest?: Record<string, number> | null;
   quoteError?: string | null;
+  insuredGuestIds?: string[] | null;
+  subrisksByGuest?: Record<string, string[]> | null;
   territoryCode?: string | null;
   territoryLabel?: string | null;
   territoryPolicyLabel?: string | null;

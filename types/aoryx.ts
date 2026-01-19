@@ -531,6 +531,7 @@ export type BookingInsuranceTraveler = {
   citizenship?: string | null;
   premium?: number | null;
   premiumCurrency?: string | null;
+  subrisks?: string[] | null;
 };
 
 export interface BookingAirTicketRequest {

@@ -319,11 +319,12 @@ export default function PackageBuilder() {
   const formattedSessionRemaining =
     sessionRemainingMs !== null ? formatRemainingTime(sessionRemainingMs) : null;
   const sessionWarning = (() => {
-    if (!sessionWarningKey) return null;
-    if (sessionWarningKey === "ten") return t.packageBuilder.sessionWarningTen;
+    if (!sessionWarningKey || sessionWarningKey === "ten") return null;
     if (sessionWarningKey === "five") return t.packageBuilder.sessionWarningFive;
     return t.packageBuilder.sessionExpired;
   })();
+  const sessionTenPopover =
+    sessionWarningKey === "ten" ? t.packageBuilder.sessionWarningTen : null;
 
   const checkoutTotal = (() => {
     let missingPrice = false;
@@ -459,6 +460,8 @@ export default function PackageBuilder() {
     if (service.id !== "hotel" && !hasHotel) {
       setShowHotelWarning(true);
       setDisabledServiceId(null);
+      setIsOpen(false);
+      router.push(`/${locale}#hero`);
       return;
     }
 
@@ -533,6 +536,14 @@ export default function PackageBuilder() {
                 </span>
               </button>
             </div>
+            {sessionTenPopover && (
+              <div className="package-builder__popover" role="status">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  schedule
+                </span>
+                <p>{sessionTenPopover}</p>
+              </div>
+            )}
             {sessionWarning && (
               <div className="package-builder__warning" role="alert">
                 <span className="material-symbols-rounded" aria-hidden="true">

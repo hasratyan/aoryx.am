@@ -5,6 +5,7 @@ export type EfesQuoteTraveler = {
   age: number;
   passportNumber?: string | null;
   socialCard?: string | null;
+  subrisks?: string[] | null;
 };
 
 export type EfesQuoteRequest = {
@@ -26,8 +27,12 @@ export type EfesQuoteResult = {
   premiums: Array<{ travelerId: string | null; premium: number }>;
   sum?: number | null;
   discountedSum?: number | null;
+  sumByTraveler?: Record<string, number> | null;
+  discountedSumByTraveler?: Record<string, number> | null;
   priceCoverages?: Record<string, number> | null;
   discountedPriceCoverages?: Record<string, number> | null;
+  priceCoveragesByTraveler?: Record<string, Record<string, number>> | null;
+  discountedPriceCoveragesByTraveler?: Record<string, Record<string, number>> | null;
   raw?: unknown[];
 };
 

@@ -213,21 +213,26 @@ const parseInsurance = (
         const firstName = sanitizeString(traveler.firstName);
         const lastName = sanitizeString(traveler.lastName);
         if (!firstName || !lastName) return null;
-        const addressRaw = traveler.address as UnknownRecord | undefined;
-        const address = addressRaw
-          ? {
-              full: sanitizeString(addressRaw.full),
-              fullEn: sanitizeString(addressRaw.fullEn),
-              country: sanitizeString(addressRaw.country),
-              region: sanitizeString(addressRaw.region),
-              city: sanitizeString(addressRaw.city),
-            }
-          : undefined;
-        const gender = normalizeGender(traveler.gender);
-        return {
-          id: sanitizeString(traveler.id),
-          firstName,
-          lastName,
+      const addressRaw = traveler.address as UnknownRecord | undefined;
+      const address = addressRaw
+        ? {
+            full: sanitizeString(addressRaw.full),
+            fullEn: sanitizeString(addressRaw.fullEn),
+            country: sanitizeString(addressRaw.country),
+            region: sanitizeString(addressRaw.region),
+            city: sanitizeString(addressRaw.city),
+          }
+        : undefined;
+      const gender = normalizeGender(traveler.gender);
+      const subrisks = Array.isArray(traveler.subrisks)
+        ? traveler.subrisks
+            .map((entry) => sanitizeString(entry))
+            .filter((entry): entry is string => Boolean(entry))
+        : undefined;
+      return {
+        id: sanitizeString(traveler.id),
+        firstName,
+        lastName,
           firstNameEn: sanitizeString(traveler.firstNameEn),
           lastNameEn: sanitizeString(traveler.lastNameEn),
           gender,
@@ -242,11 +247,12 @@ const parseInsurance = (
           mobilePhone: sanitizeString(traveler.mobilePhone),
           email: sanitizeString(traveler.email),
           address,
-          citizenship: sanitizeString(traveler.citizenship),
-          premium: toNumber(traveler.premium),
-          premiumCurrency: sanitizeString(traveler.premiumCurrency),
-        };
-      })
+        citizenship: sanitizeString(traveler.citizenship),
+        premium: toNumber(traveler.premium),
+        premiumCurrency: sanitizeString(traveler.premiumCurrency),
+        subrisks,
+      };
+    })
       .filter((traveler): traveler is NonNullable<typeof traveler> => Boolean(traveler));
     return travelers.length > 0 ? travelers : undefined;
   };
