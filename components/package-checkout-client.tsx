@@ -260,6 +260,7 @@ const serializeInsuranceTraveler = (
     traveler.citizenship ?? "",
     traveler.premium ?? null,
     traveler.premiumCurrency ?? "",
+    traveler.policyPremium ?? null,
     age,
     type,
   ];
@@ -655,6 +656,7 @@ export default function PackageCheckoutClient() {
             citizenship: existing?.citizenship ?? fallbackCitizenship,
             premium: existing?.premium ?? null,
             premiumCurrency: existing?.premiumCurrency ?? null,
+            policyPremium: existing?.policyPremium ?? null,
           };
         })
       );
@@ -906,18 +908,24 @@ export default function PackageCheckoutClient() {
 
   const applyInsuranceQuote = useCallback(
     (quote: EfesQuoteResult) => {
-      const premiumMap = new Map(
-        quote.premiums.map((entry) => [entry.travelerId, entry.premium])
-      );
-      const updated = insuranceTravelers.map((traveler, index) => {
-        const premium =
-          premiumMap.get(traveler.id) ?? quote.premiums[index]?.premium ?? traveler.premium ?? null;
-        return {
-          ...traveler,
-          premium,
-          premiumCurrency: quote.currency,
-        };
-      });
+    const premiumMap = new Map(
+      quote.premiums.map((entry) => [entry.travelerId, entry.premium])
+    );
+    const updated = insuranceTravelers.map((traveler, index) => {
+      const premium =
+        premiumMap.get(traveler.id) ?? quote.premiums[index]?.premium ?? traveler.premium ?? null;
+      const policyPremium =
+        quote.sumByTraveler?.[traveler.id] ??
+        (typeof quote.sum === "number" && insuranceTravelers.length === 1
+          ? quote.sum
+          : traveler.policyPremium ?? null);
+      return {
+        ...traveler,
+        premium,
+        premiumCurrency: quote.currency,
+        policyPremium,
+      };
+    });
       const quotePremiumsByGuest = updated.reduce<Record<string, number>>((acc, traveler) => {
         if (
           traveler.id &&
@@ -1093,6 +1101,7 @@ export default function PackageCheckoutClient() {
       citizenship: normalizeOptional(traveler.citizenship),
       premium: traveler.premium ?? null,
       premiumCurrency: normalizeOptional(traveler.premiumCurrency),
+      policyPremium: traveler.policyPremium ?? null,
       subrisks: resolveGuestSubrisks(traveler.id),
     }));
 

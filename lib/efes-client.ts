@@ -771,6 +771,10 @@ const normalizeTravelerPremium = (
   insurance: BookingInsuranceSelection,
   totalTravelers: number
 ) => {
+  const policyPremium = traveler.policyPremium;
+  if (typeof policyPremium === "number" && Number.isFinite(policyPremium)) {
+    return policyPremium;
+  }
   const premium = traveler.premium;
   if (typeof premium === "number" && Number.isFinite(premium)) {
     return premium;

@@ -250,6 +250,7 @@ const parseInsurance = (
         citizenship: sanitizeString(traveler.citizenship),
         premium: toNumber(traveler.premium),
         premiumCurrency: sanitizeString(traveler.premiumCurrency),
+        policyPremium: toNumber(traveler.policyPremium),
         subrisks,
       };
     })

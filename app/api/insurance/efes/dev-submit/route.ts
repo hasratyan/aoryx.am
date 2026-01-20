@@ -66,6 +66,7 @@ const parseTraveler = (value: unknown): BookingInsuranceTraveler | null => {
     citizenship: parseString(record.citizenship) || null,
     premium: parseNumber(record.premium),
     premiumCurrency: parseString(record.premiumCurrency) || null,
+    policyPremium: parseNumber(record.policyPremium),
     subrisks: parseStringList(record.subrisks),
   };
 };
