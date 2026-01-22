@@ -243,7 +243,6 @@ export type Translation = {
         phone: string;
         email: string;
         address: string;
-        addressEn: string;
         country: string;
         region: string;
         city: string;
@@ -1296,7 +1295,6 @@ const translations: Record<Locale, Translation> = {
           phone: "Հեռախոս",
           email: "Էլ․ հասցե",
           address: "Գրանցման հասցե",
-          addressEn: "Հասցե",
           country: "Երկիր",
           region: "Տարածաշրջան",
           city: "Քաղաք",
@@ -1619,9 +1617,9 @@ const translations: Record<Locale, Translation> = {
       subtitle: "Ամրագրումները, որոնումները և կարևոր մանրամասները՝ մեկ վայրում։",
       memberSince: "Ակտիվ է",
       signIn: {
-        title: "Մուտք գործեք՝ ձեր ուղևորությունները տեսնելու համար",
-        body: "Մուտք գործեք Google-ով՝ տեսնելու ամրագրումները, որոնման պատմությունը և նախընտրությունները։",
-        cta: "Մուտք գործել Google-ով",
+        title: "Խնդրում ենք մուտք գործել",
+        body: "Մուտք գործեք Google-ի Ձեր հաշվով՝ ամրագրումների իրականացման, և անձական հաշվի հասանելիության համար։",
+        cta: "Մուտք գործել",
       },
       stats: {
         bookings: "Ընդհանուր ամրագրումներ",
@@ -1632,9 +1630,9 @@ const translations: Record<Locale, Translation> = {
       },
       bookings: {
         title: "Ձեր ամրագրումները",
-        subtitle: "Կարգավիճակը և հաստատումները՝ մեկ հայացքով։",
+        subtitle: "Կարգավիճակը և հաստատումները՝ համառոտ",
         emptyTitle: "Ամրագրումներ դեռ չկան",
-        emptyBody: "Երբ ամրագրեք, այստեղ կտեսնեք բոլոր հաստատման համարները։",
+        emptyBody: "Ամրագրումից հետո այստեղ կարտացոլվի հաստատման համարները։",
         status: {
           confirmed: "Հաստատված",
           pending: "Մշակման մեջ",
@@ -2092,7 +2090,7 @@ const translations: Record<Locale, Translation> = {
       searchTitle: "Ստեղծիր քո հաջորդ անմոռանալի փորձառությունը",
       roomOptions: {
         loading: "Բեռնում ենք սենյակների տարբերակները...",
-        empty: "Սենյակների տարբերակներ չկան։",
+        empty: "Սենյակների տարբերակներ չեն գտնվել, խնդրում ենք կրկին անգամ իրականացնել որոնում։",
         noMatch: "Ֆիլտրերին համապատասխան տարբերակ չի գտնվել։",
         count: {
           one: "{count} տարբերակ",
@@ -2560,7 +2558,6 @@ const translations: Record<Locale, Translation> = {
           phone: "Phone",
           email: "Email",
           address: "Registered address",
-          addressEn: "Address",
           country: "Country",
           region: "Region",
           city: "City",
@@ -2887,9 +2884,9 @@ const translations: Record<Locale, Translation> = {
       subtitle: "Manage all your bookings, saved searches, and trip details in one central location.",
       memberSince: "Member since",
       signIn: {
-        title: "Sign in to Access Your Trips",
-        body: "Log in with Google to view your bookings, search history, and personalized travel preferences.",
-        cta: "Sign in with Google",
+        title: "Please Sign in",
+        body: "Log in with your Google Account to make reservations and access your personal account.",
+        cta: "Log in",
       },
       stats: {
         bookings: "Total Bookings",
@@ -3360,7 +3357,7 @@ const translations: Record<Locale, Translation> = {
       searchTitle: "Plan your next extraordinary escape.",
       roomOptions: {
         loading: "Loading the best room options...",
-        empty: "No room options are currently available for these dates.",
+        empty: "No room options available, please perform search again.",
         noMatch: "No room options match your selected filters.",
         count: {
           one: "{count} room option found",
@@ -3831,7 +3828,6 @@ const translations: Record<Locale, Translation> = {
           phone: "Телефон",
           email: "Эл. почта",
           address: "Адрес регистрации",
-          addressEn: "Адрес (латиница)",
           country: "Страна",
           region: "Регион",
           city: "Город",
@@ -4158,9 +4154,9 @@ const translations: Record<Locale, Translation> = {
       subtitle: "Все бронирования, поиски и ключевые детали — в одном месте.",
       memberSince: "На платформе с",
       signIn: {
-        title: "Войдите, чтобы увидеть свои поездки",
-        body: "Войдите через Google, чтобы открыть бронирования, историю поиска и предпочтения.",
-        cta: "Войти через Google",
+        title: "Пойжалуста Войдите",
+        body: "Для бронирования и доступа к личному кабинету войдите в систему с помощью своей учетной записи Google.",
+        cta: "Войти",
       },
       stats: {
         bookings: "Всего бронирований",
@@ -4635,7 +4631,7 @@ const translations: Record<Locale, Translation> = {
       searchTitle: "Создайте свое следующее незабываемое путешествие.",
       roomOptions: {
         loading: "Загружаем варианты номеров...",
-        empty: "Варианты номеров отсутствуют.",
+        empty: "Варианты номеров отсутствуют. Пожалуйста, повторите поиск.",
         noMatch: "Нет вариантов, соответствующих фильтрам.",
         count: {
           one: "{count} вариант номера",

@@ -1,23 +1,29 @@
-'use client'
+import { Children, type ReactNode } from "react";
+import PartnerCarouselClient from "@/components/partner-carousel-client";
 
-import React from 'react'
-import useEmblaCarousel from 'embla-carousel-react'
-import Autoplay from 'embla-carousel-autoplay'
+type PartnerCarouselProps = {
+  children: ReactNode;
+  loop?: boolean;
+  autoplayDelay?: number;
+};
 
-export default function PartnerCarousel({ children }: { children: React.ReactNode }) {
-  const [emblaRef] = useEmblaCarousel({ loop: true }, [Autoplay({delay: 4000})], )
-
+export default function PartnerCarousel({
+  children,
+  loop,
+  autoplayDelay,
+}: PartnerCarouselProps) {
   return (
     <section className="embla">
-      <div className="embla__viewport" ref={emblaRef}>
+      <PartnerCarouselClient loop={loop} autoplayDelay={autoplayDelay} />
+      <div className="embla__viewport">
         <div className="embla__container">
-          {React.Children.map(children, (child) => (
-            <div className="embla__slide">
+          {Children.map(children, (child, index) => (
+            <div className="embla__slide" key={index}>
               {child}
             </div>
           ))}
         </div>
       </div>
     </section>
-  )
+  );
 }

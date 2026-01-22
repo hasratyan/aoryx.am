@@ -2428,7 +2428,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     return (
       <>
       <div className="videoWrap">
-        <video src="/videos/dubai.mp4" autoPlay muted loop playsInline />
+        <video src="/videos/dubai.mp4" preload="none" autoPlay muted loop playsInline />
       </div>
         <div className="service-types excursion">
           <button
@@ -2595,7 +2595,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     return (
       <>
       <div className="videoWrap">
-        <video src="/videos/efes.mp4" autoPlay muted loop playsInline />
+        <video src="/videos/efes.mp4" preload="none" autoPlay muted loop playsInline />
       </div>
       <div className="service-types insurance">
         {insurancePlans.map((plan) => {

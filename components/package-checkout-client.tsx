@@ -105,6 +105,50 @@ const addYearsToDateInput = (value: string, years: number) => {
   return formatDateInput(base);
 };
 
+const parseDateInput = (value?: string | null) => {
+  if (!value) return null;
+  const [yearRaw, monthRaw, dayRaw] = value.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(date.getTime())) return null;
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+};
+
+const calculateAgeFromBirthDate = (birthDate?: string | null, referenceDate?: string | null) => {
+  const birth = parseDateInput(birthDate);
+  if (!birth) return null;
+  const reference = parseDateInput(referenceDate) ?? new Date();
+  let age = reference.getUTCFullYear() - birth.getUTCFullYear();
+  const birthdayPassed =
+    reference.getUTCMonth() > birth.getUTCMonth() ||
+    (reference.getUTCMonth() === birth.getUTCMonth() &&
+      reference.getUTCDate() >= birth.getUTCDate());
+  if (!birthdayPassed) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+};
+
+const resolveTravelerAge = (
+  birthDate: string | null | undefined,
+  fallbackAge: number | null | undefined,
+  referenceDate: string | null | undefined
+) => {
+  const calculated = calculateAgeFromBirthDate(birthDate ?? null, referenceDate ?? null);
+  if (typeof calculated === "number" && Number.isFinite(calculated)) return calculated;
+  return typeof fallbackAge === "number" && Number.isFinite(fallbackAge) ? fallbackAge : null;
+};
+
 const formatRemainingTime = (remainingMs: number) => {
   const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
   const minutes = Math.floor(totalSeconds / 60);
@@ -430,6 +474,7 @@ export default function PackageCheckoutClient() {
     zip: "",
   });
   const [insuranceTravelers, setInsuranceTravelers] = useState<InsuranceTravelerForm[]>([]);
+  const [activeInsuranceTravelerId, setActiveInsuranceTravelerId] = useState<string | null>(null);
   const [insuranceQuoteLoading, setInsuranceQuoteLoading] = useState(false);
   const [insuranceQuoteError, setInsuranceQuoteError] = useState<string | null>(null);
   const insuranceQuoteKeyRef = useRef<string | null>(null);
@@ -601,64 +646,70 @@ export default function PackageCheckoutClient() {
               storedById.get(guest.id) ??
               null;
             const address = existing?.address ?? {};
-          const guestFirst = sanitizeLatinInput(guest.firstName ?? "");
-          const guestLast = sanitizeLatinInput(guest.lastName ?? "");
-          const previousGuest = previousGuestNames.get(guest.id) ?? null;
-          const existingFirstEn = sanitizeLatinInput(existing?.firstNameEn ?? "");
-          const existingLastEn = sanitizeLatinInput(existing?.lastNameEn ?? "");
-          const shouldSyncFirstEn =
-            !existingFirstEn ||
-            !previousGuest ||
-            normalizeNameSpacing(existingFirstEn) === normalizeNameSpacing(previousGuest.first);
-          const shouldSyncLastEn =
-            !existingLastEn ||
-            !previousGuest ||
-            normalizeNameSpacing(existingLastEn) === normalizeNameSpacing(previousGuest.last);
-          const firstNameEn = shouldSyncFirstEn ? guestFirst : existingFirstEn;
-          const lastNameEn = shouldSyncLastEn ? guestLast : existingLastEn;
-          const existingFirst = resolveNonEmptyString(existing?.firstName, guest.firstName);
-          const existingLast = resolveNonEmptyString(existing?.lastName, guest.lastName);
-          const shouldSyncFirstAr = shouldSyncArmenian(existing?.firstName, existing?.firstNameEn);
-          const shouldSyncLastAr = shouldSyncArmenian(existing?.lastName, existing?.lastNameEn);
-          const firstName = shouldSyncFirstAr
-            ? transliterateLatinToArmenian(firstNameEn)
-            : sanitizeArmenianInput(existingFirst);
-          const lastName = shouldSyncLastAr
-            ? transliterateLatinToArmenian(lastNameEn)
-            : sanitizeArmenianInput(existingLast);
-          nextGuestNames.set(guest.id, { first: guestFirst, last: guestLast });
-          return {
-            id: guest.id,
-            age: guest.age,
-            type: guest.type,
-            firstName,
-            lastName,
-            firstNameEn,
-            lastNameEn,
-            gender: existing?.gender ?? null,
-            birthDate: existing?.birthDate ?? null,
-            residency: existing?.residency ?? true,
-            socialCard: existing?.socialCard ?? "",
-            passportNumber: existing?.passportNumber ?? "",
-            passportAuthority: existing?.passportAuthority ?? "",
-            passportIssueDate: existing?.passportIssueDate ?? null,
-            passportExpiryDate: existing?.passportExpiryDate ?? null,
-            phone: existing?.phone ?? contact.phone ?? "",
-            mobilePhone: existing?.mobilePhone ?? contact.phone ?? "",
-            email: existing?.email ?? contact.email ?? "",
-            address: {
-              full: address.full ?? billing.address ?? "",
-              fullEn: address.fullEn ?? billing.address ?? "",
-              country: address.country ?? billing.country ?? "",
-              region: address.region ?? "",
-              city: address.city ?? billing.city ?? "",
-            },
-            citizenship: existing?.citizenship ?? fallbackCitizenship,
-            premium: existing?.premium ?? null,
-            premiumCurrency: existing?.premiumCurrency ?? null,
-            policyPremium: existing?.policyPremium ?? null,
-          };
-        })
+            const resolvedAge =
+              resolveTravelerAge(
+                existing?.birthDate ?? null,
+                guest.age,
+                insuranceSelection?.startDate ?? hotel?.checkInDate ?? null
+              ) ?? guest.age;
+            const guestFirst = sanitizeLatinInput(guest.firstName ?? "");
+            const guestLast = sanitizeLatinInput(guest.lastName ?? "");
+            const previousGuest = previousGuestNames.get(guest.id) ?? null;
+            const existingFirstEn = sanitizeLatinInput(existing?.firstNameEn ?? "");
+            const existingLastEn = sanitizeLatinInput(existing?.lastNameEn ?? "");
+            const shouldSyncFirstEn =
+              !existingFirstEn ||
+              !previousGuest ||
+              normalizeNameSpacing(existingFirstEn) === normalizeNameSpacing(previousGuest.first);
+            const shouldSyncLastEn =
+              !existingLastEn ||
+              !previousGuest ||
+              normalizeNameSpacing(existingLastEn) === normalizeNameSpacing(previousGuest.last);
+            const firstNameEn = shouldSyncFirstEn ? guestFirst : existingFirstEn;
+            const lastNameEn = shouldSyncLastEn ? guestLast : existingLastEn;
+            const existingFirst = resolveNonEmptyString(existing?.firstName, guest.firstName);
+            const existingLast = resolveNonEmptyString(existing?.lastName, guest.lastName);
+            const shouldSyncFirstAr = shouldSyncArmenian(existing?.firstName, existing?.firstNameEn);
+            const shouldSyncLastAr = shouldSyncArmenian(existing?.lastName, existing?.lastNameEn);
+            const firstName = shouldSyncFirstAr
+              ? transliterateLatinToArmenian(firstNameEn)
+              : sanitizeArmenianInput(existingFirst);
+            const lastName = shouldSyncLastAr
+              ? transliterateLatinToArmenian(lastNameEn)
+              : sanitizeArmenianInput(existingLast);
+            nextGuestNames.set(guest.id, { first: guestFirst, last: guestLast });
+            return {
+              id: guest.id,
+              age: resolvedAge,
+              type: guest.type,
+              firstName,
+              lastName,
+              firstNameEn,
+              lastNameEn,
+              gender: existing?.gender ?? null,
+              birthDate: existing?.birthDate ?? null,
+              residency: existing?.residency ?? true,
+              socialCard: existing?.socialCard ?? "",
+              passportNumber: existing?.passportNumber ?? "",
+              passportAuthority: existing?.passportAuthority ?? "",
+              passportIssueDate: existing?.passportIssueDate ?? null,
+              passportExpiryDate: existing?.passportExpiryDate ?? null,
+              phone: existing?.phone ?? contact.phone ?? "",
+              mobilePhone: existing?.mobilePhone ?? contact.phone ?? "",
+              email: existing?.email ?? contact.email ?? "",
+              address: {
+                full: address.full ?? billing.address ?? "",
+                fullEn: address.fullEn ?? billing.address ?? "",
+                country: address.country ?? billing.country ?? "",
+                region: address.region ?? "",
+                city: address.city ?? billing.city ?? "",
+              },
+              citizenship: existing?.citizenship ?? fallbackCitizenship,
+              premium: existing?.premium ?? null,
+              premiumCurrency: existing?.premiumCurrency ?? null,
+              policyPremium: existing?.policyPremium ?? null,
+            };
+          })
       );
       guestNameSyncRef.current = nextGuestNames;
       if (serializeInsuranceTravelers(prev) === serializeInsuranceTravelers(next)) {
@@ -674,11 +725,27 @@ export default function PackageCheckoutClient() {
     contact.phone,
     guestDetails,
     hotel?.nationality,
+    hotel?.checkInDate,
+    insuranceSelection?.startDate,
     selectedInsuranceGuestIds,
     insuranceSelection?.selected,
     insuranceSelection?.travelers,
     selectedInsuranceGuestSet,
   ]);
+
+  useEffect(() => {
+    if (insuranceSelection?.selected !== true) {
+      setActiveInsuranceTravelerId(null);
+      return;
+    }
+    if (insuranceTravelers.length === 0) {
+      setActiveInsuranceTravelerId(null);
+      return;
+    }
+    if (!insuranceTravelers.some((traveler) => traveler.id === activeInsuranceTravelerId)) {
+      setActiveInsuranceTravelerId(insuranceTravelers[0].id);
+    }
+  }, [activeInsuranceTravelerId, insuranceSelection?.selected, insuranceTravelers]);
 
   const buildRoomsPayload = () => {
     const hotelSelection = builderState.hotel;
@@ -859,13 +926,19 @@ export default function PackageCheckoutClient() {
     const riskCurrency = normalizeOptional(insuranceSelection.riskCurrency) ?? "";
     if (!territoryCode || !riskAmount || !riskCurrency) return null;
     if (insuranceTravelers.length === 0) return null;
+    const referenceDate = startDate ?? null;
 
     const travelers = insuranceTravelers
       .map((traveler) => {
-        if (!Number.isFinite(traveler.age)) return null;
+        const resolvedAge = resolveTravelerAge(
+          traveler.birthDate ?? null,
+          traveler.age,
+          referenceDate
+        );
+        if (typeof resolvedAge !== "number" || !Number.isFinite(resolvedAge)) return null;
         return {
           id: traveler.id,
-          age: traveler.age,
+          age: resolvedAge,
           subrisks: resolveGuestSubrisks(traveler.id),
         };
       })
@@ -1897,6 +1970,67 @@ export default function PackageCheckoutClient() {
     });
   })();
 
+  const insuranceTravelerIndexMap = useMemo(
+    () => new Map(insuranceTravelers.map((traveler, index) => [traveler.id, index])),
+    [insuranceTravelers]
+  );
+  const hasMultipleInsuranceTravelers = insuranceTravelers.length > 1;
+  const activeInsuranceTraveler = useMemo(() => {
+    if (!hasMultipleInsuranceTravelers) return null;
+    return (
+      insuranceTravelers.find((traveler) => traveler.id === activeInsuranceTravelerId) ?? null
+    );
+  }, [activeInsuranceTravelerId, hasMultipleInsuranceTravelers, insuranceTravelers]);
+  const visibleInsuranceTravelers = hasMultipleInsuranceTravelers
+    ? activeInsuranceTraveler
+      ? [activeInsuranceTraveler]
+      : []
+    : insuranceTravelers;
+  const resolveInsuranceTravelerTabLabels = useCallback(
+    (traveler: InsuranceTravelerForm, index: number) => {
+      const fallbackLabel = t.packageBuilder.checkout.insuranceTravelerLabel.replace(
+        "{index}",
+        (index + 1).toString()
+      );
+      const nameParts = [
+        traveler.firstNameEn?.trim() ?? "",
+        traveler.lastNameEn?.trim() ?? "",
+      ].filter((part) => part.length > 0);
+      if (nameParts.length === 0) {
+        [traveler.firstName ?? "", traveler.lastName ?? ""].forEach((part) => {
+          const trimmed = part.trim();
+          if (trimmed.length > 0) nameParts.push(trimmed);
+        });
+      }
+      const nameLabel = nameParts.join(" ");
+      const typeLabel =
+        traveler.type === "Adult"
+          ? t.packageBuilder.checkout.guestAdultLabel
+          : t.packageBuilder.checkout.guestChildLabel;
+      const label = nameLabel || fallbackLabel;
+      const metaParts = [];
+      if (nameLabel) metaParts.push(fallbackLabel);
+      metaParts.push(typeLabel);
+      return { label, meta: metaParts.join(" • ") };
+    },
+    [
+      t.packageBuilder.checkout.guestAdultLabel,
+      t.packageBuilder.checkout.guestChildLabel,
+      t.packageBuilder.checkout.insuranceTravelerLabel,
+    ]
+  );
+  const resolveTravelerRateLabel = useCallback(
+    (traveler: InsuranceTravelerForm) => {
+      if (insuranceQuoteError) return null;
+      const premium = traveler.premium;
+      if (typeof premium !== "number" || !Number.isFinite(premium) || premium <= 0) return null;
+      const currency = traveler.premiumCurrency ?? insuranceSelection?.currency ?? null;
+      if (!currency) return null;
+      return formatCurrencyAmount(premium, currency, intlLocale);
+    },
+    [insuranceQuoteError, insuranceSelection?.currency, intlLocale]
+  );
+
   const canPay = Boolean(
     termsAccepted &&
       (!insuranceActive || insuranceTermsAccepted) &&
@@ -2172,7 +2306,43 @@ export default function PackageCheckoutClient() {
                   <p className="checkout-empty">{t.packageBuilder.checkout.insuranceEmpty}</p>
                 ) : (
                   <div className="checkout-guests">
-                    {insuranceTravelers.map((traveler, index) => {
+                    {hasMultipleInsuranceTravelers ? (
+                      <div
+                        className="insurance-traveler-tabs"
+                        role="tablist"
+                        aria-label={t.packageBuilder.checkout.insuranceTitle}
+                      >
+                        {insuranceTravelers.map((traveler, index) => {
+                          const isActive = traveler.id === activeInsuranceTravelerId;
+                          const { label, meta } = resolveInsuranceTravelerTabLabels(traveler, index);
+                          const rateLabel = resolveTravelerRateLabel(traveler);
+                          const tabId = `insurance-traveler-tab-${traveler.id}`;
+                          const panelId = `insurance-traveler-panel-${traveler.id}`;
+                          return (
+                            <button
+                              key={traveler.id}
+                              id={tabId}
+                              type="button"
+                              className={`insurance-traveler-tab${isActive ? " is-active" : ""}`}
+                              onClick={() => setActiveInsuranceTravelerId(traveler.id)}
+                              role="tab"
+                              aria-selected={isActive}
+                              aria-controls={panelId}
+                            >
+                              <span className="insurance-traveler-tab__label">{label}</span>
+                              <span className="insurance-traveler-tab__meta">{meta}</span>
+                              {rateLabel ? (
+                                <span className="insurance-traveler-tab__rate">{rateLabel}</span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                    {visibleInsuranceTravelers.map((traveler) => {
+                      const travelerIndex = insuranceTravelerIndexMap.get(traveler.id) ?? 0;
+                      const tabId = `insurance-traveler-tab-${traveler.id}`;
+                      const panelId = `insurance-traveler-panel-${traveler.id}`;
                       const addressCountry = resolveCountryAlpha2(traveler.address?.country) ?? null;
                       const regionOptions = getEfesRegionOptions(addressCountry, locale);
                       const cityOptions = getEfesCityOptions(
@@ -2184,10 +2354,16 @@ export default function PackageCheckoutClient() {
                       const useCitySelect = regionOptions.length > 0;
 
                       return (
-                        <div key={traveler.id} className="checkout-guest-card">
+                        <div
+                          key={traveler.id}
+                          id={panelId}
+                          className="checkout-guest-card"
+                          role={hasMultipleInsuranceTravelers ? "tabpanel" : undefined}
+                          aria-labelledby={hasMultipleInsuranceTravelers ? tabId : undefined}
+                        >
                         <div className="checkout-guest-card__heading">
                           <span>
-                            {t.packageBuilder.checkout.insuranceTravelerLabel.replace("{index}", (index + 1).toString())}
+                            {t.packageBuilder.checkout.insuranceTravelerLabel.replace("{index}", (travelerIndex + 1).toString())}
                           </span>
                           <span className="checkout-guest-card__lead">
                             {traveler.type === "Adult"
@@ -2223,32 +2399,6 @@ export default function PackageCheckoutClient() {
                           })()}
                         </div>
                         <div className="checkout-field-grid">
-                          <label className="checkout-field">
-                            <span>{t.packageBuilder.checkout.firstName} {t.packageBuilder.checkout.armenianHint}</span>
-                            <input
-                              className="checkout-input"
-                              type="text"
-                              value={traveler.firstName}
-                              onChange={(event) =>
-                                updateInsuranceTraveler(traveler.id, {
-                                  firstName: sanitizeArmenianInput(event.target.value),
-                                })
-                              }
-                            />
-                          </label>
-                          <label className="checkout-field">
-                            <span>{t.packageBuilder.checkout.lastName} {t.packageBuilder.checkout.armenianHint}</span>
-                            <input
-                              className="checkout-input"
-                              type="text"
-                              value={traveler.lastName}
-                              onChange={(event) =>
-                                updateInsuranceTraveler(traveler.id, {
-                                  lastName: sanitizeArmenianInput(event.target.value),
-                                })
-                              }
-                            />
-                          </label>
                           <label className="checkout-field">
                             <span>{t.packageBuilder.checkout.insuranceFields.firstNameEn} {t.packageBuilder.checkout.latinHint}</span>
                             <input
@@ -2290,6 +2440,32 @@ export default function PackageCheckoutClient() {
                             />
                           </label>
                           <label className="checkout-field">
+                            <span>{t.packageBuilder.checkout.firstName} {t.packageBuilder.checkout.armenianHint}</span>
+                            <input
+                              className="checkout-input"
+                              type="text"
+                              value={traveler.firstName}
+                              onChange={(event) =>
+                                updateInsuranceTraveler(traveler.id, {
+                                  firstName: sanitizeArmenianInput(event.target.value),
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="checkout-field">
+                            <span>{t.packageBuilder.checkout.lastName} {t.packageBuilder.checkout.armenianHint}</span>
+                            <input
+                              className="checkout-input"
+                              type="text"
+                              value={traveler.lastName}
+                              onChange={(event) =>
+                                updateInsuranceTraveler(traveler.id, {
+                                  lastName: sanitizeArmenianInput(event.target.value),
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="checkout-field">
                             <span>{t.packageBuilder.checkout.insuranceFields.gender}</span>
                             <select
                               className="checkout-input"
@@ -2314,9 +2490,18 @@ export default function PackageCheckoutClient() {
                               className="checkout-input"
                               type="date"
                               value={traveler.birthDate ?? ""}
-                              onChange={(event) =>
-                                updateInsuranceTraveler(traveler.id, { birthDate: event.target.value })
-                              }
+                              onChange={(event) => {
+                                const birthDate = event.target.value;
+                                const referenceDate =
+                                  insuranceSelection.startDate ?? hotel?.checkInDate ?? null;
+                                const resolvedAge =
+                                  resolveTravelerAge(birthDate, traveler.age, referenceDate) ??
+                                  traveler.age;
+                                updateInsuranceTraveler(traveler.id, {
+                                  birthDate,
+                                  age: resolvedAge,
+                                });
+                              }}
                               required
                             />
                           </label>
@@ -2431,6 +2616,7 @@ export default function PackageCheckoutClient() {
                             <input
                               className="checkout-input"
                               type="text"
+                              maxLength={10}
                               value={traveler.socialCard ?? ""}
                               onChange={(event) =>
                                 updateInsuranceTraveler(traveler.id, { socialCard: event.target.value })
@@ -2446,6 +2632,7 @@ export default function PackageCheckoutClient() {
                               className="checkout-input"
                               type="tel"
                               value={traveler.mobilePhone ?? ""}
+                              placeholder="091000000"
                               onChange={(event) =>
                                 updateInsuranceTraveler(traveler.id, { mobilePhone: event.target.value })
                               }
@@ -2478,21 +2665,24 @@ export default function PackageCheckoutClient() {
                         </div>
                         <div className="checkout-field-grid">
                           <label className="checkout-field checkout-field--full">
-                            <span>{t.packageBuilder.checkout.insuranceFields.address}</span>
+                            <span>{t.packageBuilder.checkout.insuranceFields.address} {t.packageBuilder.checkout.armenianHint}</span>
                             <input
                               className="checkout-input"
                               type="text"
                               value={traveler.address?.full ?? ""}
                               onChange={(event) =>
                                 updateInsuranceTraveler(traveler.id, {
-                                  address: { ...(traveler.address ?? {}), full: event.target.value },
+                                  address: {
+                                    ...(traveler.address ?? {}),
+                                    full: sanitizeArmenianInput(event.target.value),
+                                  },
                                 })
                               }
                               required
                             />
                           </label>
                           <label className="checkout-field checkout-field--full">
-                            <span>{t.packageBuilder.checkout.insuranceFields.addressEn}</span>
+                            <span>{t.packageBuilder.checkout.insuranceFields.address} {t.packageBuilder.checkout.latinHint}</span>
                             <input
                               className="checkout-input"
                               type="text"

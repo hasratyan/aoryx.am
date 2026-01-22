@@ -8,12 +8,13 @@ const resolveLocale = (value: string | undefined) =>
   locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
 
 type PageProps = {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params }: { params: { locale: string } }) {
-  const resolvedLocale = resolveLocale(params.locale);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = resolveLocale(locale);
   const t = getTranslations(resolvedLocale);
   return buildLocalizedMetadata({
     locale: resolvedLocale,
@@ -24,7 +25,8 @@ export async function generateMetadata({ params }: { params: { locale: string } 
 }
 
 export default async function ResultsPage({ params, searchParams }: PageProps) {
-  const resolvedLocale = resolveLocale(params.locale);
+  const { locale } = await params;
+  const resolvedLocale = resolveLocale(locale);
   const t = getTranslations(resolvedLocale);
 
   return (

@@ -1,24 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import * as React from "react";
 import { GoogleTagManager } from '@next/third-parties/google'
-// import { Google_Sans } from "next/font/google";
+import { Google_Sans } from "next/font/google";
 import 'material-symbols';
-import Header from "@/components/header";
-import Footer from "@/components/footer";
 import Providers from "@/components/providers";
-import PackageBuilder from "@/components/package-builder";
 import { metadataBase } from "@/lib/metadata";
 import "./globals.css";
 
-// const body = Google_Sans({
-//   subsets: ["latin"],
-//   variable: "--font-body",
-//   weight: ["400", "500", "600", "700", "800"],
-//   display: "swap",
-// });
+const body = Google_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase,
+  openGraph: {
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {
@@ -32,25 +32,9 @@ export default function RootLayout({children,}: Readonly<{
 }>) {
   return (
     <html suppressHydrationWarning>
-    <head>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
-        rel="stylesheet"
-      />
-    </head>
-    {/*<body className={`${body.variable} ${display.variable} antialiased`}>*/}
+    <body className={`${body.variable} antialiased`}>
     <GoogleTagManager gtmId="GTM-MQJD3BQN" />
-    <body className={`antialiased`}>
-      <Providers>
-        <div className="page">
-          <Header />
-          {children}
-          <Footer />
-          <PackageBuilder />
-        </div>
-      </Providers>
+      <Providers>{children}</Providers>
     </body>
     </html>
   );

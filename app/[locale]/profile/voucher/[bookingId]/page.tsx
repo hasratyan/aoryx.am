@@ -21,15 +21,16 @@ type PageProps = {
 const resolveLocale = (value: string | undefined) =>
   locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
 
-export async function generateMetadata({ params }: { params: { locale: string; bookingId: string } }) {
-  const resolvedLocale = resolveLocale(params.locale);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; bookingId: string }> }) {
+  const { locale, bookingId } = await params;
+  const resolvedLocale = resolveLocale(locale);
   const t = getTranslations(resolvedLocale);
-  const bookingId = params.bookingId?.trim();
+  const trimmedBookingId = bookingId?.trim();
   return buildLocalizedMetadata({
     locale: resolvedLocale,
     title: t.profile.voucher.title,
     description: t.profile.voucher.subtitle,
-    path: bookingId ? `/profile/voucher/${bookingId}` : "/profile/voucher",
+    path: trimmedBookingId ? `/profile/voucher/${trimmedBookingId}` : "/profile/voucher",
   });
 }
 

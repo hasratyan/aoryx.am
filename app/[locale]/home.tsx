@@ -1,6 +1,3 @@
-"use client";
-
-import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import HotelCard from "@/components/hotel-card";
@@ -8,33 +5,32 @@ import SearchForm from "@/components/search-form";
 import CurvedLoop from "@/components/CurvedLoop";
 import ShinyText from "@/components/ShinyText";
 import { Marquee } from "@/components/ui/marquee";
-import { useLanguage } from "@/components/language-provider";
 import PartnerCarousel from "@/components/partner-carousel";
+import PackageBuilderCta from "@/components/package-builder-cta";
 import type { FeaturedHotelCard } from "@/lib/featured-hotels";
-import { openPackageBuilder } from "@/lib/package-builder-state";
+import { getTranslations, type Locale } from "@/lib/i18n";
 
-type HomeClientProps = {
+type HomeProps = {
   featuredHotels: FeaturedHotelCard[];
+  locale: Locale;
 };
 
-export default function HomeClient({ featuredHotels }: HomeClientProps) {
-  const { t } = useLanguage();
-  const [firstRow, secondRow] = useMemo(() => {
-    const uniqueHotels = new Map<string, FeaturedHotelCard>();
-    featuredHotels.forEach((hotel) => {
-      if (!uniqueHotels.has(hotel.hotelCode)) {
-        uniqueHotels.set(hotel.hotelCode, hotel);
-      }
-    });
-    const entries = Array.from(uniqueHotels.values());
-    const rowOne: FeaturedHotelCard[] = [];
-    const rowTwo: FeaturedHotelCard[] = [];
-    entries.forEach((hotel, index) => {
-      if (index % 2 === 0) rowOne.push(hotel);
-      else rowTwo.push(hotel);
-    });
-    return [rowOne, rowTwo];
-  }, [featuredHotels]);
+export default function Home({ featuredHotels, locale }: HomeProps) {
+  const t = getTranslations(locale);
+  const seen = new Set<string>();
+  const firstRow: FeaturedHotelCard[] = [];
+  const secondRow: FeaturedHotelCard[] = [];
+  let index = 0;
+  for (const hotel of featuredHotels) {
+    if (seen.has(hotel.hotelCode)) continue;
+    seen.add(hotel.hotelCode);
+    if (index % 2 === 0) {
+      firstRow.push(hotel);
+    } else {
+      secondRow.push(hotel);
+    }
+    index += 1;
+  }
 
   return (
     <>
@@ -43,7 +39,7 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
         {t.accessibility.skipToContent}
       </Link>
       <div className="videoWrap">
-        <video src="/videos/uae.mp4" autoPlay muted loop playsInline />
+        <video src="/videos/uae.mp4"preload="none" autoPlay muted loop playsInline />
       </div>
       <main role="main" id="main-content">
         <div className="container">
@@ -131,14 +127,7 @@ export default function HomeClient({ featuredHotels }: HomeClientProps) {
               </article>
             ))}
           </div>
-          <button
-            onClick={(event) => {
-              event.preventDefault();
-              openPackageBuilder();
-            }}
-          >
-            {t.bundleSave.cta}
-          </button>
+          <PackageBuilderCta>{t.bundleSave.cta}</PackageBuilderCta>
         </section>
 
         <PartnerCarousel>

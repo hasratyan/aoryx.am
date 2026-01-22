@@ -18,8 +18,9 @@ const resolveLocaleFromCookie = async () => {
   return locales.includes(cookieLocale as Locale) ? (cookieLocale as Locale) : defaultLocale;
 };
 
-export async function generateMetadata({ params }: { params: { locale: string } }) {
-  const resolvedLocale = resolveLocaleFromParam(params.locale);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = resolveLocaleFromParam(locale);
   const t = getTranslations(resolvedLocale);
   return buildLocalizedMetadata({
     locale: resolvedLocale,

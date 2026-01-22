@@ -1,4 +1,4 @@
-import HomeClient from "./home-client";
+import Home from "./home";
 import { buildLocalizedMetadata } from "@/lib/metadata";
 import { defaultLocale, getTranslations, Locale, locales } from "@/lib/i18n";
 import { getFeaturedHotelCards, type FeaturedHotelCard } from "@/lib/featured-hotels";
@@ -10,7 +10,7 @@ type PageProps = {
 const resolveLocale = (value: string | undefined) =>
   locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: PageProps) {
   const { locale } = await params;
@@ -34,5 +34,5 @@ export default async function HomePage({ params }: PageProps) {
     console.error("[Home] Failed to load featured hotels", error);
   }
 
-  return <HomeClient featuredHotels={featuredHotels} />;
+  return <Home locale={resolvedLocale} featuredHotels={featuredHotels} />;
 }
