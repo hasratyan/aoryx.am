@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import * as React from "react";
 import { GoogleTagManager } from '@next/third-parties/google'
 import { Google_Sans } from "next/font/google";
-import 'material-symbols';
+// import 'material-symbols';
 import Providers from "@/components/providers";
 import { metadataBase } from "@/lib/metadata";
 import "./globals.css";

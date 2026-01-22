@@ -179,7 +179,7 @@ export default function ImageGallery({ images, altText }: ImageGalleryProps) {
                 priority
               />
               <button onClick={closeFullSizeImage} className="close" aria-label={t.gallery.closeLabel}>
-                <i className="material-symbols-outlined">close</i>
+                <i className="material-symbols-rounded">close</i>
               </button>
               <button
                 onClick={(event) => {
@@ -189,7 +189,7 @@ export default function ImageGallery({ images, altText }: ImageGalleryProps) {
                 className="prev"
                 aria-label={t.gallery.prevLabel}
               >
-                <i className="material-symbols-outlined">arrow_back_ios</i>
+                <i className="material-symbols-rounded">arrow_back_ios</i>
               </button>
               <button
                 onClick={(event) => {
@@ -199,7 +199,7 @@ export default function ImageGallery({ images, altText }: ImageGalleryProps) {
                 className="next"
                 aria-label={t.gallery.nextLabel}
               >
-                <i className="material-symbols-outlined">arrow_forward_ios</i>
+                <i className="material-symbols-rounded">arrow_forward_ios</i>
               </button>
               <div>
                 {selectedImageIndex + 1} / {images.length}
