@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
 import { locales } from "@/lib/i18n";
-import { hotels } from "@/lib/hotels";
 
 const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
 
@@ -21,16 +20,9 @@ const routeDefinitions: RouteDefinition[] = [
   { path: "/privacy-policy", priority: 0.4, changeFrequency: "monthly" },
 ];
 
-const hotelRoutes: RouteDefinition[] = hotels.map((hotel) => ({
-  path: `/hotels/${hotel.id}`,
-  priority: 0.8,
-  changeFrequency: "weekly",
-}));
-
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-  const allRoutes = [...routeDefinitions, ...hotelRoutes];
-
+  const allRoutes = [...routeDefinitions];
   return allRoutes.flatMap((route) => {
     const alternates = {
       languages: Object.fromEntries(
