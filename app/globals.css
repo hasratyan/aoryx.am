@@ -3,6 +3,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.material-symbols-rounded {
+  font-family: var(--font-icons);
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  overflow: hidden;
+  vertical-align: middle;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}
+
 .popover{
   margin: auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -112,8 +137,7 @@ body {
   background: radial-gradient(circle at 20% 20%, #1e1938 0, transparent 32%),
   radial-gradient(circle at 80% 10%, #0e7490 0, transparent 30%),
   linear-gradient(135deg, #020617 0%, #0b1120 50%, #020617 100%);
-/*font-family: var(--font-body), "Soehne", "Helvetica Neue", Arial, sans-serif;*/
-  font-family: "Google Sans", Arial, sans-serif;
+  font-family: var(--font-body), "Google Sans", Arial, sans-serif;
   min-height: 100vh;
   background-color: #020617;
   overflow-x: hidden;
@@ -7245,6 +7269,7 @@ select:focus-visible {
     padding: 1em 1.25em;
     box-shadow: 0 15px 30px #0005;
     backdrop-filter: blur(10px);
+    font-size: 1em;
 
     &:hover{
       background: #199e70;
