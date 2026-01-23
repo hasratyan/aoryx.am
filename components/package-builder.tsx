@@ -460,7 +460,7 @@ export default function PackageBuilder() {
     if (service.id !== "hotel" && !hasHotel) {
       setShowHotelWarning(true);
       setDisabledServiceId(null);
-      setIsOpen(false);
+      setIsOpen(true);
       router.push(`/${locale}#hero`);
       return;
     }
