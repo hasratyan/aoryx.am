@@ -3,31 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-.material-symbols-rounded {
-  font-family: var(--font-icons);
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1em;
-  height: 1em;
-  flex-shrink: 0;
-  overflow: hidden;
-  vertical-align: middle;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: "liga";
-}
-
 .popover{
   margin: auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
