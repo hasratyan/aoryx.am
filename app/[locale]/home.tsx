@@ -34,10 +34,6 @@ export default function Home({ featuredHotels, locale }: HomeProps) {
 
   return (
     <>
-      {/* Skip link for accessibility - keyboard navigation */}
-      <Link href="#main-content" className="skip-link">
-        {t.accessibility.skipToContent}
-      </Link>
       <div className="videoWrap">
         <video src="/videos/uae.mp4"preload="none" autoPlay muted loop playsInline />
       </div>
