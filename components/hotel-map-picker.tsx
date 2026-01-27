@@ -3,6 +3,9 @@
 import { useEffect, useRef, useMemo, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { useLanguage } from "@/components/language-provider";
 import type { PluralForms } from "@/lib/i18n";
 
@@ -71,27 +74,37 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
   const { locale, t } = useLanguage();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerClusterRef = useRef<L.MarkerClusterGroup | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const hotelsRef = useRef<Map<string, MapLocationOption>>(new Map());
+  const previousSelectedRef = useRef<string | null>(null);
+  const selectedHotelIdRef = useRef<string | null>(null);
   const pluralRules = useMemo(() => new Intl.PluralRules(locale), [locale]);
   const formatPlural = useCallback((count: number, forms: PluralForms) => {
     const category = pluralRules.select(count);
     const template = forms[category] ?? forms.other;
     return template.replace("{count}", count.toString());
   }, [pluralRules]);
+  const defaultMarkerIcon = useMemo(() => createMarkerIcon(false), []);
+  const selectedMarkerIcon = useMemo(() => createMarkerIcon(true), []);
+  const selectedHotelId = selectedHotel?.value ?? null;
+  selectedHotelIdRef.current = selectedHotelId;
 
-  // Filter hotels with valid coordinates
+  // Filter hotels with valid coordinates and a non-zero rating
   const validHotels = useMemo(() => {
     return hotels.filter((hotel) => {
       const lat = hotel.lat;
       const lng = hotel.lng;
+      const rating = hotel.rating;
       return (
         typeof lat === "number" &&
         typeof lng === "number" &&
         lat !== 0 &&
         lng !== 0 &&
         !isNaN(lat) &&
-        !isNaN(lng)
+        !isNaN(lng) &&
+        typeof rating === "number" &&
+        rating > 0
       );
     });
   }, [hotels]);
@@ -152,9 +165,23 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
       map.fitBounds(bounds, { padding: [50, 50] });
     }
 
+    const markerCluster = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      chunkedLoading: true,
+      chunkInterval: 50,
+      chunkDelay: 30,
+      removeOutsideVisibleBounds: true,
+    });
+
+    markerCluster.addTo(map);
+    markerClusterRef.current = markerCluster;
+
     mapInstanceRef.current = map;
 
     return () => {
+      markerCluster.clearLayers();
+      markerCluster.remove();
+      markerClusterRef.current = null;
       map.remove();
       mapInstanceRef.current = null;
       markersRef.current.clear();
@@ -162,21 +189,23 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validHotels.length > 0]);
 
-  // Add markers (only when hotels change, not on hover/selection)
+  // Add markers (only when hotels change)
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    const markerCluster = markerClusterRef.current;
+    if (!map || !markerCluster) return;
 
     // Clear existing markers
-    markersRef.current.forEach((marker) => marker.remove());
+    markerCluster.clearLayers();
     markersRef.current.clear();
 
     // Add markers for each hotel
+    const newMarkers: L.Marker[] = [];
     validHotels.forEach((hotel) => {
-      const isSelected = selectedHotel?.value === hotel.value;
+      const isSelected = selectedHotelIdRef.current === hotel.value;
       
       const marker = L.marker([hotel.lat!, hotel.lng!], {
-        icon: createMarkerIcon(isSelected),
+        icon: isSelected ? selectedMarkerIcon : defaultMarkerIcon,
         zIndexOffset: isSelected ? 1000 : 0,
       });
 
@@ -201,9 +230,11 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
         handleHotelSelect(hotel.value);
       });
 
-      marker.addTo(map);
+      newMarkers.push(marker);
       markersRef.current.set(hotel.value, marker);
     });
+
+    markerCluster.addLayers(newMarkers);
 
     // Handle popup button clicks (in case popup is clicked instead of marker)
     const handlePopupClick = (e: Event) => {
@@ -222,16 +253,31 @@ export default function HotelMapPicker({ hotels, selectedHotel, onSelectHotel }:
     return () => {
       map.getContainer().removeEventListener("click", handlePopupClick);
     };
-  }, [validHotels, selectedHotel?.value, handleHotelSelect]);
+  }, [validHotels, handleHotelSelect, defaultMarkerIcon, selectedMarkerIcon]);
 
-  // Update only the selected marker's icon when selection changes (lightweight update)
+  // Update only the changed markers when selection changes (lightweight update)
   useEffect(() => {
-    markersRef.current.forEach((marker, hotelId) => {
-      const isSelected = selectedHotel?.value === hotelId;
-      marker.setIcon(createMarkerIcon(isSelected));
-      marker.setZIndexOffset(isSelected ? 1000 : 0);
-    });
-  }, [selectedHotel?.value]);
+    const currentSelected = selectedHotelId;
+    const previousSelected = previousSelectedRef.current;
+
+    if (previousSelected && previousSelected !== currentSelected) {
+      const prevMarker = markersRef.current.get(previousSelected);
+      if (prevMarker) {
+        prevMarker.setIcon(defaultMarkerIcon);
+        prevMarker.setZIndexOffset(0);
+      }
+    }
+
+    if (currentSelected) {
+      const currentMarker = markersRef.current.get(currentSelected);
+      if (currentMarker) {
+        currentMarker.setIcon(selectedMarkerIcon);
+        currentMarker.setZIndexOffset(1000);
+      }
+    }
+
+    previousSelectedRef.current = currentSelected;
+  }, [selectedHotelId, defaultMarkerIcon, selectedMarkerIcon]);
 
   if (validHotels.length === 0) {
     return (
