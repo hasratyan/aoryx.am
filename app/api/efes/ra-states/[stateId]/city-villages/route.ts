@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function GET(request: NextRequest, { params }: { params: { stateId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ stateId: string }> }
+) {
   void request;
-  const stateId = params.stateId?.trim();
+  const { stateId: rawStateId } = await params;
+  const stateId = rawStateId?.trim();
   if (!stateId) {
     return NextResponse.json(
       { error: "Missing RA state id." },
