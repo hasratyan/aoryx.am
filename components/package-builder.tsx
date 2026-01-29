@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/language-provider";
-import type { Locale as AppLocale } from "@/lib/i18n";
+import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 import { formatCurrencyAmount, normalizeAmount } from "@/lib/currency";
 import { useAmdRates } from "@/lib/use-amd-rates";
 import { getJson } from "@/lib/api-helpers";
@@ -60,9 +60,7 @@ export default function PackageBuilder() {
   const baseRates = hotelRates;
   const [isOpen, setIsOpen] = useState(false);
   const [showToggle, setShowToggle] = useState(true);
-  const [builderState, setBuilderState] = useState<PackageBuilderState>(() =>
-    readPackageBuilderState()
-  );
+  const [builderState, setBuilderState] = useState<PackageBuilderState>({});
   const [showHotelWarning, setShowHotelWarning] = useState(false);
   const [disabledServiceId, setDisabledServiceId] = useState<PackageBuilderService | null>(null);
   const [serviceFlags, setServiceFlags] = useState<ServiceFlags>(DEFAULT_SERVICE_FLAGS);
@@ -71,6 +69,12 @@ export default function PackageBuilder() {
   const sessionWarningRef = useRef<"none" | SessionWarningKey>("none");
   const lastScrollYRef = useRef(0);
   const hotelSelectionRef = useRef<string | null>(null);
+  const pluralRules = useMemo(() => new Intl.PluralRules(intlLocale), [intlLocale]);
+  const formatPlural = (count: number, forms: PluralForms) => {
+    const category = pluralRules.select(count);
+    const template = forms[category] ?? forms.other;
+    return template.replace("{count}", count.toString());
+  };
   const hasSelection = (state: PackageBuilderState) =>
     Boolean(
       state.hotel?.selected ||
@@ -85,6 +89,7 @@ export default function PackageBuilder() {
   };
   const isStateRestorable = (state: PackageBuilderState) =>
     hasSelection(state) && isSessionActive(state);
+  const hasAnySelection = hasSelection(builderState);
 
   useEffect(() => {
     if (authStatus === "loading") return;
@@ -183,6 +188,18 @@ export default function PackageBuilder() {
     const label = builderState.insurance.label?.trim();
     return label || null;
   })();
+  const selectedExcursionLabel = (() => {
+    if (!builderState.excursion?.selected) return null;
+    const selections = builderState.excursion.selections ?? {};
+    const totalSelections = Object.values(selections).reduce((sum, ids) => {
+      if (!Array.isArray(ids)) return sum;
+      return sum + ids.length;
+    }, 0);
+    const fallbackCount = (builderState.excursion.items ?? []).filter((item) => item?.id).length;
+    const count = totalSelections > 0 ? totalSelections : fallbackCount;
+    if (count <= 0) return null;
+    return formatPlural(count, t.packageBuilder.excursions.countLabel);
+  })();
 
   const hotelViewHref = (() => {
     const selection = builderState.hotel;
@@ -212,6 +229,13 @@ export default function PackageBuilder() {
     { id: "excursion", icon: "tour", label: t.packageBuilder.services.excursion },
     { id: "insurance", icon: "shield_with_heart", label: t.packageBuilder.services.insurance },
   ];
+  const isServiceSelected = (serviceId: PackageBuilderService) =>
+    serviceId === "hotel"
+      ? builderState.hotel?.selected === true
+      : builderState[serviceId]?.selected === true;
+  const allEnabledSelected = services
+    .filter((service) => serviceFlags[service.id] !== false)
+    .every((service) => isServiceSelected(service.id));
   const serviceDisabledMessage = (() => {
     if (!disabledServiceId) return null;
     const serviceLabel = services.find((service) => service.id === disabledServiceId)?.label;
@@ -221,7 +245,7 @@ export default function PackageBuilder() {
   })();
 
   useEffect(() => {
-    const unsubscribe = subscribePackageBuilderState(() => {
+    const syncState = () => {
       const nextState = readPackageBuilderState();
       setBuilderState(nextState);
       const nextHotelKey =
@@ -252,7 +276,9 @@ export default function PackageBuilder() {
       }
       const remaining = nextExpiresAt - Date.now();
       setSessionRemainingMs(remaining > 0 ? remaining : 0);
-    });
+    };
+    queueMicrotask(syncState);
+    const unsubscribe = subscribePackageBuilderState(syncState);
     return unsubscribe;
   }, []);
 
@@ -286,6 +312,10 @@ export default function PackageBuilder() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (hasAnySelection) {
+      setShowToggle(true);
+      return;
+    }
     lastScrollYRef.current = window.scrollY;
     const threshold = 8;
     const topThreshold = 24;
@@ -311,7 +341,7 @@ export default function PackageBuilder() {
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [hasAnySelection]);
 
   const hasHotel = builderState.hotel?.selected === true;
   const sessionExpiresAt =
@@ -506,20 +536,33 @@ export default function PackageBuilder() {
     router.push(`/${locale}/checkout`);
   };
 
+  const toggleLabel = hasAnySelection
+    ? `${t.packageBuilder.toggleOpen} (${t.packageBuilder.toggleInProgress})`
+    : t.packageBuilder.toggleOpen;
+  const shouldShowToggle = showToggle || hasAnySelection;
+
   return (
     <div className={`package-builder${isOpen ? " is-open" : ""}`}>
       <div className="package-builder__shell">
         {!isOpen ? (
           <button
             type="button"
-            className={`package-builder__toggle${showToggle ? "" : " is-hidden"}`}
-            aria-label={t.packageBuilder.toggleOpen}
+            className={`package-builder__toggle${shouldShowToggle ? "" : " is-hidden"}${
+              hasAnySelection ? " is-active" : ""
+            }`}
+            aria-label={toggleLabel}
             onClick={toggleOpen}
           >
             <span className="material-symbols-rounded" aria-hidden="true">
               auto_awesome
             </span>
             {t.packageBuilder.toggleOpen}
+            {hasAnySelection ? (
+              <span className="package-builder__toggle-status">
+                <span className="package-builder__toggle-dot" aria-hidden="true" />
+                {t.packageBuilder.toggleInProgress}
+              </span>
+            ) : null}
           </button>
         ) : (
           <div className="package-builder__panel" role="dialog" aria-label={t.packageBuilder.title}>
@@ -536,6 +579,14 @@ export default function PackageBuilder() {
                 </span>
               </button>
             </div>
+            {allEnabledSelected ? (
+              <div className="package-builder__completion" role="status">
+                <span className="material-symbols-rounded" aria-hidden="true">
+                  check_circle
+                </span>
+                <span>{t.packageBuilder.allSelected}</span>
+              </div>
+            ) : null}
             {sessionTenPopover && (
               <div className="package-builder__popover" role="status">
                 <span className="material-symbols-rounded" aria-hidden="true">
@@ -612,7 +663,9 @@ export default function PackageBuilder() {
                         ? selectedFlightLabel
                         : service.id === "insurance"
                           ? selectedInsuranceLabel
-                      : null;
+                          : service.id === "excursion"
+                            ? selectedExcursionLabel
+                        : null;
                 const viewHref =
                   service.id === "hotel" ? hotelViewHref : `/${locale}/services/${service.id}`;
                 const showView = isSelected && Boolean(viewHref);

@@ -158,6 +158,78 @@ const serializeGuestExcursions = (value: Record<string, string[]>) => {
   return JSON.stringify(keys.map((key) => [key, [...value[key]].sort()]));
 };
 
+const buildGuestExcursionsFromStored = (
+  guests: ExcursionGuest[],
+  stored?: PackageBuilderState["excursion"] | null
+) => {
+  if (!stored || guests.length === 0) return {};
+  const entries: Array<{ id: string; type: ExcursionGuest["type"] | "Any" }> = [];
+  const selectionsDetailed = stored.selectionsDetailed ?? [];
+  selectionsDetailed.forEach((selection) => {
+    const id = selection?.id;
+    if (!id) return;
+    const adultCount =
+      typeof selection.quantityAdult === "number" && selection.quantityAdult > 0
+        ? Math.floor(selection.quantityAdult)
+        : 0;
+    const childCount =
+      typeof selection.quantityChild === "number" && selection.quantityChild > 0
+        ? Math.floor(selection.quantityChild)
+        : 0;
+    if (adultCount === 0 && childCount === 0) {
+      entries.push({ id, type: "Any" });
+      return;
+    }
+    for (let i = 0; i < adultCount; i += 1) {
+      entries.push({ id, type: "Adult" });
+    }
+    for (let i = 0; i < childCount; i += 1) {
+      entries.push({ id, type: "Child" });
+    }
+  });
+  if (entries.length === 0) {
+    const fallbackIds = new Set<string>();
+    (stored.items ?? []).forEach((item) => {
+      if (item?.id) fallbackIds.add(item.id);
+    });
+    if (fallbackIds.size === 0 && stored.selections) {
+      Object.values(stored.selections).forEach((ids) => {
+        if (!Array.isArray(ids)) return;
+        ids.forEach((id) => {
+          if (id) fallbackIds.add(id);
+        });
+      });
+    }
+    fallbackIds.forEach((id) => entries.push({ id, type: "Any" }));
+  }
+  if (entries.length === 0) return {};
+  const adultKeys = guests.filter((guest) => guest.type === "Adult").map((guest) => guest.key);
+  const childKeys = guests.filter((guest) => guest.type === "Child").map((guest) => guest.key);
+  const anyKeys = guests.map((guest) => guest.key);
+  const result: Record<string, string[]> = {};
+  anyKeys.forEach((key) => {
+    result[key] = [];
+  });
+  const counters = { Adult: 0, Child: 0, Any: 0 };
+  entries.forEach((entry) => {
+    const pool =
+      entry.type === "Adult"
+        ? adultKeys
+        : entry.type === "Child"
+          ? childKeys
+          : anyKeys;
+    const targetKeys = pool.length > 0 ? pool : anyKeys;
+    if (targetKeys.length === 0) return;
+    const counterKey = entry.type === "Adult" ? "Adult" : entry.type === "Child" ? "Child" : "Any";
+    const index = counters[counterKey] % targetKeys.length;
+    counters[counterKey] += 1;
+    const key = targetKeys[index];
+    if (!result[key]) result[key] = [];
+    result[key].push(entry.id);
+  });
+  return result;
+};
+
 type ExcursionGuest = {
   key: string;
   label: string;
@@ -1109,7 +1181,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
 
   useEffect(() => {
     if (excursionGuests.length === 0) {
-      if (Object.keys(guestExcursions).length > 0) {
+      if (!hasHotel && Object.keys(guestExcursions).length > 0) {
         setGuestExcursions({});
       }
       return;
@@ -1134,7 +1206,28 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       });
       return changed ? next : prev;
     });
-  }, [excursionGuests, guestExcursions]);
+  }, [excursionGuests, guestExcursions, hasHotel]);
+
+  useEffect(() => {
+    if (serviceKey !== "excursion") return;
+    if (excursionGuests.length === 0) return;
+    const stored = builderState.excursion;
+    if (!stored?.selected) return;
+    const hasGuestSelections = Object.values(guestExcursions).some((list) => list.length > 0);
+    const storedSelections = stored.selections ?? {};
+    const storedHasSelections = Object.values(storedSelections).some((list) => list.length > 0);
+    if (hasGuestSelections) return;
+    const guestKeySet = new Set(excursionGuests.map((guest) => guest.key));
+    const hasKeyMismatch = Object.keys(storedSelections).some((key) => !guestKeySet.has(key));
+    if (storedHasSelections && !hasKeyMismatch) {
+      setGuestExcursions(storedSelections);
+      return;
+    }
+    const rebuilt = buildGuestExcursionsFromStored(excursionGuests, stored);
+    if (serializeGuestExcursions(rebuilt) !== serializeGuestExcursions(guestExcursions)) {
+      setGuestExcursions(rebuilt);
+    }
+  }, [builderState.excursion, excursionGuests, guestExcursions, serviceKey]);
 
   useEffect(() => {
     if (excursionGuests.length === 0) {
@@ -1697,12 +1790,24 @@ export default function PackageServiceClient({ serviceKey }: Props) {
     () => JSON.stringify(builderState.excursion?.selectionsDetailed ?? []),
     [builderState.excursion?.selectionsDetailed]
   );
+  const storedExcursionHasSelections = useMemo(() => {
+    const selections = builderState.excursion?.selections ?? {};
+    const hasSelectionEntries = Object.values(selections).some((list) => list.length > 0);
+    if (hasSelectionEntries) return true;
+    if ((builderState.excursion?.items ?? []).length > 0) return true;
+    if ((builderState.excursion?.selectionsDetailed ?? []).length > 0) return true;
+    return false;
+  }, [
+    builderState.excursion?.items,
+    builderState.excursion?.selections,
+    builderState.excursion?.selectionsDetailed,
+  ]);
 
   useEffect(() => {
     if (serviceKey !== "excursion") return;
 
     if (excursionSelectionCount === 0) {
-      if (builderState.excursion?.selected) {
+      if (builderState.excursion?.selected && !storedExcursionHasSelections) {
         updatePackageBuilderState((prev) => ({
           ...prev,
           excursion: undefined,

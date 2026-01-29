@@ -710,8 +710,9 @@ main {
       input[type="number"] {
         text-align: center;
         padding: 0.25em 1em;
+        -webkit-appearance: none;
       }
-
+      
       .material-symbols-rounded{
         font-size: 1.1em;
         font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24
@@ -1409,7 +1410,6 @@ main {
 
       article {
         text-align: center;
-        cursor: pointer;
         border-radius: 1.5em;
         padding: 1.5em;
         background: rgba(255, 255, 255, 0.05);
@@ -1666,7 +1666,7 @@ main {
     padding-left: var(--slide-spacing);
   }
 
-  #idram, #efes, #flydubai, #yas, #alosim {
+  #idram, #efes, #flydubai, #yas, #esim {
     z-index: 2;
     margin-top: 1.0em;
     max-width: 1400px;
@@ -1934,7 +1934,7 @@ main {
     }
   }
 
-  #alosim{
+  #esim{
     background: url("/images/logos/efes.webp") right 3% bottom 10% / 100px no-repeat, linear-gradient(145deg, #eee, #ccc, #ddd) 0 0 / cover border-box;
     box-shadow: 0 0 100px #b0b0b059;
 
@@ -1945,7 +1945,7 @@ main {
     .header{
       .logos {
         svg{
-          height: 50px;
+          height: 60px;
         }
       }
     }
@@ -2284,7 +2284,6 @@ main {
 
         &[open]{
           summary{
-            font-weight: bold;
             span{
               transform: rotate(90deg);
             }
@@ -4457,10 +4456,38 @@ main.service-builder{
     color: #fff;
     text-shadow: 0 0 15px #0003;
 
+    &:has( ~ .insurance){
+      display: grid;
+      max-width: none;
+      justify-content: space-between;
+      justify-items: start;
+      column-gap: 1.5em;
+
+      &:after{
+        content: "";
+        grid-column: 2;
+        grid-row: 1 / 4;
+        width: 100px;
+        background-image: url(/images/logos/efes-white.webp);
+        background-position: top;
+        background-repeat: no-repeat;
+        background-size: contain;
+
+        @media screen and (max-width: 600px) {
+          height: 60px;
+          grid-row: 1;
+          grid-column: 1;
+          margin-bottom: 1em;
+          background-position: left;
+        }
+      }
+    }
+
     h1{
       font-size: 2rem;
       font-weight: bold;
       margin-bottom: 0.25em;
+      line-height: normal;
     }
   }
 
@@ -4618,19 +4645,11 @@ main.service-builder{
     &.insurance{
       button{
         border: 1px solid #94a3b833;
-        background-image: url(/images/logos/efes-white.webp);
-        background-color: #ffffff06;
-        background-size: 90px;
-        background-repeat: no-repeat;
+        background: #ffffff06;
         border: 1px solid #94a3b833;
-        background-position: top 30px right 40px;
 
         &.is-selected{
           border-color: #3cad78;
-        }
-
-        @media screen and (max-width:500px) {
-          background-image: none;
         }
 
         h2{
@@ -5026,6 +5045,8 @@ main.service-builder{
 
           .content{
             display: grid;
+            grid-template-rows: 1fr auto;
+            height: 100%;
             gap: 1em;
 
             .info{
@@ -5053,9 +5074,11 @@ main.service-builder{
             }
 
             .pricing{
-              display: grid;
-              gap: 0.5em;
               color: #e2e8f0;
+              gap: .5em;
+              display: grid;
+              padding-top: 0.75em;
+              border-top: 1px solid #fff7;
             }
           }
         }
@@ -7227,11 +7250,48 @@ select:focus-visible {
     box-shadow: 0 15px 30px #0005;
     backdrop-filter: blur(10px);
     font-size: 1em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+
+    .package-builder__toggle-status{
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.18);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      font-size: 0.72em;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+
+      .package-builder__toggle-dot{
+        width: 0.45rem;
+        height: 0.45rem;
+        border-radius: 999px;
+        background: #34d399;
+        box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.25);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+    }
 
     &:hover{
       background: #199e70;
       box-shadow: 0 20px 40px #189e7085;
       transform: translateY(-3px);
+
+      .package-builder__toggle-status{
+        background: #0002;
+      }
+    }
+
+    &.is-active{
+      border-color: rgba(34, 197, 94, 0.5);
+      box-shadow: 0 20px 45px -10px rgba(16, 185, 129, 0.5);
     }
   }
 
@@ -7258,9 +7318,31 @@ select:focus-visible {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 1.0rem;
     margin-bottom: 1rem;
   }
+
+  .package-builder__completion{
+    margin: 0 0 0.75rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #d1fae5;
+    background: linear-gradient(120deg, rgba(16, 185, 129, 0.35), rgba(34, 197, 94, 0.15));
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    box-shadow: 0 12px 35px -18px rgba(16, 185, 129, 0.7);
+    animation: pulse-glow 2.5s ease-in-out infinite;
+
+    .material-symbols-rounded{
+      font-size: 1.1rem;
+    }
+  }
+
 
   .package-builder__title{
     font-size: 1.3rem;

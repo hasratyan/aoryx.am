@@ -128,7 +128,7 @@ export default function Footer({ locale }: FooterProps) {
             <Link href={"https://b2b.megatours.am"} target={"_blank"}>{t.footer.b2bPartnership}</Link>
           </nav>
           <div className="payment">
-            <Images src="/images/icons/payment-methods.webp" width="370" height="50" unoptimized alt="Payment methods" />
+            <Images src="/images/icons/payment-methods.webp" width="430" height="50" unoptimized alt="Payment methods" />
           </div>
         </div>
         <div className="copyright">

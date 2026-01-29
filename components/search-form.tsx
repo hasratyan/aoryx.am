@@ -192,11 +192,13 @@ const selectStyles: StylesConfig<LocationOption, false> = {
   }),
   dropdownIndicator: (base: CSSObjectWithLabel) => ({
     ...base,
-    padding: "0"
+    padding: "0",
+    color: "#fff"
   }),
   clearIndicator: (base: CSSObjectWithLabel) => ({
     ...base,
-    padding: "0"
+    padding: "0",
+    color: "#fff"
   })
 };
 

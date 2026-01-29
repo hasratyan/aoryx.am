@@ -78,6 +78,8 @@ export type Translation = {
     subtitle: string;
     toggleOpen: string;
     toggleClose: string;
+    toggleInProgress: string;
+    allSelected: string;
     changeHotel: string;
     viewService: string;
     removeTag: string;
@@ -344,7 +346,7 @@ export type Translation = {
       body: string;
       alt: string;
     };
-    alosim: {
+    esim: {
       title: string;
       body: string;
       alt: string;
@@ -1073,6 +1075,8 @@ const translations: Record<Locale, Translation> = {
       subtitle: "Ավելացրեք ծառայությունները",
       toggleOpen: "Կազմել փաթեթ",
       toggleClose: "Թաքցնել",
+      toggleInProgress: "Ընթացքի մեջ է",
+      allSelected: "Բոլոր ծառայությունները ընտրված են, խնդրում ենք անցնել վճարման էջ և լրացնել ճանապարհորդ(ներ)ի տվյալները։",
       changeHotel: "Փոխել հյուրանոցը",
       viewService: "Դիտել",
       removeTag: "Հեռացնել",
@@ -1157,8 +1161,8 @@ const translations: Record<Locale, Translation> = {
           cta: "Գտնել հյուրանոց",
         },
         insurance: {
-          title: "Ապահովագրություն",
-          body: "Ճանապարհորդական ապահովագրություն՝ հանգիստ ու պաշտպանված ուղևորության համար։",
+          title: "Ճանապարհորդական ապահովագրություն",
+          body: "Ապահովագրություն՝ հանգիստ ու պաշտպանված ուղևորության համար։",
           note: "Ապահովագրավճարը հաշվարկվում է ըստ ճանապարհորդների տարիքի և թարմացվում է վճարման փուլում։",
           cta: "Գտնել հյուրանոց",
         },
@@ -1454,10 +1458,10 @@ const translations: Record<Locale, Translation> = {
         body: "Ընտրե՛ք ճանապարհորդական ապահովագրություն՝ ձեր հանգիստը լիարժեք անցկացնելու համար՝ սկսած օրական 300 դրամից։",
         alt: "efes"
       },
-      alosim:{
+      esim:{
         title: "Անվճար ինտերնետ փաթեթ՝ Ձեր ապահովագրության հետ",
         body: "Գլոբալ ծածկույթ, eSIM տեխնոլոգիա՝ առանց SIM քարտ փոխելու, պարզ ակտիվացում",
-        alt: "aloSIM"
+        alt: "eSIM"
       },
       flydubai:{
         title: "Ավիատոմսերի ակնթարթային ամրագրում",
@@ -2336,6 +2340,8 @@ const translations: Record<Locale, Translation> = {
       subtitle: "Add services to your trip",
       toggleOpen: "Package builder",
       toggleClose: "Hide builder",
+      toggleInProgress: "In progress",
+      allSelected: "All services are selected, please proceed to the payment page and fill in the traveler(s) details.",
       changeHotel: "Change hotel",
       viewService: "View",
       removeTag: "Remove",
@@ -2420,7 +2426,7 @@ const translations: Record<Locale, Translation> = {
           cta: "Find a hotel",
         },
         insurance: {
-          title: "Insurance",
+          title: "Travel Insurance",
           body: "Comprehensive travel insurance designed to protect every stage of your journey.",
           note: "Premiums are estimated using traveler ages and update at checkout.",
           cta: "Find a hotel",
@@ -2719,10 +2725,10 @@ const translations: Record<Locale, Translation> = {
         alt: "efes",
       },
 
-      alosim: {
+      esim: {
         title: "Free Internet Package with your Insurance",
         body: "Global coverage, eSIM technology without changing SIM cards, Simple Activation",
-        alt: "aloSIM",
+        alt: "eSIM",
       },
 
       flydubai: {
@@ -3600,6 +3606,8 @@ const translations: Record<Locale, Translation> = {
       subtitle: "Добавьте услуги к поездке",
       toggleOpen: "Конструктор пакета",
       toggleClose: "Скрыть",
+      toggleInProgress: "В процессе",
+      allSelected: "Все услуги выбраны, пожалуйста, перейдите на страницу оплаты и заполните данные путешественника(ов).",
       changeHotel: "Сменить отель",
       viewService: "Открыть",
       removeTag: "Удалить",
@@ -3690,7 +3698,7 @@ const translations: Record<Locale, Translation> = {
           cta: "Найти отель",
         },
         insurance: {
-          title: "Страховка",
+          title: "Туристическое Страховка",
           body: "Комплексное туристическое страхование, разработанное для защиты на каждом этапе вашего путешествия.",
           note: "Стоимость рассчитывается по возрасту путешественников и обновляется при оплате.",
           cta: "Найти отель",
@@ -3989,10 +3997,10 @@ const translations: Record<Locale, Translation> = {
         alt: "efes",
       },
 
-      alosim: {
+      esim: {
         title: "Бесплатный интернет-пакет при наличии страховки",
         body: "Глобальное покрытие, технология eSIM без замены SIM-карт, простая активация.",
-        alt: "aloSIM",
+        alt: "eSIM",
       },
 
       flydubai: {

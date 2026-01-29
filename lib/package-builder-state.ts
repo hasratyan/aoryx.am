@@ -47,6 +47,111 @@ export type PackageBuilderHotelSelection = {
   selectionKey?: string | null;
 };
 
+const DEFAULT_CHILD_AGE = 8;
+
+const buildHotelSelectionKey = (selection?: PackageBuilderHotelSelection | null) =>
+  selection
+    ? [
+        selection.hotelCode ?? "",
+        selection.destinationCode ?? "",
+        selection.checkInDate ?? "",
+        selection.checkOutDate ?? "",
+        selection.roomCount ?? "",
+        selection.guestCount ?? "",
+        selection.selectionKey ?? "",
+      ].join("|")
+    : "";
+
+const buildRoomsFromExcursionSelections = (
+  selections?: Record<string, string[]> | null
+): AoryxRoomSearch[] | null => {
+  if (!selections) return null;
+  const roomMap = new Map<number, { adults: number; children: number }>();
+  Object.keys(selections).forEach((key) => {
+    const match = /^(\d+):(adult|child)-(\d+)$/i.exec(key);
+    if (!match) return;
+    const roomId = Number(match[1]);
+    const type = match[2]?.toLowerCase();
+    const index = Number(match[3]);
+    if (!Number.isFinite(roomId) || roomId <= 0) return;
+    if (!Number.isFinite(index) || index <= 0) return;
+    const entry = roomMap.get(roomId) ?? { adults: 0, children: 0 };
+    if (type === "adult") {
+      entry.adults = Math.max(entry.adults, index);
+    } else if (type === "child") {
+      entry.children = Math.max(entry.children, index);
+    }
+    roomMap.set(roomId, entry);
+  });
+  if (roomMap.size === 0) return null;
+  return Array.from(roomMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([roomIdentifier, counts]) => {
+      const adults = counts.adults > 0 ? counts.adults : counts.children > 0 ? 1 : 2;
+      const childrenAges = Array.from({ length: counts.children }, () => DEFAULT_CHILD_AGE);
+      return { roomIdentifier, adults, childrenAges };
+    });
+};
+
+const buildFallbackRooms = (
+  roomCount?: number | null,
+  guestCount?: number | null
+): AoryxRoomSearch[] => {
+  const safeRoomCount =
+    typeof roomCount === "number" && Number.isFinite(roomCount) && roomCount > 0
+      ? Math.floor(roomCount)
+      : 1;
+  const safeGuestCount =
+    typeof guestCount === "number" && Number.isFinite(guestCount) && guestCount > 0
+      ? Math.floor(guestCount)
+      : safeRoomCount * 2;
+  const base = Math.floor(safeGuestCount / safeRoomCount);
+  const remainder = safeGuestCount % safeRoomCount;
+  return Array.from({ length: safeRoomCount }, (_, index) => ({
+    roomIdentifier: index + 1,
+    adults: base + (index < remainder ? 1 : 0),
+    childrenAges: [],
+  }));
+};
+
+const normalizeHotelRooms = (
+  next: PackageBuilderState,
+  prev: PackageBuilderState
+): PackageBuilderState => {
+  if (!next.hotel?.selected) return next;
+  const nextRooms = next.hotel.rooms;
+  if (Array.isArray(nextRooms) && nextRooms.length > 0) return next;
+  const prevRooms = prev.hotel?.rooms;
+  const sameHotel = buildHotelSelectionKey(prev.hotel) === buildHotelSelectionKey(next.hotel);
+  const selectionRooms = buildRoomsFromExcursionSelections(next.excursion?.selections ?? null);
+  const resolvedRooms =
+    sameHotel && Array.isArray(prevRooms) && prevRooms.length > 0
+      ? prevRooms
+      : selectionRooms ??
+        buildFallbackRooms(next.hotel.roomCount ?? null, next.hotel.guestCount ?? null);
+  const resolvedRoomCount =
+    typeof next.hotel.roomCount === "number" && next.hotel.roomCount > 0
+      ? next.hotel.roomCount
+      : resolvedRooms.length;
+  const resolvedGuestCount =
+    typeof next.hotel.guestCount === "number" && next.hotel.guestCount > 0
+      ? next.hotel.guestCount
+      : resolvedRooms.reduce(
+          (sum, room) =>
+            sum + room.adults + (Array.isArray(room.childrenAges) ? room.childrenAges.length : 0),
+          0
+        );
+  return {
+    ...next,
+    hotel: {
+      ...next.hotel,
+      rooms: resolvedRooms,
+      roomCount: resolvedRoomCount,
+      guestCount: resolvedGuestCount,
+    },
+  };
+};
+
 export type PackageBuilderServiceSelection = {
   selected: boolean;
   selectionId?: string | null;
@@ -142,7 +247,13 @@ export const readPackageBuilderState = (): PackageBuilderState => {
   if (!raw) return {};
   try {
     const parsed = JSON.parse(raw) as PackageBuilderState;
-    return parsed && typeof parsed === "object" ? parsed : {};
+    if (!parsed || typeof parsed !== "object") return {};
+    const normalized = normalizeHotelRooms(parsed, {});
+    if (normalized !== parsed) {
+      writePackageBuilderState(normalized);
+      return normalized;
+    }
+    return parsed;
   } catch {
     return {};
   }
@@ -198,7 +309,7 @@ export const updatePackageBuilderState = (
 ) => {
   const prev = readPackageBuilderState();
   const next = updater(prev);
-  writePackageBuilderState(next);
+  writePackageBuilderState(normalizeHotelRooms(next, prev));
 };
 
 export const subscribePackageBuilderState = (callback: () => void) => {

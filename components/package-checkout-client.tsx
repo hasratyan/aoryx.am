@@ -9,7 +9,14 @@ import { postJson } from "@/lib/api-helpers";
 import type { Locale as AppLocale } from "@/lib/i18n";
 import { formatCurrencyAmount, normalizeAmount } from "@/lib/currency";
 import { getCountryOptions, getCountryOptionsWithAlpha3, resolveCountryAlpha2 } from "@/lib/countries";
-import { getEfesCityOptions, getEfesRegionOptions } from "@/lib/efes-locations";
+import {
+  fetchEfesRaCityVillages,
+  fetchEfesRaStates,
+  getEfesCityOptions,
+  getEfesRegionOptions,
+  type EfesRaCityVillage,
+  type EfesRaState,
+} from "@/lib/efes-locations";
 import { mapEfesErrorMessage } from "@/lib/efes-errors";
 import type { PackageBuilderState, PackageBuilderService } from "@/lib/package-builder-state";
 import {
@@ -474,6 +481,12 @@ export default function PackageCheckoutClient() {
     zip: "",
   });
   const [insuranceTravelers, setInsuranceTravelers] = useState<InsuranceTravelerForm[]>([]);
+  const [efesRaStates, setEfesRaStates] = useState<EfesRaState[]>([]);
+  const [efesRaStatesLoading, setEfesRaStatesLoading] = useState(false);
+  const [efesRaCitiesByState, setEfesRaCitiesByState] = useState<
+    Record<string, EfesRaCityVillage[]>
+  >({});
+  const [efesRaCitiesLoading, setEfesRaCitiesLoading] = useState<Record<string, boolean>>({});
   const [activeInsuranceTravelerId, setActiveInsuranceTravelerId] = useState<string | null>(null);
   const [insuranceQuoteLoading, setInsuranceQuoteLoading] = useState(false);
   const [insuranceQuoteError, setInsuranceQuoteError] = useState<string | null>(null);
@@ -483,6 +496,7 @@ export default function PackageCheckoutClient() {
   const insuranceQuoteTimerRef = useRef<number | null>(null);
   const guestNameSyncRef = useRef(new Map<string, { first: string; last: string }>());
   const insuranceSyncRef = useRef<string | null>(null);
+  const efesRaStatesLoadedRef = useRef(false);
   const [card, setCard] = useState({
     name: "",
     number: "",
@@ -612,6 +626,137 @@ export default function PackageCheckoutClient() {
     },
     [insuranceSubriskLabelMap]
   );
+  const hasArmenianInsuranceAddress = useMemo(
+    () =>
+      insuranceTravelers.some(
+        (traveler) => resolveCountryAlpha2(traveler.address?.country) === "AM"
+      ),
+    [insuranceTravelers]
+  );
+
+  useEffect(() => {
+    if (!insuranceActive || !hasArmenianInsuranceAddress) return;
+    if (efesRaStatesLoadedRef.current) return;
+    if (efesRaStatesLoading || efesRaStates.length > 0) return;
+    let active = true;
+    setEfesRaStatesLoading(true);
+    fetchEfesRaStates()
+      .then((states) => {
+        if (active) setEfesRaStates(states);
+      })
+      .catch((error) => {
+        console.error("[EFES] Failed to load RA states", error);
+        if (active) setEfesRaStates([]);
+      })
+      .finally(() => {
+        if (active) setEfesRaStatesLoading(false);
+        efesRaStatesLoadedRef.current = true;
+      });
+    return () => {
+      active = false;
+    };
+  }, [efesRaStates.length, efesRaStatesLoading, hasArmenianInsuranceAddress, insuranceActive]);
+
+  const loadEfesRaCityVillages = useCallback(
+    async (stateId: string) => {
+      const trimmed = stateId.trim();
+      if (!trimmed) return;
+      if (efesRaCitiesByState[trimmed] || efesRaCitiesLoading[trimmed]) return;
+      setEfesRaCitiesLoading((prev) => ({ ...prev, [trimmed]: true }));
+      try {
+        const cities = await fetchEfesRaCityVillages(trimmed);
+        setEfesRaCitiesByState((prev) => ({ ...prev, [trimmed]: cities }));
+      } catch (error) {
+        console.error(`[EFES] Failed to load city/villages for state ${trimmed}`, error);
+        setEfesRaCitiesByState((prev) => ({ ...prev, [trimmed]: [] }));
+      } finally {
+        setEfesRaCitiesLoading((prev) => {
+          const next = { ...prev };
+          delete next[trimmed];
+          return next;
+        });
+      }
+    },
+    [efesRaCitiesByState, efesRaCitiesLoading]
+  );
+
+  const efesRaStateIdSet = useMemo(
+    () => new Set(efesRaStates.map((state) => state.id)),
+    [efesRaStates]
+  );
+
+  const selectedEfesRaRegions = useMemo(() => {
+    const ids = new Set<string>();
+    insuranceTravelers.forEach((traveler) => {
+      if (resolveCountryAlpha2(traveler.address?.country) !== "AM") return;
+      const region = traveler.address?.region;
+      if (typeof region !== "string") return;
+      const trimmed = region.trim();
+      if (trimmed.length === 0) return;
+      if (efesRaStateIdSet.has(trimmed)) {
+        ids.add(trimmed);
+      }
+    });
+    return Array.from(ids);
+  }, [efesRaStateIdSet, insuranceTravelers]);
+
+  useEffect(() => {
+    if (!insuranceActive || efesRaStates.length === 0) return;
+    selectedEfesRaRegions.forEach((stateId) => {
+      void loadEfesRaCityVillages(stateId);
+    });
+  }, [efesRaStates.length, insuranceActive, loadEfesRaCityVillages, selectedEfesRaRegions]);
+
+  useEffect(() => {
+    if (!insuranceActive || efesRaStates.length === 0) return;
+    setInsuranceTravelers((prev) => {
+      let updated = false;
+      const next = prev.map((traveler) => {
+        if (resolveCountryAlpha2(traveler.address?.country) !== "AM") return traveler;
+        const address = traveler.address ?? {};
+        const regionOptions = getEfesRegionOptions("AM", locale, efesRaStates);
+        if (regionOptions.length === 0) return traveler;
+        const currentRegion = typeof address.region === "string" ? address.region.trim() : "";
+        const regionExists = regionOptions.some((option) => option.code === currentRegion);
+        let nextRegion = currentRegion;
+        let nextCity = typeof address.city === "string" ? address.city.trim() : "";
+        let changed = false;
+        if (!regionExists) {
+          nextRegion = regionOptions[0].code;
+          changed = nextRegion !== currentRegion;
+        }
+        if (nextRegion) {
+          const cityOptions = getEfesCityOptions(
+            "AM",
+            nextRegion,
+            locale,
+            efesRaCitiesByState
+          );
+          if (cityOptions.length > 0) {
+            const cityExists = cityOptions.some((option) => option.code === nextCity);
+            if (!cityExists) {
+              const fallbackCity = cityOptions[0].code;
+              if (fallbackCity !== nextCity) {
+                nextCity = fallbackCity;
+                changed = true;
+              }
+            }
+          }
+        }
+        if (!changed) return traveler;
+        updated = true;
+        return {
+          ...traveler,
+          address: {
+            ...(traveler.address ?? {}),
+            region: nextRegion,
+            city: nextCity,
+          },
+        };
+      });
+      return updated ? next : prev;
+    });
+  }, [efesRaCitiesByState, efesRaStates, insuranceActive, locale]);
 
   useEffect(() => {
     if (!insuranceActive) {
@@ -2344,11 +2489,16 @@ export default function PackageCheckoutClient() {
                       const tabId = `insurance-traveler-tab-${traveler.id}`;
                       const panelId = `insurance-traveler-panel-${traveler.id}`;
                       const addressCountry = resolveCountryAlpha2(traveler.address?.country) ?? null;
-                      const regionOptions = getEfesRegionOptions(addressCountry, locale);
+                      const regionOptions = getEfesRegionOptions(
+                        addressCountry,
+                        locale,
+                        efesRaStates
+                      );
                       const cityOptions = getEfesCityOptions(
                         addressCountry,
                         traveler.address?.region ?? null,
-                        locale
+                        locale,
+                        efesRaCitiesByState
                       );
                       const useRegionSelect = regionOptions.length > 0;
                       const useCitySelect = regionOptions.length > 0;
@@ -2702,10 +2852,22 @@ export default function PackageCheckoutClient() {
                               value={resolveCountryAlpha2(traveler.address?.country) ?? ""}
                               onChange={(event) => {
                                 const country = event.target.value;
-                                const nextRegionOptions = getEfesRegionOptions(country, locale);
+                                const nextRegionOptions = getEfesRegionOptions(
+                                  country,
+                                  locale,
+                                  efesRaStates
+                                );
                                 const nextRegion = nextRegionOptions[0]?.code ?? null;
-                                const nextCityOptions = getEfesCityOptions(country, nextRegion, locale);
+                                const nextCityOptions = getEfesCityOptions(
+                                  country,
+                                  nextRegion,
+                                  locale,
+                                  efesRaCitiesByState
+                                );
                                 const nextCity = nextCityOptions[0]?.code ?? null;
+                                if (nextRegion) {
+                                  void loadEfesRaCityVillages(nextRegion);
+                                }
                                 updateInsuranceTraveler(traveler.id, {
                                   address: {
                                     ...(traveler.address ?? {}),
@@ -2736,9 +2898,13 @@ export default function PackageCheckoutClient() {
                                   const nextCityOptions = getEfesCityOptions(
                                     addressCountry,
                                     region,
-                                    locale
+                                    locale,
+                                    efesRaCitiesByState
                                   );
                                   const nextCity = nextCityOptions[0]?.code ?? null;
+                                  if (region) {
+                                    void loadEfesRaCityVillages(region);
+                                  }
                                   updateInsuranceTraveler(traveler.id, {
                                     address: {
                                       ...(traveler.address ?? {}),
