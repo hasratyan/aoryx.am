@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PageProps) {
   const t = getTranslations(resolvedLocale);
   return buildLocalizedMetadata({
     locale: resolvedLocale,
-    title: t.hero.title,
+    title: `MEGATOURS | ${t.hero.title}`,
     description: t.hero.subtitle,
   });
 }

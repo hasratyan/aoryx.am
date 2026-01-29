@@ -41,7 +41,6 @@ export default function Home({ featuredHotels, locale }: HomeProps) {
         <div className="container">
           <div id="hero">
             <div className="search">
-              {/*<h1>{t.hero.title}</h1>*/}
               <ShinyText
                 text={t.hero.title}
                 disabled={false}

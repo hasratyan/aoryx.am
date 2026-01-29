@@ -576,20 +576,18 @@ export default function SearchForm({
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (isFormDisabled) return;
-      setIsSubmitting(true);
-      setSearchError(null);
 
       if (!selectedLocation) {
         setSearchError(copy.errors.missingLocation);
-        setIsSubmitting(false);
         return;
       }
 
       if (!dateRange.startDate || !dateRange.endDate) {
         setSearchError(copy.errors.missingDates);
-        setIsSubmitting(false);
         return;
       }
+
+      setSearchError(null);
 
       const searchPayload: AoryxSearchParams = {
         destinationCode:
@@ -621,6 +619,7 @@ export default function SearchForm({
 
       try {
         if (onSubmitSearch) {
+          setIsSubmitting(true);
           await onSubmitSearch(searchPayload, params);
           setIsSubmitting(false);
         } else {
@@ -628,7 +627,6 @@ export default function SearchForm({
           const query = params.toString();
           // Navigate immediately - don't await, let loading.tsx show while server renders
           router.push(query ? `${resultsPath}?${query}` : resultsPath);
-          // Keep isSubmitting true during navigation - will be reset when page unmounts
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : copy.errors.submit;

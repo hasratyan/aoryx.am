@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AuthActions from "@/components/auth-actions";
 import GradualBlur from "@/components/GradualBlur";
@@ -9,7 +9,7 @@ import { useLanguage } from "@/components/language-provider";
 
 export default function Header() {
   const { locale, t } = useLanguage();
-  const menuId = useId();
+  const menuId = "mobile-menu";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileHeaderHidden, setMobileHeaderHidden] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -134,7 +134,7 @@ export default function Header() {
             aria-label={mobileMenuOpen ? t.header.closeMenu : t.header.openMenu}
             title={mobileMenuOpen ? t.header.closeMenu : t.header.openMenu}
             aria-expanded={mobileMenuOpen}
-            aria-controls={`mobile-menu-${menuId}`}
+            aria-controls={menuId}
             onClick={() => setMobileMenuOpen((open) => !open)}
           >
             <span className="material-symbols-rounded" aria-hidden="true">
@@ -152,7 +152,7 @@ export default function Header() {
             />
           )}
 
-          <div id={`mobile-menu-${menuId}`} className="header-menu" data-open={mobileMenuOpen ? "true" : "false"}>
+          <div id={menuId} className="header-menu" data-open={mobileMenuOpen ? "true" : "false"}>
             <nav aria-label={t.header.primaryNav}>
               {t.nav.map((item) => (
                 <Link key={item.href} href={`/${locale}/${item.href}`} onClick={closeMobileMenu}>
