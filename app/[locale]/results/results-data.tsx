@@ -1,14 +1,16 @@
 import ResultsClient from "./results-client";
-import { parseSearchParams } from "@/lib/search-query";
-import { search, AoryxClientError, AoryxServiceError } from "@/lib/aoryx-client";
-import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
-import { getAmdRates, getAoryxHotelPlatformFee } from "@/lib/pricing";
-import { applyMarkup } from "@/lib/pricing-utils";
+import { headers } from "next/headers";
 import { getServerSession } from "next-auth";
+import { parseSearchParams } from "@/lib/search-query";
 import { authOptions } from "@/lib/auth";
-import { recordUserSearch } from "@/lib/user-data";
 import { getTranslations, type Locale } from "@/lib/i18n";
-import type { AoryxSearchResult } from "@/types/aoryx";
+import { recordUserSearch } from "@/lib/user-data";
+import {
+  normalizeSearchError,
+  runAoryxSearch,
+  type SafeSearchResult,
+  withAoryxDefaults,
+} from "@/lib/aoryx-search";
 
 const buildSearchParams = (input: Record<string, string | string[] | undefined>) => {
   const params = new URLSearchParams();
@@ -24,11 +26,19 @@ const buildSearchParams = (input: Record<string, string | string[] | undefined>)
   return params;
 };
 
-type SafeSearchResult = Omit<AoryxSearchResult, "sessionId">;
-
 type ResultsDataProps = {
   locale: Locale;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+const isRscRequest = async () => {
+  const headerStore = await headers();
+  const accept = headerStore.get("accept") ?? "";
+  return (
+    headerStore.get("RSC") === "1" ||
+    headerStore.has("next-router-state-tree") ||
+    accept.includes("text/x-component")
+  );
 };
 
 export default async function ResultsData({ locale, searchParams }: ResultsDataProps) {
@@ -41,56 +51,23 @@ export default async function ResultsData({ locale, searchParams }: ResultsDataP
   });
   let initialResult: SafeSearchResult | null = null;
   let initialError: string | null = null;
-  let initialAmdRates: { USD: number; EUR: number } | null = null;
-  let hotelMarkup: number | null = null;
 
-  if (parsed.payload) {
-    const ratesPromise = getAmdRates().catch((error) => {
-      console.error("[ExchangeRates] Failed to load rates", error);
-      return null;
-    });
-    const markupPromise = getAoryxHotelPlatformFee().catch((error) => {
-      console.error("[Pricing] Failed to load hotel platform fee", error);
-      return null;
-    });
+  if (parsed.payload && !(await isRscRequest())) {
     try {
-      const params = {
-        ...parsed.payload,
-        customerCode: AORYX_TASSPRO_CUSTOMER_CODE,
-        regionId: AORYX_TASSPRO_REGION_ID,
-      };
-      console.info("[Aoryx][search] Request params", {
-        destinationCode: params.destinationCode ?? null,
-        hotelCode: params.hotelCode ?? null,
-        countryCode: params.countryCode,
-        nationality: params.nationality,
-        currency: params.currency,
-        checkInDate: params.checkInDate,
-        checkOutDate: params.checkOutDate,
-        rooms: params.rooms?.length ?? 0,
-      });
-      const result = await search(params);
-      console.info("[Aoryx][search] Response summary", {
-        propertyCount: result.propertyCount ?? null,
-        hotels: result.hotels?.length ?? 0,
-        currency: result.currency ?? null,
-        responseTime: result.responseTime ?? null,
-        destination: result.destination ?? null,
-      });
-      const { sessionId: _sessionId, ...safeResult } = result;
-      initialResult = safeResult;
+      initialResult = await runAoryxSearch(parsed.payload);
 
       try {
         const session = await getServerSession(authOptions);
         const userId = session?.user?.id;
         if (userId) {
+          const params = withAoryxDefaults(parsed.payload);
           await recordUserSearch({
             userId,
             params,
             resultSummary: {
-              propertyCount: result.propertyCount ?? null,
-              destinationCode: result.destination?.code ?? null,
-              destinationName: result.destination?.name ?? null,
+              propertyCount: initialResult.propertyCount ?? null,
+              destinationCode: initialResult.destination?.code ?? null,
+              destinationName: initialResult.destination?.name ?? null,
             },
             source: "aoryx",
           });
@@ -99,34 +76,11 @@ export default async function ResultsData({ locale, searchParams }: ResultsDataP
         console.error("[Aoryx][search] Failed to record user search", error);
       }
     } catch (error) {
-      console.error("[Aoryx][search] Failed", error);
-      if (error instanceof AoryxServiceError) {
-        initialError =
-          error.code === "MISSING_SESSION_ID"
-            ? t.search.errors.missingSession
-            : error.message;
-      } else if (error instanceof AoryxClientError) {
-        initialError = error.message;
-      } else {
-        initialError = t.search.errors.submit;
-      }
-    }
-    initialAmdRates = await ratesPromise;
-    hotelMarkup = await markupPromise;
-    if (initialResult) {
-      const resolvedMarkup = typeof hotelMarkup === "number" ? hotelMarkup : null;
-      if (resolvedMarkup !== null) {
-        initialResult = {
-          ...initialResult,
-          hotels: initialResult.hotels.map((hotel) => ({
-            ...hotel,
-            minPrice:
-              typeof hotel.minPrice === "number" && Number.isFinite(hotel.minPrice)
-                ? applyMarkup(hotel.minPrice, resolvedMarkup) ?? hotel.minPrice
-                : hotel.minPrice,
-          })),
-        };
-      }
+      const normalized = normalizeSearchError(error);
+      initialError =
+        normalized.code === "MISSING_SESSION_ID"
+          ? t.search.errors.missingSession
+          : normalized.message || t.search.errors.submit;
     }
   }
 
@@ -135,7 +89,7 @@ export default async function ResultsData({ locale, searchParams }: ResultsDataP
       initialResult={initialResult}
       initialError={initialError}
       initialDestinations={[]}
-      initialAmdRates={initialAmdRates}
+      initialAmdRates={null}
     />
   );
 }

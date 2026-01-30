@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { search, AoryxServiceError, AoryxClientError } from "@/lib/aoryx-client";
 import { AORYX_TASSPRO_CUSTOMER_CODE, AORYX_TASSPRO_REGION_ID } from "@/lib/env";
+import { getAoryxHotelPlatformFee } from "@/lib/pricing";
+import { applyMarkup } from "@/lib/pricing-utils";
 import type { AoryxSearchParams, AoryxRoomSearch } from "@/types/aoryx";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -79,7 +81,15 @@ export async function POST(request: NextRequest) {
     const result = await search(params);
 
     const { sessionId: _sessionId, ...safeResult } = result;
-    const response = NextResponse.json(safeResult);
+    const hotelMarkup = await getAoryxHotelPlatformFee();
+    const markedHotels =
+      hotelMarkup && Array.isArray(safeResult.hotels)
+        ? safeResult.hotels.map((hotel) => ({
+            ...hotel,
+            minPrice: applyMarkup(hotel.minPrice, hotelMarkup) ?? hotel.minPrice,
+          }))
+        : safeResult.hotels;
+    const response = NextResponse.json({ ...safeResult, hotels: markedHotels });
 
     try {
       const session = await getServerSession(authOptions);

@@ -12,6 +12,7 @@ import { useLanguage, useTranslations } from "@/components/language-provider";
 import type { Locale as AppLocale, PluralForms } from "@/lib/i18n";
 import { formatCurrencyAmount, normalizeAmount } from "@/lib/currency";
 import { useAmdRates } from "@/lib/use-amd-rates";
+import { runResultsSearch } from "./actions";
 
 const ratingOptions = [5, 4, 3, 2, 1] as const;
 const intlLocales: Record<AppLocale, string> = {
@@ -71,6 +72,64 @@ export default function ResultsClient({
       }),
     [searchKey, t]
   );
+  const initialSearchKeyRef = useRef(searchKey);
+  const [resultState, setResultState] = useState<SafeSearchResult | null>(initialResult);
+  const [errorState, setErrorState] = useState<string | null>(initialError);
+  const [isFetching, setIsFetching] = useState(
+    () => Boolean(parsed.payload && !initialResult && !initialError)
+  );
+
+  useEffect(() => {
+    if (!parsed.payload) {
+      setIsFetching(false);
+      setResultState(null);
+      setErrorState(null);
+      return;
+    }
+
+    const isInitialSearch = searchKey === initialSearchKeyRef.current;
+    if (isInitialSearch && (initialResult || initialError)) {
+      return;
+    }
+
+    let active = true;
+    setIsFetching(true);
+    setResultState(null);
+    setErrorState(null);
+
+    runResultsSearch(parsed.payload)
+      .then((response) => {
+        if (!active) return;
+        if (response.ok) {
+          setResultState(response.data);
+          return;
+        }
+        const message =
+          response.code === "MISSING_SESSION_ID"
+            ? t.search.errors.missingSession
+            : response.error || t.search.errors.submit;
+        setErrorState(message);
+      })
+      .catch((error) => {
+        if (!active) return;
+        const message = error instanceof Error ? error.message : t.search.errors.submit;
+        setErrorState(message);
+      })
+      .finally(() => {
+        if (active) setIsFetching(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    initialError,
+    initialResult,
+    parsed.payload,
+    searchKey,
+    t.search.errors.missingSession,
+    t.search.errors.submit,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -120,10 +179,10 @@ export default function ResultsClient({
   );
   const priceRangeOverride =
     priceRangeOverrideState.key === priceOverrideKey ? priceRangeOverrideState.value : null;
-  const result = initialResult;
-  const error = initialError;
+  const result = resultState;
+  const error = errorState;
   const destinations = initialDestinations;
-  const isSearching = isPending;
+  const isSearching = isPending || isFetching;
   const missingError = parsed.payload ? null : (parsed.error ?? t.results.errors.missingSearchDetails);
   const finalError = isSearching ? null : (missingError ?? error);
 
