@@ -3,5 +3,6 @@
   <component name="TypeScriptCompiler">
     <option name="memoryLimit" value="8192" />
     <option name="useServicePoweredTypesEnabledManually" value="true" />
+    <option name="useServicePoweredTypesWasEnabledByExperiment" value="true" />
   </component>
 </project>
