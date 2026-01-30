@@ -5295,6 +5295,7 @@ main.service-builder{
                 gap: 0.5em;
                 overflow: hidden;
                 padding-right: 0.5em;
+                font-size: 0.95em;
                 i{
                   background: #0003;
                   padding: 0.5em;
