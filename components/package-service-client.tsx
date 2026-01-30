@@ -3625,7 +3625,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                     ) : null}
 
                     {subrisk.limit && (
-                      <span>{subrisk.limit}</span>
+                      <span><i className={"material-symbols-rounded"}>info</i>{subrisk.limit}</span>
                     )}
                   </div>
                   <span className="toggle">

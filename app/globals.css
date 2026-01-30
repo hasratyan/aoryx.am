@@ -5288,9 +5288,12 @@ main.service-builder{
 
               & + span{
                 background: #ed403e78;
+                border-radius: .5em;
                 justify-self: start;
-                padding: .5em .8em;
-                border-radius: 0.5em;
+                padding: .5em .7em;
+                display: flex;
+                align-items: center;
+                gap: 0.25em;
               }
             }
           }
