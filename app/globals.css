@@ -691,6 +691,7 @@ main {
         pointer-events: none;
         transform: none;
         background: rgba(255, 255, 255, 0.1);
+        cursor: not-allowed;
       }
 
       @media (min-width: 768px)  {
@@ -2732,6 +2733,7 @@ main.results{
     .loader-container{
       flex: 1;
       padding-block: 5em 2em;
+      min-height: 50vh;
     }
   }
 

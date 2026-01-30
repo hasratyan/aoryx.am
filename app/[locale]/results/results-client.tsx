@@ -699,7 +699,8 @@ export default function ResultsClient({
                           parsed.payload.destinationCode ?? result?.destination?.code ?? undefined,
                       })
                     : null;
-                const detailHref = detailQuery && hotel.code ? `/hotels/${hotel.code}?${detailQuery}` : null;
+                const detailHref =
+                  detailQuery && hotel.code ? `/${locale}/hotels/${hotel.code}?${detailQuery}` : null;
 
                 return (
                   <div className="hotel-card" key={hotel.code ?? hotel.name ?? idx}>
