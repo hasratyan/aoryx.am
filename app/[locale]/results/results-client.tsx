@@ -30,6 +30,14 @@ interface DestinationInfo {
 
 type SafeSearchResult = Omit<AoryxSearchResult, "sessionId">;
 
+type StoredLocation = {
+  type: "destination" | "hotel";
+  value: string;
+  rawId?: string;
+  label: string;
+  parentDestinationId?: string;
+};
+
 type HotelWithPricing = SafeSearchResult["hotels"][number] & {
   displayPrice: number | null;
   displayCurrency: string | null;
@@ -78,6 +86,32 @@ export default function ResultsClient({
   const [isFetching, setIsFetching] = useState(
     () => Boolean(parsed.payload && !initialResult && !initialError)
   );
+  const [storedLocation, setStoredLocation] = useState<StoredLocation | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem("megatours:lastSearchLocation");
+      if (!raw) {
+        setStoredLocation(null);
+        return;
+      }
+      const parsedValue = JSON.parse(raw) as Partial<StoredLocation>;
+      if (
+        parsedValue &&
+        (parsedValue.type === "destination" || parsedValue.type === "hotel") &&
+        typeof parsedValue.value === "string" &&
+        typeof parsedValue.label === "string"
+      ) {
+        setStoredLocation(parsedValue as StoredLocation);
+      } else {
+        setStoredLocation(null);
+      }
+    } catch (error) {
+      console.warn("[Results] Failed to read stored location", error);
+      setStoredLocation(null);
+    }
+  }, [searchKey]);
 
   useEffect(() => {
     if (!parsed.payload) {
@@ -246,14 +280,31 @@ export default function ResultsClient({
   const presetDestination = parsed.payload?.destinationCode
     ? {
         id: parsed.payload.destinationCode,
-        label: destinationFromList?.name ?? result?.destination?.name ?? parsed.payload.destinationCode,
-        rawId: destinationFromList?.rawId ?? parsed.payload.destinationCode,
+        label:
+          (storedLocation &&
+          storedLocation.type === "destination" &&
+          (storedLocation.value === parsed.payload.destinationCode ||
+            storedLocation.rawId === parsed.payload.destinationCode)
+            ? storedLocation.label
+            : destinationFromList?.name ?? result?.destination?.name) ?? "",
+        rawId:
+          (storedLocation &&
+          storedLocation.type === "destination" &&
+          (storedLocation.value === parsed.payload.destinationCode ||
+            storedLocation.rawId === parsed.payload.destinationCode)
+            ? storedLocation.rawId
+            : destinationFromList?.rawId) ?? parsed.payload.destinationCode,
       }
     : undefined;
   const presetHotel = parsed.payload?.hotelCode
     ? {
         id: parsed.payload.hotelCode,
-        label: matchedHotel?.name ?? parsed.payload.hotelCode,
+        label:
+          (storedLocation &&
+          storedLocation.type === "hotel" &&
+          storedLocation.value === parsed.payload.hotelCode
+            ? storedLocation.label
+            : matchedHotel?.name) ?? "",
       }
     : undefined;
   const initialDateRange = parsed.payload

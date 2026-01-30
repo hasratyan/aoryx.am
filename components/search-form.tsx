@@ -329,6 +329,68 @@ export default function SearchForm({
   const adultsLabel = useAbbreviations ? copy.adultsShort : copy.adultsLabel;
   const childrenLabel = useAbbreviations ? copy.childrenShort : copy.childrenLabel;
 
+  const persistSelectedLocation = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!selectedLocation) return;
+    const label = selectedLocation.label?.trim();
+    if (!label || label === selectedLocation.value) return;
+    const payload = {
+      type: selectedLocation.type,
+      value: selectedLocation.value,
+      rawId: selectedLocation.rawId,
+      label,
+      parentDestinationId: selectedLocation.parentDestinationId,
+    };
+    try {
+      sessionStorage.setItem("megatours:lastSearchLocation", JSON.stringify(payload));
+    } catch (error) {
+      console.warn("[SearchForm] Failed to persist last location", error);
+    }
+  }, [selectedLocation]);
+
+  useEffect(() => {
+    if (!presetDestinationOption && !presetHotelOption) return;
+    setSelectedLocation((current) => {
+      if (!current) return presetHotelOption ?? presetDestinationOption;
+      if (presetHotelOption && current.type === "hotel" && current.value === presetHotelOption.value) {
+        const nextLabel = presetHotelOption.label?.trim() ?? "";
+        const nextIsFallback = !nextLabel || nextLabel === presetHotelOption.value;
+        if (!nextIsFallback && current.label !== presetHotelOption.label) {
+          return presetHotelOption;
+        }
+      }
+      if (presetDestinationOption && current.type === "destination" && current.value === presetDestinationOption.value) {
+        const currentRawId = current.rawId ?? current.value;
+        const nextRawId = presetDestinationOption.rawId ?? presetDestinationOption.value;
+        const nextLabel = presetDestinationOption.label?.trim() ?? "";
+        const nextIsFallback = !nextLabel || nextLabel === presetDestinationOption.value;
+        if (!nextIsFallback && (current.label !== presetDestinationOption.label || currentRawId !== nextRawId)) {
+          return presetDestinationOption;
+        }
+      }
+      return current;
+    });
+  }, [presetDestinationOption, presetHotelOption]);
+
+  useEffect(() => {
+    if (destinations.length === 0) return;
+    setSelectedLocation((current) => {
+      if (!current || current.type !== "destination") return current;
+      const match = destinations.find(
+        (option) =>
+          option.value === current.value ||
+          option.rawId === current.value ||
+          option.value === current.rawId ||
+          option.rawId === current.rawId
+      );
+      if (!match) return current;
+      const currentRawId = current.rawId ?? current.value;
+      const nextRawId = match.rawId ?? match.value;
+      if (current.label === match.label && currentRawId === nextRawId) return current;
+      return match;
+    });
+  }, [destinations]);
+
   // Load destinations from API on mount
   useEffect(() => {
     if (hideLocationFields) return;
@@ -588,6 +650,7 @@ export default function SearchForm({
       }
 
       setSearchError(null);
+      persistSelectedLocation();
 
       const searchPayload: AoryxSearchParams = {
         destinationCode:
