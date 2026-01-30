@@ -195,6 +195,7 @@ export default function ResultsClient({
       setFiltersOpen(false);
       const resultsPath = `/${locale}/results`;
       const nextHref = nextQuery ? `${resultsPath}?${nextQuery}` : resultsPath;
+      document.cookie = "megatours-results-csr=1;path=/;max-age=5;SameSite=Lax";
       startTransition(() => {
         router.push(nextHref);
       });

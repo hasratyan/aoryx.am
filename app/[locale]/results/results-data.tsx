@@ -1,5 +1,5 @@
 import ResultsClient from "./results-client";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getServerSession } from "next-auth";
 import { parseSearchParams } from "@/lib/search-query";
 import { authOptions } from "@/lib/auth";
@@ -31,14 +31,24 @@ type ResultsDataProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const isRscRequest = async () => {
+const shouldServerRenderSearch = async () => {
+  const cookieStore = await cookies();
+  if (cookieStore.get("megatours-results-csr")?.value === "1") {
+    return false;
+  }
   const headerStore = await headers();
   const accept = headerStore.get("accept") ?? "";
-  return (
+  const fetchMode = headerStore.get("sec-fetch-mode") ?? "";
+  const fetchDest = headerStore.get("sec-fetch-dest") ?? "";
+  const isRsc =
     headerStore.get("RSC") === "1" ||
     headerStore.has("next-router-state-tree") ||
-    accept.includes("text/x-component")
-  );
+    accept.includes("text/x-component");
+  const isDocumentRequest =
+    fetchDest === "document" ||
+    fetchMode === "navigate" ||
+    accept.includes("text/html");
+  return isDocumentRequest && !isRsc;
 };
 
 export default async function ResultsData({ locale, searchParams }: ResultsDataProps) {
@@ -52,7 +62,7 @@ export default async function ResultsData({ locale, searchParams }: ResultsDataP
   let initialResult: SafeSearchResult | null = null;
   let initialError: string | null = null;
 
-  if (parsed.payload && !(await isRscRequest())) {
+  if (parsed.payload && (await shouldServerRenderSearch())) {
     try {
       initialResult = await runAoryxSearch(parsed.payload);
 

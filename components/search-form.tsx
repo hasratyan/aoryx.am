@@ -625,6 +625,7 @@ export default function SearchForm({
         } else {
           const resultsPath = `/${appLocale}/results`;
           const query = params.toString();
+          document.cookie = "megatours-results-csr=1;path=/;max-age=5;SameSite=Lax";
           // Navigate immediately - don't await, let loading.tsx show while server renders
           router.push(query ? `${resultsPath}?${query}` : resultsPath);
         }
