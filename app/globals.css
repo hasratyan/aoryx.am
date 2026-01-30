@@ -5290,10 +5290,15 @@ main.service-builder{
                 background: #ed403e78;
                 border-radius: .5em;
                 justify-self: start;
-                padding: .5em .7em;
                 display: flex;
                 align-items: center;
-                gap: 0.25em;
+                gap: 0.5em;
+                overflow: hidden;
+                padding-right: 0.5em;
+                i{
+                  background: #0003;
+                  padding: 0.5em;
+                }
               }
             }
           }
