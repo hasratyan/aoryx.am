@@ -102,6 +102,7 @@ export type Translation = {
         selectType: string;
       perCar: string;
       perPax: string;
+      minPaxFeeNote: string;
       childPolicyLabel: string;
       childPolicyFree: PluralForms;
       childPolicyHalf: PluralForms;
@@ -109,6 +110,9 @@ export type Translation = {
     excursions: {
       allLabel: string;
       yasLabel: string;
+      safariLabel: string;
+      cruiseLabel: string;
+      helicopterLabel: string;
       countLabel: PluralForms;
       filterNote: string;
       noMatch: string;
@@ -172,16 +176,19 @@ export type Translation = {
           label: string;
           rate: string;
           description: string;
+          limit: string;
         };
         houseInsurance: {
           label: string;
           rate: string;
           description: string;
+          limit: string;
         };
         tripCancellation: {
           label: string;
           rate: string;
           description: string;
+          limit: string;
         };
       };
       territories: {
@@ -1100,6 +1107,7 @@ const translations: Record<Locale, Translation> = {
         selectType: "Ընտրեք տրանսֆերի տեսակը՝ տարբերակները տեսնելու համար։",
         perCar: "Մեքենայի համար",
         perPax: "Մեկ ուղևոր",
+        minPaxFeeNote: "Նվազագույն վճարը հաշվարկվում է 2 ուղևորի համար։",
         childPolicyLabel: "Սակագին երեխաների համար",
         childPolicyFree: {
           one: "{count} երեխա անվճար (0-1.99)",
@@ -1113,6 +1121,9 @@ const translations: Record<Locale, Translation> = {
       excursions: {
         allLabel: "Բոլոր տարբերակները",
         yasLabel: "Yas Island",
+        safariLabel: "Սաֆարի",
+        cruiseLabel: "Կրուիզ",
+        helicopterLabel: "Ուղղաթիռ",
         countLabel: {
           one: "{count} տարբերակ",
           other: "{count} տարբերակ",
@@ -1206,19 +1217,22 @@ const translations: Record<Locale, Translation> = {
             label: "Ճամփորդության անհարմարություններ",
             rate: "֏15,000",
             description:
-              "Ձեռք բերելով ճամփորդության անհարմարություններից ապահովագրություն՝ հաճախորդը բառացիորեն կազատվի ճամփորդության ընթացքում առաջացած անհարմարությունների բերած հետագա բարդություններից․\n• Չվերթի հետաձգում\n• Բաց թողնված /միջանկյալ/ թռիչք (missed connection)\n• Գույքի վնաս\n• Ընտանիքի անդամի մահ կամ հոսպիտալացում\nԱռավելագույն հատուցման գումարը կազմում է 3,000 USD:",
+              "Ձեռք բերելով ճամփորդության անհարմարություններից ապահովագրություն՝ հաճախորդը բառացիորեն կազատվի ճամփորդության ընթացքում առաջացած անհարմարությունների բերած հետագա բարդություններից․\n• Չվերթի հետաձգում\n• Բաց թողնված /միջանկյալ/ թռիչք (missed connection)\n• Գույքի վնաս\n• Ընտանիքի անդամի մահ կամ հոսպիտալացում։",
+            limit: "Առավելագույն հատուցման գումարը կազմում է 3,000 USD:"
           },
           houseInsurance: {
             label: "Տան ապահովագրություն",
             rate: "֏1,500",
             description:
-              "Ճանապարհորդության ընթացքում ապահովագրվում է ապահովագրված անձի անշարժ գույքը` տունը կամ բնակարանը։ Ապահովագրվող ռիսկերն են հրդեհը, պայթյունը, ջրից վնասվածքը, ապակու կոտրանքը, տարերային աղետը, պատասխանատվությունը, կենդանիների գործողությունները և երրորդ անձանց հակաօրինական գործողությունները։ Առավելագույն հատուցման գումարը կազմում է 5,000 USD։",
+              "Ճանապարհորդության ընթացքում ապահովագրվում է ապահովագրված անձի անշարժ գույքը` տունը կամ բնակարանը։ Ապահովագրվող ռիսկերն են հրդեհը, պայթյունը, ջրից վնասվածքը, ապակու կոտրանքը, տարերային աղետը, պատասխանատվությունը, կենդանիների գործողությունները և երրորդ անձանց հակաօրինական գործողությունները։",
+            limit: "Առավելագույն հատուցման գումարը կազմում է 5,000 USD։"
           },
           tripCancellation: {
             label: "Ճամփորդության չեղարկում և հետաձգում",
             rate: "֏10,000",
             description:
-              "Հաճախորդը կստանա ուղևորության չկայացման հետևանքով նախապես վճարված ուղևորության տոմսերի վերադարձի և հյուրանոցային համարների, ներառյալ Transfer ամրագրումը չեղարկելու հետ կապված ծախսերը, եթե դա հետևանք է․\n▪ հաճախորդի կամ իր ընտանիքի անդամներից որևէ մեկի հոսպիտալացման կամ մահվան,\n▪ հաճախորդին պատկանող անշարժ գույքի` հրդեհի, պայթյունի կամ ջրից վնասների հետևանքով վնասման (ոչնչացման),\n▪ հաճախորդի զորակոչի կամ ներգրավմանը դատական գործում,\n▪ հաճախորդի կամ ճամփորդության ուղեկցի կովիդ-19 ունենալը, եթե նախատեսված ճամփորդությունից առավելագույնը 72 ժամ առաջ կատարված ՊՇՌ թեստը դրական է։\nԱռավելագույն հատուցման գումարը կազմում է 3,000 USD։",
+              "Հաճախորդը կստանա ուղևորության չկայացման հետևանքով նախապես վճարված ուղևորության տոմսերի վերադարձի և հյուրանոցային համարների, ներառյալ Transfer ամրագրումը չեղարկելու հետ կապված ծախսերը, եթե դա հետևանք է․\n▪ հաճախորդի կամ իր ընտանիքի անդամներից որևէ մեկի հոսպիտալացման կամ մահվան,\n▪ հաճախորդին պատկանող անշարժ գույքի` հրդեհի, պայթյունի կամ ջրից վնասների հետևանքով վնասման (ոչնչացման),\n▪ հաճախորդի զորակոչի կամ ներգրավմանը դատական գործում,\n▪ հաճախորդի կամ ճամփորդության ուղեկցի կովիդ-19 ունենալը, եթե նախատեսված ճամփորդությունից առավելագույնը 72 ժամ առաջ կատարված ՊՇՌ թեստը դրական է։",
+            limit: "Առավելագույն հատուցման գումարը կազմում է 3,000 USD։"
           },
         },
         territories: {
@@ -2365,6 +2379,7 @@ const translations: Record<Locale, Translation> = {
         selectType: "Select a transfer type to view options.",
         perCar: "Per car",
         perPax: "Per pax",
+        minPaxFeeNote: "Minimum fee is for 2 pax.",
         childPolicyLabel: "Children pricing",
         childPolicyFree: {
           one: "{count} child free (0-1.99)",
@@ -2378,6 +2393,9 @@ const translations: Record<Locale, Translation> = {
       excursions: {
         allLabel: "All Options",
         yasLabel: "Yas Island",
+        safariLabel: "Safari",
+        cruiseLabel: "Cruise",
+        helicopterLabel: "Helicopter",
         countLabel: {
           one: "{count} option",
           other: "{count} options",
@@ -2471,19 +2489,22 @@ const translations: Record<Locale, Translation> = {
             label: "Travel inconveniences",
             rate: "֏15,000",
             description:
-              "By purchasing travel inconveniences insurance, the client will literally be freed from further complications caused by the inconveniences during the trip:\n• Flight delay\n• Missed /intermediate/ flight (missed connection)\n• Property damage\n• Death or hospitalization of a family member\nThe maximum compensation amount is 3,000 USD.",
+              "By purchasing travel inconveniences insurance, the client will literally be freed from further complications caused by the inconveniences during the trip:\n• Flight delay\n• Missed /intermediate/ flight (missed connection)\n• Property damage\n• Death or hospitalization of a family member.",
+            limit: "The maximum compensation amount is 3,000 USD."
           },
           houseInsurance: {
             label: "Home insurance",
             rate: "֏1,500",
             description:
-              "During the trip, the immovable property of the insured - house or apartment - is insured. Insured risks are fire, explosion, water damage, glass breakage, natural disaster, liability, animal acts and illegal actions of third parties. The maximum compensation amount is 5,000 USD.",
+              "During the trip, the immovable property of the insured - house or apartment - is insured. Insured risks are fire, explosion, water damage, glass breakage, natural disaster, liability, animal acts and illegal actions of third parties.",
+            limit: "The maximum compensation amount is 5,000 USD."
           },
           tripCancellation: {
             label: "Trip cancellation or delay",
             rate: "֏10,000",
             description:
-              "The customer will be reimbursed for the refund of pre-paid travel tickets and cancellation of hotel rooms, including Transfer booking fees, as a result of trip cancellation, if this is a result of:\n▪ hospitalization or death of the client or any of their family members,\n▪ damage (destruction) of the real estate belonging to the client due to fire, explosion or water damage,\n▪ conscription or involvement of the client in a court case,\n▪ the customer or travel companion having Covid-19, if the PCR test performed at most 72 hours before the planned trip is positive.\nThe maximum compensation amount is 3,000 USD.",
+              "The customer will be reimbursed for the refund of pre-paid travel tickets and cancellation of hotel rooms, including Transfer booking fees, as a result of trip cancellation, if this is a result of:\n▪ hospitalization or death of the client or any of their family members,\n▪ damage (destruction) of the real estate belonging to the client due to fire, explosion or water damage,\n▪ conscription or involvement of the client in a court case,\n▪ the customer or travel companion having Covid-19, if the PCR test performed at most 72 hours before the planned trip is positive.",
+            limit: "The maximum compensation amount is 3,000 USD."
           },
         },
         territories: {
@@ -3631,6 +3652,7 @@ const translations: Record<Locale, Translation> = {
         selectType: "Выберите тип трансфера, чтобы увидеть варианты.",
         perCar: "За автомобиль",
         perPax: "За пассажира",
+        minPaxFeeNote: "Минимальная стоимость рассчитывается за 2 пассажиров.",
         childPolicyLabel: "Детские тарифы",
         childPolicyFree: {
           one: "{count} ребенок бесплатно (0-1.99)",
@@ -3648,6 +3670,9 @@ const translations: Record<Locale, Translation> = {
       excursions: {
         allLabel: "Все варианты",
         yasLabel: "Yas Island",
+        safariLabel: "Сафари",
+        cruiseLabel: "Круиз",
+        helicopterLabel: "Вертолет",
         countLabel: {
           one: "{count} вариант",
           few: "{count} варианта",
@@ -3743,19 +3768,22 @@ const translations: Record<Locale, Translation> = {
             label: "Неудобства в поездке",
             rate: "֏15,000",
             description:
-              "При оформлении страхования от неудобств в поездке клиент освобождается от дальнейших сложностей, вызванных неудобствами во время путешествия:\n• Задержка рейса\n• Пропущенный стыковочный рейс (missed connection)\n• Повреждение имущества\n• Смерть или госпитализация члена семьи\nМаксимальная сумма возмещения — 3,000 USD.",
+              "При оформлении страхования от неудобств в поездке клиент освобождается от дальнейших сложностей, вызванных неудобствами во время путешествия:\n• Задержка рейса\n• Пропущенный стыковочный рейс (missed connection)\n• Повреждение имущества\n• Смерть или госпитализация члена семьи.",
+            limit:"Максимальная сумма возмещения — 3,000 USD."
           },
           houseInsurance: {
             label: "Страхование жилья",
             rate: "֏1,500",
             description:
-              "Во время поездки страхуется недвижимое имущество застрахованного лица — дом или квартира. Страхуемые риски: пожар, взрыв, ущерб от воды, бой стекла, стихийные бедствия, ответственность, действия животных и противоправные действия третьих лиц. Максимальная сумма возмещения — 5,000 USD.",
+              "Во время поездки страхуется недвижимое имущество застрахованного лица — дом или квартира. Страхуемые риски: пожар, взрыв, ущерб от воды, бой стекла, стихийные бедствия, ответственность, действия животных и противоправные действия третьих лиц.",
+            limit: "Максимальная сумма возмещения — 5,000 USD."
           },
           tripCancellation: {
             label: "Отмена или перенос поездки",
             rate: "֏10,000",
             description:
-              "Клиент получает возмещение за возврат предварительно оплаченных билетов и расходов на отмену гостиничных номеров, включая бронирование трансфера, если отмена поездки вызвана:\n▪ госпитализацией или смертью клиента или кого-либо из членов его семьи,\n▪ повреждением (уничтожением) недвижимости клиента вследствие пожара, взрыва или повреждения водой,\n▪ призывом клиента на службу или его вовлечением в судебное дело,\n▪ заболеванием клиента или попутчика COVID-19 при положительном ПЦР-тесте, выполненном не более чем за 72 часа до планируемой поездки.\nМаксимальная сумма возмещения — 3,000 USD.",
+              "Клиент получает возмещение за возврат предварительно оплаченных билетов и расходов на отмену гостиничных номеров, включая бронирование трансфера, если отмена поездки вызвана:\n▪ госпитализацией или смертью клиента или кого-либо из членов его семьи,\n▪ повреждением (уничтожением) недвижимости клиента вследствие пожара, взрыва или повреждения водой,\n▪ призывом клиента на службу или его вовлечением в судебное дело,\n▪ заболеванием клиента или попутчика COVID-19 при положительном ПЦР-тесте, выполненном не более чем за 72 часа до планируемой поездки.",
+            limit: "Максимальная сумма возмещения — 3,000 USD."
           },
         },
         territories: {

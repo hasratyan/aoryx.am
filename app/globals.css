@@ -5275,10 +5275,6 @@ main.service-builder{
               padding-bottom: 0.5rem;
             }
 
-            h3 .subrisk-title{
-              color: #e2e8f0;
-            }
-
             h3 .subrisk-rate{
               color: rgba(148, 163, 184, 0.9);
               font-weight: 600;
@@ -5289,6 +5285,13 @@ main.service-builder{
               color: #cbd5e1;
               white-space: pre-wrap;
               line-height: 1.6;
+
+              & + span{
+                background: #ed403e78;
+                justify-self: start;
+                padding: .5em .8em;
+                border-radius: 0.5em;
+              }
             }
           }
 

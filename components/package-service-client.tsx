@@ -2525,10 +2525,10 @@ export default function PackageServiceClient({ serviceKey }: Props) {
       helicopterExcursions.length,
       t.packageBuilder.excursions.countLabel
     );
-    const safariLabel = "Safari";
-    const cruiseLabel = "Cruise";
+    const safariLabel = t.packageBuilder.excursions.safariLabel;
+    const cruiseLabel = t.packageBuilder.excursions.cruiseLabel;
     const burjLabel = "Burj Khalifa";
-    const helicopterLabel = "Helicopter";
+    const helicopterLabel = t.packageBuilder.excursions.helicopterLabel;
 
     return (
       <>
@@ -3012,6 +3012,8 @@ export default function PackageServiceClient({ serviceKey }: Props) {
               : transferType === "INDIVIDUAL"
                 ? individualLabel
                 : t.packageBuilder.services.transfer;
+          const showMinPaxTip =
+            transferType === "GROUP" && chargeType === "PER_PAX" && totalGuestCount === 1;
           return (
             <div
               key={id}
@@ -3048,6 +3050,12 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                 ) : null}
                 {childPolicyLine ? (
                   <p className="meta"><span className="material-symbols-rounded">child_care</span>{childPolicyLine}</p>
+                ) : null}
+                {showMinPaxTip ? (
+                  <p className="meta">
+                    <span className="material-symbols-rounded">info</span>
+                    {t.packageBuilder.transfers.minPaxFeeNote}
+                  </p>
                 ) : null}
                 {formattedTotalPrice && totalGuestCount > 0 ? (
                   <p className="meta rate">
@@ -3604,7 +3612,7 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                   ) : null}
                   <div>
                     <h3>
-                      <span className="subrisk-title">{subrisk.label}</span>
+                      {subrisk.label}
                       {subriskRateLabel ? (
                         <span className="subrisk-rate">({subriskRateLabel})</span>
                       ) : null}
@@ -3613,6 +3621,10 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                       <p>
                         {subrisk.description}
                       </p>
+                    ) : null}
+
+                    {subrisk.limit ? (
+                      <span>{subrisk.limit}</span>
                     ) : null}
                   </div>
                   <span className="toggle">
