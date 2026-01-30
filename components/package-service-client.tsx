@@ -268,6 +268,7 @@ type InsuranceSubriskOption = {
   label: string;
   rate: string;
   description: string;
+  limit?: string;
 };
 
 const normalizeTransferType = (value: string | null | undefined): TransferType | null => {
@@ -3623,9 +3624,9 @@ export default function PackageServiceClient({ serviceKey }: Props) {
                       </p>
                     ) : null}
 
-                    {subrisk.limit ? (
+                    {subrisk.limit && (
                       <span>{subrisk.limit}</span>
-                    ) : null}
+                    )}
                   </div>
                   <span className="toggle">
                     <input
